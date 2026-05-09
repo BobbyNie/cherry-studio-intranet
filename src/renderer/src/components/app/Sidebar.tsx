@@ -1,6 +1,7 @@
 import EmojiAvatar from '@renderer/components/Avatar/EmojiAvatar'
 import { isMac } from '@renderer/config/constant'
 import { UserAvatar } from '@renderer/config/env'
+import { filterSidebarIconsForCurrentMode } from '@renderer/config/sidebar'
 import { useTheme } from '@renderer/context/ThemeProvider'
 import useAvatar from '@renderer/hooks/useAvatar'
 import { useFullscreen } from '@renderer/hooks/useFullscreen'
@@ -55,7 +56,8 @@ const Sidebar: FC = () => {
 
   const backgroundColor = useNavBackgroundColor()
 
-  const showPinnedApps = pinned.length > 0 && sidebarIcons.visible.includes('minapp')
+  const visibleSidebarIcons = filterSidebarIconsForCurrentMode(sidebarIcons.visible)
+  const showPinnedApps = pinned.length > 0 && visibleSidebarIcons.includes('minapp')
 
   const to = async (path: string) => {
     await modelGenerating()
@@ -157,7 +159,7 @@ const MainMenus: FC = () => {
     openclaw: '/openclaw'
   }
 
-  return sidebarIcons.visible.map((icon) => {
+  return filterSidebarIconsForCurrentMode(sidebarIcons.visible).map((icon) => {
     const path = pathMap[icon]
     const isActive = path === '/' ? isRoute(path) : isRoutes(path)
 

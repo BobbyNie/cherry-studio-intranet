@@ -1,4 +1,4 @@
-import { allMinApps } from '@renderer/config/minapps'
+import { allMinApps, filterMinAppsForCurrentMode } from '@renderer/config/minapps'
 import type { RootState } from '@renderer/store'
 import { useAppDispatch, useAppSelector } from '@renderer/store'
 import { setDisabledMinApps, setMinApps, setPinnedMinApps } from '@renderer/store/minapps'
@@ -75,6 +75,9 @@ export const useMinapps = () => {
   const minAppRegionSetting = useAppSelector((state: RootState) => state.settings.minAppRegion)
   const detectedRegion = useAppSelector((state: RootState) => state.runtime.detectedRegion)
   const dispatch = useAppDispatch()
+  const sanitizedEnabled = useMemo(() => filterMinAppsForCurrentMode(enabled), [enabled])
+  const sanitizedDisabled = useMemo(() => filterMinAppsForCurrentMode(disabled), [disabled])
+  const sanitizedPinned = useMemo(() => filterMinAppsForCurrentMode(pinned), [pinned])
 
   // Track if this hook instance has initiated detection to avoid duplicate requests
   const hasInitiatedDetection = useRef(false)
@@ -115,19 +118,19 @@ export const useMinapps = () => {
 
   // READ: Get apps filtered by region for UI display
   const minapps = useMemo(() => {
-    const allApps = getAllApps(enabled, disabled)
-    const disabledIds = new Set(disabled.map((app) => app.id))
+    const allApps = getAllApps(sanitizedEnabled, sanitizedDisabled)
+    const disabledIds = new Set(sanitizedDisabled.map((app) => app.id))
     const withoutDisabled = allApps.filter((app) => !disabledIds.has(app.id))
     return filterByRegion(withoutDisabled, effectiveRegion)
-  }, [enabled, disabled, effectiveRegion, getAllApps])
+  }, [sanitizedEnabled, sanitizedDisabled, effectiveRegion, getAllApps])
 
   const disabledApps = useMemo(
-    () => filterByRegion(mapApps(disabled), effectiveRegion),
-    [disabled, effectiveRegion, mapApps]
+    () => filterByRegion(mapApps(sanitizedDisabled), effectiveRegion),
+    [sanitizedDisabled, effectiveRegion, mapApps]
   )
   // Pinned apps are always visible regardless of region/language
   // User explicitly pinned apps should not be hidden
-  const pinnedApps = useMemo(() => mapApps(pinned), [pinned, mapApps])
+  const pinnedApps = useMemo(() => mapApps(sanitizedPinned), [sanitizedPinned, mapApps])
 
   // Get hidden apps for preserving user preferences when writing
   const getHiddenApps = useCallback((region: MinAppRegion) => {
@@ -138,11 +141,11 @@ export const useMinapps = () => {
 
   const updateMinapps = useCallback(
     (visibleApps: MinAppType[]) => {
-      const disabledIds = new Set(disabled.map((app) => app.id))
+      const disabledIds = new Set(sanitizedDisabled.map((app) => app.id))
       const withoutDisabled = visibleApps.filter((app) => !disabledIds.has(app.id))
 
       const hiddenIds = getHiddenApps(effectiveRegion)
-      const preservedHidden = enabled.filter((app) => hiddenIds.has(app.id) && !disabledIds.has(app.id))
+      const preservedHidden = sanitizedEnabled.filter((app) => hiddenIds.has(app.id) && !disabledIds.has(app.id))
 
       const visibleIds = new Set(withoutDisabled.map((app) => app.id))
       const toAppend = preservedHidden.filter((app) => !visibleIds.has(app.id))
@@ -153,21 +156,21 @@ export const useMinapps = () => {
 
       dispatch(setMinApps([...merged, ...missingApps]))
     },
-    [dispatch, enabled, disabled, effectiveRegion, getHiddenApps]
+    [dispatch, sanitizedEnabled, sanitizedDisabled, effectiveRegion, getHiddenApps]
   )
 
   // WRITE: Update disabled apps, preserving hidden disabled apps
   const updateDisabledMinapps = useCallback(
     (visibleDisabledApps: MinAppType[]) => {
       const hiddenIds = getHiddenApps(effectiveRegion)
-      const preservedHidden = disabled.filter((app) => hiddenIds.has(app.id))
+      const preservedHidden = sanitizedDisabled.filter((app) => hiddenIds.has(app.id))
 
       const visibleIds = new Set(visibleDisabledApps.map((app) => app.id))
       const toAppend = preservedHidden.filter((app) => !visibleIds.has(app.id))
 
       dispatch(setDisabledMinApps([...visibleDisabledApps, ...toAppend]))
     },
-    [dispatch, disabled, effectiveRegion, getHiddenApps]
+    [dispatch, sanitizedDisabled, effectiveRegion, getHiddenApps]
   )
 
   // WRITE: Update pinned apps directly (no preservedHidden needed —

@@ -59,6 +59,7 @@ import OpenAiProviderLogo from '@renderer/assets/images/providers/openai.png?url
 import SiliconFlowProviderLogo from '@renderer/assets/images/providers/silicon.png?url'
 import ZhipuProviderLogo from '@renderer/assets/images/providers/zhipu.png?url'
 import type { MinAppType } from '@renderer/types'
+import { isIntranetMode } from '@shared/config/intranet'
 
 const logger = loggerService.withContext('Config:minapps')
 
@@ -91,7 +92,7 @@ const loadCustomMiniApp = async (): Promise<MinAppType[]> => {
 }
 
 // 初始化默认小应用
-const ORIGIN_DEFAULT_MIN_APPS: MinAppType[] = [
+const PUBLIC_DEFAULT_MIN_APPS: MinAppType[] = [
   {
     id: 'openai',
     name: 'ChatGPT',
@@ -587,11 +588,30 @@ const ORIGIN_DEFAULT_MIN_APPS: MinAppType[] = [
   }
 ]
 
-// All mini apps: built-in defaults + custom apps loaded from user config
-let allMinApps = [...ORIGIN_DEFAULT_MIN_APPS, ...(await loadCustomMiniApp())]
+const PUBLIC_DEFAULT_MIN_APP_IDS = new Set(PUBLIC_DEFAULT_MIN_APPS.map((app) => app.id))
 
-function updateAllMinApps(apps: MinAppType[]) {
-  allMinApps = apps
+const filterMinAppsForCurrentMode = (apps: MinAppType[]): MinAppType[] => {
+  if (!isIntranetMode()) {
+    return apps
+  }
+
+  return apps.filter((app) => !PUBLIC_DEFAULT_MIN_APP_IDS.has(app.id))
 }
 
-export { allMinApps, loadCustomMiniApp, ORIGIN_DEFAULT_MIN_APPS, updateAllMinApps }
+const ORIGIN_DEFAULT_MIN_APPS: MinAppType[] = filterMinAppsForCurrentMode(PUBLIC_DEFAULT_MIN_APPS)
+
+// All mini apps: built-in defaults + custom apps loaded from user config
+let allMinApps = filterMinAppsForCurrentMode([...ORIGIN_DEFAULT_MIN_APPS, ...(await loadCustomMiniApp())])
+
+function updateAllMinApps(apps: MinAppType[]) {
+  allMinApps = filterMinAppsForCurrentMode(apps)
+}
+
+export {
+  allMinApps,
+  filterMinAppsForCurrentMode,
+  loadCustomMiniApp,
+  ORIGIN_DEFAULT_MIN_APPS,
+  PUBLIC_DEFAULT_MIN_APPS,
+  updateAllMinApps
+}

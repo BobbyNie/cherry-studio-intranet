@@ -1,12 +1,13 @@
 import { loggerService } from '@logger'
 import { isMac } from '@main/constant'
+import { isIntranetMode } from '@shared/config/intranet'
 
 import { windowService } from '../WindowService'
 
 const logger = loggerService.withContext('URLSchema:handleNavigateProtocolUrl')
 
 // Allowed route prefixes to prevent arbitrary navigation
-const ALLOWED_ROUTES = [
+const BASE_ALLOWED_ROUTES = [
   '/settings/',
   '/agents',
   '/knowledge',
@@ -33,8 +34,11 @@ const ALLOWED_ROUTES = [
 export function handleNavigateProtocolUrl(url: URL) {
   const targetPath = url.pathname || '/'
   const normalizedPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`
+  const allowedRoutes = isIntranetMode()
+    ? BASE_ALLOWED_ROUTES.filter((route) => route !== '/openclaw')
+    : BASE_ALLOWED_ROUTES
 
-  if (!ALLOWED_ROUTES.some((route) => normalizedPath === route || normalizedPath.startsWith(route))) {
+  if (!allowedRoutes.some((route) => normalizedPath === route || normalizedPath.startsWith(route))) {
     logger.warn(`Blocked navigation to disallowed route: ${normalizedPath}`)
     return
   }

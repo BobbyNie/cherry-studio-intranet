@@ -18,7 +18,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 import { DEFAULT_STREAM_OPTIONS_INCLUDE_USAGE, isMac } from '@renderer/config/constant'
 import { TRANSLATE_PROMPT } from '@renderer/config/prompts'
-import { DEFAULT_SIDEBAR_ICONS } from '@renderer/config/sidebar'
+import { DEFAULT_SIDEBAR_ICONS, filterSidebarIconsForCurrentMode } from '@renderer/config/sidebar'
 import type {
   ApiServerConfig,
   AssistantsSortType,
@@ -695,10 +695,10 @@ const settingsSlice = createSlice({
     },
     setSidebarIcons: (state, action: PayloadAction<{ visible?: SidebarIcon[]; disabled?: SidebarIcon[] }>) => {
       if (action.payload.visible) {
-        state.sidebarIcons.visible = action.payload.visible
+        state.sidebarIcons.visible = filterSidebarIconsForCurrentMode(action.payload.visible)
       }
       if (action.payload.disabled) {
-        state.sidebarIcons.disabled = action.payload.disabled
+        state.sidebarIcons.disabled = filterSidebarIconsForCurrentMode(action.payload.disabled)
       }
     },
     setNarrowMode: (state, action: PayloadAction<boolean>) => {

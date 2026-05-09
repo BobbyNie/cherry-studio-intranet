@@ -21,17 +21,14 @@ describe('intranet renderer defaults', () => {
       apiHost: 'http://llm-gateway.intranet.local/v1',
       enabled: true
     })
-    expect(SYSTEM_PROVIDERS.map((provider) => provider.id)).toEqual([
-      'intranet',
-      'new-api',
-      'ollama',
-      'lmstudio',
-      'ovms',
-      'gpustack'
-    ])
+    expect(SYSTEM_PROVIDERS.map((provider) => provider.id)).toEqual(['intranet', 'ollama'])
     expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'openai')).toBe(false)
     expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'anthropic')).toBe(false)
     expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'gemini')).toBe(false)
+    expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'new-api')).toBe(false)
+    expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'lmstudio')).toBe(false)
+    expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'ovms')).toBe(false)
+    expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'gpustack')).toBe(false)
   })
 
   it('defaults web search to intranet SearXNG only', async () => {
@@ -50,5 +47,16 @@ describe('intranet renderer defaults', () => {
         basicAuthPassword: ''
       }
     ])
+  })
+
+  it('removes openclaw from default sidebar icons in intranet mode', async () => {
+    process.env.CHERRY_INTRANET_MODE = 'true'
+    process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
+    vi.resetModules()
+
+    const { DEFAULT_SIDEBAR_ICONS } = await import('../sidebar')
+
+    expect(DEFAULT_SIDEBAR_ICONS).not.toContain('openclaw')
+    expect(DEFAULT_SIDEBAR_ICONS).toContain('minapp')
   })
 })

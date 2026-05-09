@@ -22,12 +22,12 @@ import {
   DEFAULT_TEMPERATURE,
   isMac
 } from '@renderer/config/constant'
-import { allMinApps } from '@renderer/config/minapps'
+import { allMinApps, filterMinAppsForCurrentMode } from '@renderer/config/minapps'
 import { isFunctionCallingModel, isNotSupportTextDeltaModel, qwenModel, SYSTEM_MODELS } from '@renderer/config/models'
 import { BUILTIN_OCR_PROVIDERS, BUILTIN_OCR_PROVIDERS_MAP, DEFAULT_OCR_PROVIDER } from '@renderer/config/ocr'
 import { TRANSLATE_PROMPT } from '@renderer/config/prompts'
-import { SYSTEM_PROVIDERS } from '@renderer/config/providers'
-import { DEFAULT_SIDEBAR_ICONS } from '@renderer/config/sidebar'
+import { INTRANET_VISIBLE_PROVIDER_IDS, SYSTEM_PROVIDERS } from '@renderer/config/providers'
+import { DEFAULT_SIDEBAR_ICONS, filterSidebarIconsForCurrentMode } from '@renderer/config/sidebar'
 import db from '@renderer/databases'
 import { getModel } from '@renderer/hooks/useModel'
 import i18n from '@renderer/i18n'
@@ -51,6 +51,7 @@ import {
 } from '@renderer/utils/provider'
 import { API_SERVER_DEFAULTS } from '@shared/config/constant'
 import { defaultByPassRules, UpgradeChannel } from '@shared/config/constant'
+import { isIntranetMode } from '@shared/config/intranet'
 import { isEmpty } from 'lodash'
 import { createMigrate } from 'redux-persist'
 
@@ -3410,6 +3411,61 @@ const migrateConfig = {
       return state
     } catch (error) {
       logger.error('migrate 206 error', error as Error)
+      return state
+    }
+  },
+  '207': (state: RootState) => {
+    try {
+      if (!isIntranetMode()) {
+        logger.info('migrate 207 skipped outside intranet mode')
+        return state
+      }
+
+      const intranetFallbackModel = SYSTEM_MODELS.defaultModel[0]
+      const allowedProviderIds = new Set(INTRANET_VISIBLE_PROVIDER_IDS)
+
+      state.settings.sidebarIcons.visible = filterSidebarIconsForCurrentMode(state.settings.sidebarIcons.visible)
+      state.settings.sidebarIcons.disabled = filterSidebarIconsForCurrentMode(state.settings.sidebarIcons.disabled)
+
+      if (state.minapps) {
+        state.minapps.enabled = filterMinAppsForCurrentMode(state.minapps.enabled)
+        state.minapps.disabled = filterMinAppsForCurrentMode(state.minapps.disabled)
+        state.minapps.pinned = filterMinAppsForCurrentMode(state.minapps.pinned)
+      }
+
+      state.llm.providers = state.llm.providers.filter(
+        (provider) =>
+          !provider.isSystem || allowedProviderIds.has(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
+      )
+
+      const ensureAllowedModel = (model?: Model) => {
+        if (!model || allowedProviderIds.has(model.provider as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])) {
+          return model ?? intranetFallbackModel
+        }
+        return intranetFallbackModel
+      }
+
+      state.llm.defaultModel = ensureAllowedModel(state.llm.defaultModel)
+      state.llm.quickModel = ensureAllowedModel(state.llm.quickModel)
+      state.llm.translateModel = ensureAllowedModel(state.llm.translateModel)
+      state.llm.topicNamingModel = ensureAllowedModel(state.llm.topicNamingModel)
+
+      state.assistants.assistants.forEach((assistant) => {
+        assistant.model = ensureAllowedModel(assistant.model)
+        assistant.defaultModel = ensureAllowedModel(assistant.defaultModel)
+      })
+
+      if (state.assistants.defaultAssistant) {
+        state.assistants.defaultAssistant.model = ensureAllowedModel(state.assistants.defaultAssistant.model)
+        state.assistants.defaultAssistant.defaultModel = ensureAllowedModel(
+          state.assistants.defaultAssistant.defaultModel
+        )
+      }
+
+      logger.info('migrate 207 success')
+      return state
+    } catch (error) {
+      logger.error('migrate 207 error', error as Error)
       return state
     }
   }

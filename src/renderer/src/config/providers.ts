@@ -752,14 +752,7 @@ export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> =
   }
 } as const
 
-export const INTRANET_VISIBLE_PROVIDER_IDS: SystemProviderId[] = [
-  'intranet',
-  'new-api',
-  'ollama',
-  'lmstudio',
-  'ovms',
-  'gpustack'
-]
+export const INTRANET_VISIBLE_PROVIDER_IDS: SystemProviderId[] = ['intranet', 'ollama']
 
 export const SYSTEM_PROVIDERS: SystemProvider[] = isIntranetMode()
   ? INTRANET_VISIBLE_PROVIDER_IDS.map((id, index) => ({

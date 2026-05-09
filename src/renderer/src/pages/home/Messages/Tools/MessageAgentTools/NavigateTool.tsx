@@ -1,3 +1,4 @@
+import { isIntranetMode } from '@shared/config/intranet'
 import { Compass } from 'lucide-react'
 
 interface NavigateToolInput {
@@ -50,16 +51,20 @@ const ROUTE_LABELS: Record<string, { icon: string; label: string }> = {
   '/settings/websearch/provider': { icon: '🔍', label: 'Search Provider' }
 }
 
+const ROUTE_LABELS_FOR_CURRENT_MODE = isIntranetMode()
+  ? Object.fromEntries(Object.entries(ROUTE_LABELS).filter(([route]) => route !== '/openclaw'))
+  : ROUTE_LABELS
+
 // Sorted by path length descending for longest prefix match
-const SORTED_ROUTES = Object.entries(ROUTE_LABELS).sort((a, b) => b[0].length - a[0].length)
+const SORTED_ROUTES = Object.entries(ROUTE_LABELS_FOR_CURRENT_MODE).sort((a, b) => b[0].length - a[0].length)
 
 function getRouteInfo(path: string): { icon: string; label: string } {
   // Exact match first
-  if (ROUTE_LABELS[path]) return ROUTE_LABELS[path]
+  if (ROUTE_LABELS_FOR_CURRENT_MODE[path]) return ROUTE_LABELS_FOR_CURRENT_MODE[path]
 
   // Strip query string for matching
   const cleanPath = path.split('?')[0]
-  if (ROUTE_LABELS[cleanPath]) return ROUTE_LABELS[cleanPath]
+  if (ROUTE_LABELS_FOR_CURRENT_MODE[cleanPath]) return ROUTE_LABELS_FOR_CURRENT_MODE[cleanPath]
 
   // Longest prefix match
   for (const [route, info] of SORTED_ROUTES) {
