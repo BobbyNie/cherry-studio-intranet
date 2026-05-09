@@ -32,6 +32,20 @@ describe('intranet release workflow', () => {
     expect(buildStep.run).toContain('pnpm package:win:intranet')
   })
 
+  it('runs tests before compiling release packages', () => {
+    const workflow = parse(readFileSync(workflowPath, 'utf8'))
+    const testJob = workflow.jobs['test-intranet-release']
+    const buildJob = workflow.jobs['build-intranet-release']
+    const buildNeeds = Array.isArray(buildJob.needs) ? buildJob.needs : [buildJob.needs]
+    const testRuns = testJob.steps.map((step: { run?: string }) => step.run ?? '').join('\n')
+
+    expect(testJob.needs).toBe('metadata')
+    expect(buildNeeds).toEqual(expect.arrayContaining(['metadata', 'test-intranet-release']))
+    expect(testRuns).toContain('pnpm lint')
+    expect(testRuns).toContain('pnpm i18n:hardcoded:strict')
+    expect(testRuns).toContain('pnpm test')
+  })
+
   it('keeps Windows portable target available for release users', () => {
     const builderConfig = parse(readFileSync(builderConfigPath, 'utf8'))
     const winTargets = builderConfig.win.target.map((target: { target: string }) => target.target)

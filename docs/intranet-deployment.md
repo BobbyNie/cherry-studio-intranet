@@ -81,6 +81,8 @@ corepack pnpm package:win:intranet
 
 发布行为：
 
+- `test-intranet-release` 先执行 `pnpm lint`、`pnpm i18n:hardcoded:strict`、`pnpm test`
+- `build-intranet-release` 依赖测试门禁通过后才开始 macOS/Windows 编译
 - 构建任务先上传 Actions artifact
 - `publish-intranet-release` 统一下载全部 artifact
 - 自动创建或更新 GitHub Release
