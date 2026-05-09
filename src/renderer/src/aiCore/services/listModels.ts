@@ -11,11 +11,13 @@ import {
 } from '@ai-sdk/provider-utils'
 import { loggerService } from '@logger'
 import { COPILOT_DEFAULT_HEADERS } from '@renderer/aiCore/provider/constants'
+import { intranetModels } from '@renderer/config/models/intranet'
 import store from '@renderer/store'
 import type { EndpointType, Model, Provider } from '@renderer/types'
 import { SystemProviderIds } from '@renderer/types'
 import { formatApiHost, withoutTrailingSlash } from '@renderer/utils'
 import { isGeminiProvider, isOllamaProvider, isVertexProvider } from '@renderer/utils/provider'
+import { assertNetworkAllowed, isIntranetMode } from '@shared/config/intranet'
 import { defaultAppHeaders } from '@shared/utils'
 import * as z from 'zod'
 
@@ -73,6 +75,8 @@ async function getFromApi<T>({
   responseSchema: z.ZodType<T>
   abortSignal?: AbortSignal
 }): Promise<T> {
+  assertNetworkAllowed(url)
+
   const { value } = await aiSdkGetFromApi({
     url,
     headers,
@@ -492,9 +496,27 @@ const openAICompatibleFetcher: ModelFetcher = {
   }
 }
 
+const intranetFetcher: ModelFetcher = {
+  match: (p) => isIntranetMode() && p.id === SystemProviderIds.intranet,
+  fetch: async (provider, signal) => {
+    const baseUrl = formatApiHost(provider.apiHost)
+    try {
+      assertNetworkAllowed(`${baseUrl}/models`)
+    } catch (error) {
+      logger.warn('Using bundled intranet model preset because model API host is not allowlisted', {
+        providerId: provider.id,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return intranetModels
+    }
+    return openAICompatibleFetcher.fetch(provider, signal)
+  }
+}
+
 // === Registry (order matters: first match wins) ===
 
 const fetchers: ModelFetcher[] = [
+  intranetFetcher,
   aiHubMixFetcher,
   ollamaFetcher,
   geminiFetcher,

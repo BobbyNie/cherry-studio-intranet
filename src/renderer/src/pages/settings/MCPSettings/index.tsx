@@ -11,6 +11,7 @@ import ListItem from '@renderer/components/ListItem'
 import Scrollbar from '@renderer/components/Scrollbar'
 import { useTheme } from '@renderer/context/ThemeProvider'
 import { useMCPServers } from '@renderer/hooks/useMCPServers'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import { Button, Flex } from 'antd'
 import { FolderCog, Package, ShoppingBag } from 'lucide-react'
 import type { FC } from 'react'
@@ -35,6 +36,7 @@ const MCPSettings: FC = () => {
   const { mcpServers } = useMCPServers()
   const navigate = useNavigate()
   const location = useLocation()
+  const marketplaceDisabled = isMarketplaceDisabled()
 
   // 获取当前激活的页面
   const getActiveView = () => {
@@ -42,10 +44,10 @@ const MCPSettings: FC = () => {
 
     // 精确匹配路径
     if (path === '/settings/mcp/builtin') return 'builtin'
-    if (path === '/settings/mcp/marketplaces') return 'marketplaces'
+    if (!marketplaceDisabled && path === '/settings/mcp/marketplaces') return 'marketplaces'
 
     // 检查是否是服务商页面 - 精确匹配
-    for (const provider of providers) {
+    for (const provider of marketplaceDisabled ? [] : providers) {
       if (path === `/settings/mcp/${provider.key}`) {
         return provider.key
       }
@@ -62,10 +64,10 @@ const MCPSettings: FC = () => {
     const path = location.pathname
     // 主页面不显示返回按钮
     if (path === '/settings/mcp' || path === '/settings/mcp/servers') return true
-    if (path === '/settings/mcp/builtin' || path === '/settings/mcp/marketplaces') return true
+    if (path === '/settings/mcp/builtin' || (!marketplaceDisabled && path === '/settings/mcp/marketplaces')) return true
 
     // 服务商页面也是主页面
-    return providers.some((p) => path === `/settings/mcp/${p.key}`)
+    return !marketplaceDisabled && providers.some((p) => path === `/settings/mcp/${p.key}`)
   }
 
   // Provider icons map
@@ -89,7 +91,14 @@ const MCPSettings: FC = () => {
             icon={<McpLogo width={18} height={18} style={{ opacity: 0.8 }} />}
             titleStyle={{ fontWeight: 500 }}
           />
-          <DividerWithText text={t('settings.mcp.discover', 'Discover')} style={{ margin: '10px 0 8px 0' }} />
+          <DividerWithText
+            text={
+              marketplaceDisabled
+                ? t('settings.mcp.intranet_notice', 'MCP 自动安装已禁用，请由管理员在内网仓库预置 MCP 服务。')
+                : t('settings.mcp.discover', 'Discover')
+            }
+            style={{ margin: '10px 0 8px 0' }}
+          />
           <ListItem
             title={t('settings.mcp.builtinServers', 'Built-in Servers')}
             active={activeView === 'builtin'}
@@ -97,24 +106,28 @@ const MCPSettings: FC = () => {
             icon={<Package size={18} />}
             titleStyle={{ fontWeight: 500 }}
           />
-          <ListItem
-            title={t('settings.mcp.marketplaces', 'Marketplaces')}
-            active={activeView === 'marketplaces'}
-            onClick={() => navigate('/settings/mcp/marketplaces')}
-            icon={<ShoppingBag size={18} />}
-            titleStyle={{ fontWeight: 500 }}
-          />
-          <DividerWithText text={t('settings.mcp.providers', 'Providers')} style={{ margin: '10px 0 8px 0' }} />
-          {providers.map((provider) => (
-            <ListItem
-              key={provider.key}
-              title={getProviderDisplayName(provider, t)}
-              active={activeView === provider.key}
-              onClick={() => navigate(`/settings/mcp/${provider.key}`)}
-              icon={providerIcons[provider.key] || <FolderCog size={16} />}
-              titleStyle={{ fontWeight: 500 }}
-            />
-          ))}
+          {!marketplaceDisabled && (
+            <>
+              <ListItem
+                title={t('settings.mcp.marketplaces', 'Marketplaces')}
+                active={activeView === 'marketplaces'}
+                onClick={() => navigate('/settings/mcp/marketplaces')}
+                icon={<ShoppingBag size={18} />}
+                titleStyle={{ fontWeight: 500 }}
+              />
+              <DividerWithText text={t('settings.mcp.providers', 'Providers')} style={{ margin: '10px 0 8px 0' }} />
+              {providers.map((provider) => (
+                <ListItem
+                  key={provider.key}
+                  title={getProviderDisplayName(provider, t)}
+                  active={activeView === provider.key}
+                  onClick={() => navigate(`/settings/mcp/${provider.key}`)}
+                  icon={providerIcons[provider.key] || <FolderCog size={16} />}
+                  titleStyle={{ fontWeight: 500 }}
+                />
+              ))}
+            </>
+          )}
         </MenuList>
         <RightContainer>
           {!isHomePage() && (
@@ -133,17 +146,25 @@ const MCPSettings: FC = () => {
             <Route
               path="npx-search"
               element={
-                <SettingContainer theme={theme}>
-                  <NpxSearch />
-                </SettingContainer>
+                marketplaceDisabled ? (
+                  <Navigate to="servers" replace />
+                ) : (
+                  <SettingContainer theme={theme}>
+                    <NpxSearch />
+                  </SettingContainer>
+                )
               }
             />
             <Route
               path="mcp-install"
               element={
-                <SettingContainer style={{ backgroundColor: 'inherit' }}>
-                  <InstallNpxUv />
-                </SettingContainer>
+                marketplaceDisabled ? (
+                  <Navigate to="servers" replace />
+                ) : (
+                  <SettingContainer style={{ backgroundColor: 'inherit' }}>
+                    <InstallNpxUv />
+                  </SettingContainer>
+                )
               }
             />
             <Route
@@ -157,18 +178,23 @@ const MCPSettings: FC = () => {
             <Route
               path="marketplaces"
               element={
-                <ContentWrapper>
-                  <McpMarketList />
-                </ContentWrapper>
+                marketplaceDisabled ? (
+                  <Navigate to="servers" replace />
+                ) : (
+                  <ContentWrapper>
+                    <McpMarketList />
+                  </ContentWrapper>
+                )
               }
             />
-            {providers.map((provider) => (
-              <Route
-                key={provider.key}
-                path={provider.key}
-                element={<ProviderDetail provider={provider} existingServers={mcpServers} />}
-              />
-            ))}
+            {!marketplaceDisabled &&
+              providers.map((provider) => (
+                <Route
+                  key={provider.key}
+                  path={provider.key}
+                  element={<ProviderDetail provider={provider} existingServers={mcpServers} />}
+                />
+              ))}
           </Routes>
         </RightContainer>
       </MainContainer>

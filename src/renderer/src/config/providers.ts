@@ -63,6 +63,7 @@ import ZeroOneProviderLogo from '@renderer/assets/images/providers/zero-one.png'
 import ZhipuProviderLogo from '@renderer/assets/images/providers/zhipu.png'
 import type { AtLeast, SystemProvider, SystemProviderId } from '@renderer/types'
 import { OpenAIServiceTiers } from '@renderer/types'
+import { isIntranetMode } from '@shared/config/intranet'
 
 import { TOKENFLUX_HOST } from './constant'
 import { qwenModel, SYSTEM_MODELS } from './models'
@@ -79,6 +80,18 @@ export const CHERRYAI_PROVIDER: SystemProvider = {
 }
 
 export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> = {
+  intranet: {
+    id: 'intranet',
+    name: '企业内网模型服务',
+    type: 'openai',
+    apiKey: '',
+    apiHost: 'http://llm-gateway.intranet.local/v1',
+    anthropicApiHost: 'http://llm-gateway.intranet.local/v1',
+    models: SYSTEM_MODELS.intranet,
+    isSystem: true,
+    enabled: true,
+    notes: 'OpenAI-compatible API for air-gapped enterprise deployments.'
+  },
   cherryin: {
     id: 'cherryin',
     name: 'CherryIN',
@@ -739,9 +752,24 @@ export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> =
   }
 } as const
 
-export const SYSTEM_PROVIDERS: SystemProvider[] = Object.values(SYSTEM_PROVIDERS_CONFIG)
+export const INTRANET_VISIBLE_PROVIDER_IDS: SystemProviderId[] = [
+  'intranet',
+  'new-api',
+  'ollama',
+  'lmstudio',
+  'ovms',
+  'gpustack'
+]
+
+export const SYSTEM_PROVIDERS: SystemProvider[] = isIntranetMode()
+  ? INTRANET_VISIBLE_PROVIDER_IDS.map((id, index) => ({
+      ...SYSTEM_PROVIDERS_CONFIG[id],
+      enabled: index === 0 ? true : SYSTEM_PROVIDERS_CONFIG[id].enabled
+    }))
+  : Object.values(SYSTEM_PROVIDERS_CONFIG)
 
 export const PROVIDER_LOGO_MAP: AtLeast<SystemProviderId, string> = {
+  intranet: NewAPIProviderLogo,
   cherryin: CherryInProviderLogo,
   ph8: Ph8ProviderLogo,
   '302ai': Ai302ProviderLogo,
@@ -831,6 +859,16 @@ type ProviderUrls = {
 }
 
 export const PROVIDER_URLS: Record<SystemProviderId, ProviderUrls> = {
+  intranet: {
+    api: {
+      url: 'http://llm-gateway.intranet.local/v1'
+    },
+    websites: {
+      official: 'http://llm-gateway.intranet.local',
+      docs: 'http://llm-gateway.intranet.local/docs',
+      models: 'http://llm-gateway.intranet.local/v1/models'
+    }
+  },
   cherryin: {
     api: {
       url: 'https://open.cherryin.net'

@@ -3,6 +3,7 @@ import { isWin } from '@main/constant'
 import { getIpCountry } from '@main/utils/ipService'
 import { generateUserAgent } from '@main/utils/systemInfo'
 import { APP_NAME, FeedUrl, UpdateConfigUrl, UpdateMirror, UpgradeChannel } from '@shared/config/constant'
+import { isAutoUpdateDisabled } from '@shared/config/intranet'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { UpdateInfo } from 'builder-util-runtime'
 import { CancellationToken } from 'builder-util-runtime'
@@ -64,6 +65,14 @@ export default class AppUpdater {
   private updateCheckResult: UpdateCheckResult | null = null
 
   constructor() {
+    if (isAutoUpdateDisabled()) {
+      autoUpdater.autoDownload = false
+      autoUpdater.autoInstallOnAppQuit = false
+      logger.info('Auto updater disabled in intranet mode')
+      this.autoUpdater = autoUpdater
+      return
+    }
+
     autoUpdater.logger = logger as Logger
     autoUpdater.forceDevUpdateConfig = !app.isPackaged
     autoUpdater.autoDownload = configManager.getAutoUpdate()
@@ -112,6 +121,11 @@ export default class AppUpdater {
   }
 
   public setAutoUpdate(isActive: boolean) {
+    if (isAutoUpdateDisabled()) {
+      autoUpdater.autoDownload = false
+      return
+    }
+
     autoUpdater.autoDownload = isActive
     // autoInstallOnAppQuit is always false - user must explicitly click "Install Now"
   }
@@ -289,6 +303,14 @@ export default class AppUpdater {
   }
 
   public async checkForUpdates() {
+    if (isAutoUpdateDisabled()) {
+      logger.info('Skipping update check because auto updater is disabled in intranet mode')
+      return {
+        currentVersion: app.getVersion(),
+        updateInfo: null
+      }
+    }
+
     void analyticsService.trackAppUpdate()
 
     if (isWin && 'PORTABLE_EXECUTABLE_DIR' in process.env) {
@@ -327,6 +349,11 @@ export default class AppUpdater {
   }
 
   public quitAndInstall() {
+    if (isAutoUpdateDisabled()) {
+      logger.info('quitAndInstall ignored because auto updater is disabled in intranet mode')
+      return
+    }
+
     app.isQuitting = true
     setImmediate(() => autoUpdater.quitAndInstall(true, true))
   }

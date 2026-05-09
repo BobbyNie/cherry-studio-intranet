@@ -4,12 +4,14 @@ import '@ant-design/v5-patch-for-react-19'
 
 import KeyvStorage from '@kangfenmao/keyv-storage'
 import { loggerService } from '@logger'
+import { installRendererIntranetNetworkGuard } from '@renderer/network/intranetNetworkGuard'
 import storeSyncService from '@renderer/services/StoreSyncService'
 import { createRoot } from 'react-dom/client'
 
 import MiniWindowApp from './MiniWindowApp'
 
 loggerService.initWindowSource('MiniWindow')
+installRendererIntranetNetworkGuard()
 
 /**
  *  This function is required for model API

@@ -7,6 +7,7 @@ import path from 'node:path'
 
 import { loggerService } from '@logger'
 import { getConfigDir } from '@main/utils/file'
+import { INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE, sanitizeExternalUrl } from '@shared/config/intranet'
 import * as crypto from 'crypto'
 import { net, shell } from 'electron'
 import { promises } from 'fs'
@@ -164,9 +165,13 @@ class AnthropicService extends Error {
     // Build authorization URL
     const authUrl = this.getAuthorizationURL(this.currentPKCE)
     logger.debug(authUrl)
+    const sanitizedAuthUrl = sanitizeExternalUrl(authUrl)
+    if (!sanitizedAuthUrl) {
+      throw new Error(INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE)
+    }
 
     // Open URL in external browser
-    await shell.openExternal(authUrl)
+    await shell.openExternal(sanitizedAuthUrl)
 
     // Return the URL for UI to show (optional)
     return authUrl

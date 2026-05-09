@@ -7,6 +7,7 @@ import {
 } from '@renderer/components/DraggableList'
 import { DeleteIcon, EditIcon } from '@renderer/components/Icons'
 import { ProviderAvatar } from '@renderer/components/ProviderAvatar'
+import { INTRANET_VISIBLE_PROVIDER_IDS } from '@renderer/config/providers'
 import { useAllProviders, useProviders } from '@renderer/hooks/useProvider'
 import { useTimer } from '@renderer/hooks/useTimer'
 import ImageStorage from '@renderer/services/ImageStorage'
@@ -14,11 +15,12 @@ import type { Provider, ProviderType } from '@renderer/types'
 import { isSystemProvider } from '@renderer/types'
 import { getFancyProviderName, matchKeywordsInModel, matchKeywordsInProvider, uuid } from '@renderer/utils'
 import { isAnthropicSupportedProvider } from '@renderer/utils/provider'
+import { isIntranetMode } from '@shared/config/intranet'
 import type { MenuProps } from 'antd'
 import { Button, Dropdown, Input, Tag } from 'antd'
 import { Check, Filter, GripVertical, PlusIcon, Search, UserPen } from 'lucide-react'
 import type { FC } from 'react'
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import styled from 'styled-components'
@@ -51,9 +53,20 @@ interface ProviderListProps {
 const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
   const [searchParams, setSearchParams] = useSearchParams()
   const providers = useAllProviders()
+  const intranetMode = isIntranetMode()
+  const visibleProviders = useMemo(
+    () =>
+      providers.filter(
+        (provider) =>
+          !intranetMode ||
+          !provider.isSystem ||
+          INTRANET_VISIBLE_PROVIDER_IDS.includes(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
+      ),
+    [intranetMode, providers]
+  )
   const { updateProviders, addProvider, removeProvider, updateProvider } = useProviders()
   const { setTimeoutTimer } = useTimer()
-  const [selectedProvider, _setSelectedProvider] = useState<Provider>(providers[0])
+  const [selectedProvider, _setSelectedProvider] = useState<Provider>(visibleProviders[0] ?? providers[0])
   const { t } = useTranslation()
   const [searchText, setSearchText] = useState<string>('')
   const [dragging, setDragging] = useState(false)
@@ -100,11 +113,11 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
       shouldUpdate = true
     } else if (searchParams.get('id')) {
       const providerId = searchParams.get('id')
-      const provider = providers.find((p) => p.id === providerId)
+      const provider = visibleProviders.find((p) => p.id === providerId)
       if (provider) {
         setSelectedProvider(provider)
         // 滚动到选中的 provider
-        const index = providers.findIndex((p) => p.id === providerId)
+        const index = visibleProviders.findIndex((p) => p.id === providerId)
         if (index >= 0) {
           setTimeoutTimer(
             'scroll-to-selected-provider',
@@ -113,7 +126,7 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
           )
         }
       } else {
-        setSelectedProvider(providers[0])
+        setSelectedProvider(visibleProviders[0] ?? providers[0])
       }
       searchParams.delete('id')
       shouldUpdate = true
@@ -122,7 +135,7 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
     if (shouldUpdate) {
       setSearchParams(searchParams)
     }
-  }, [providers, searchParams, setSearchParams, setSelectedProvider, setTimeoutTimer])
+  }, [providers, searchParams, setSearchParams, setSelectedProvider, setTimeoutTimer, visibleProviders])
 
   // Handle provider add key from URL schema
   useEffect(() => {
@@ -284,7 +297,7 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
               }
             }
 
-            setSelectedProvider(providers.filter((p) => isSystemProvider(p))[0])
+            setSelectedProvider(visibleProviders.filter((p) => isSystemProvider(p))[0] ?? visibleProviders[0])
             removeProvider(provider)
           }
         })
@@ -308,7 +321,7 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
     }
   }
 
-  const filteredProviders = providers.filter((provider) => {
+  const filteredProviders = visibleProviders.filter((provider) => {
     // don't show it when isOvmsSupported is loading
     if (provider.id === 'ovms' && !isOvmsSupported) {
       return false

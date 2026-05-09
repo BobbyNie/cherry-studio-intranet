@@ -1,4 +1,5 @@
 import type { WebSearchProvider, WebSearchProviderId } from '@renderer/types'
+import { isIntranetMode } from '@shared/config/intranet'
 
 type WebSearchProviderConfig = {
   websites: {
@@ -65,7 +66,7 @@ export const WEB_SEARCH_PROVIDER_CONFIG: Record<WebSearchProviderId, WebSearchPr
   }
 }
 
-export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
+export const PUBLIC_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
   {
     id: 'zhipu',
     name: 'Zhipu',
@@ -123,4 +124,18 @@ export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
     apiHost: 'https://api.querit.ai',
     apiKey: ''
   }
-] as const
+]
+
+export const INTRANET_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
+  {
+    id: 'searxng',
+    name: '内网 SearXNG',
+    apiHost: 'http://searxng.intranet.local',
+    basicAuthUsername: '',
+    basicAuthPassword: ''
+  }
+]
+
+export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = isIntranetMode()
+  ? INTRANET_WEB_SEARCH_PROVIDERS
+  : PUBLIC_WEB_SEARCH_PROVIDERS

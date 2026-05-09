@@ -15,9 +15,19 @@ const visualizerPlugin = (type: 'renderer' | 'main') => {
 
 const isDev = process.env.NODE_ENV === 'development'
 const isProd = process.env.NODE_ENV === 'production'
+const intranetEnv = {
+  'import.meta.env.CHERRY_INTRANET_MODE': JSON.stringify(process.env.CHERRY_INTRANET_MODE ?? ''),
+  'import.meta.env.CHERRY_DISABLE_PUBLIC_NETWORK': JSON.stringify(process.env.CHERRY_DISABLE_PUBLIC_NETWORK ?? ''),
+  'import.meta.env.CHERRY_DISABLE_AUTO_UPDATE': JSON.stringify(process.env.CHERRY_DISABLE_AUTO_UPDATE ?? ''),
+  'import.meta.env.CHERRY_DISABLE_TELEMETRY': JSON.stringify(process.env.CHERRY_DISABLE_TELEMETRY ?? ''),
+  'import.meta.env.CHERRY_DISABLE_MARKETPLACE': JSON.stringify(process.env.CHERRY_DISABLE_MARKETPLACE ?? ''),
+  'import.meta.env.CHERRY_DISABLE_EXTERNAL_LINKS': JSON.stringify(process.env.CHERRY_DISABLE_EXTERNAL_LINKS ?? ''),
+  'import.meta.env.CHERRY_NETWORK_ALLOWLIST': JSON.stringify(process.env.CHERRY_NETWORK_ALLOWLIST ?? '')
+}
 
 export default defineConfig({
   main: {
+    define: intranetEnv,
     plugins: [
       ...visualizerPlugin('main'),
       buildProxyBootstrapPlugin({
@@ -56,6 +66,7 @@ export default defineConfig({
     }
   },
   preload: {
+    define: intranetEnv,
     plugins: [
       react({
         tsDecorators: true
@@ -72,6 +83,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    define: intranetEnv,
     plugins: [
       (async () => (await import('@tailwindcss/vite')).default())(),
       react({

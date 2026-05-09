@@ -745,6 +745,7 @@
     "delete": "Eliminar",
     "documentation": "Documentación",
     "edit": "Editar",
+    "externalLinksDisabled": "Los enlaces externos están deshabilitados en la edición de intranet empresarial",
     "feedback": "Retroalimentación",
     "file": "Archivo",
     "forceReload": "Forzar recarga",

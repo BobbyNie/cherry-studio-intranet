@@ -1,0 +1,262 @@
+name: Intranet Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example intranet-v1.9.4"
+        required: true
+        default: "intranet-v1.9.4"
+      draft:
+        description: "Create the GitHub Release as a draft"
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+      - "intranet-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+      draft: ${{ steps.meta.outputs.draft }}
+    steps:
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+            DRAFT="${{ inputs.draft }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            DRAFT="false"
+          fi
+
+          VERSION="${TAG#intranet-v}"
+          VERSION="${VERSION#v}"
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "draft=${DRAFT}" >> "$GITHUB_OUTPUT"
+
+  test-intranet-release:
+    needs: metadata
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+      NODE_OPTIONS: --max-old-space-size=8192
+      CHERRY_INTRANET_MODE: "true"
+      CHERRY_DISABLE_PUBLIC_NETWORK: "true"
+      CHERRY_DISABLE_AUTO_UPDATE: "true"
+      CHERRY_DISABLE_TELEMETRY: "true"
+      CHERRY_DISABLE_MARKETPLACE: "true"
+      CHERRY_DISABLE_EXTERNAL_LINKS: "true"
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".node-version"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare intranet env file
+        shell: bash
+        run: cp .env.intranet.example .env.intranet
+
+      - name: Run release quality gate
+        shell: bash
+        run: |
+          pnpm lint
+          pnpm i18n:hardcoded:strict
+          pnpm test
+
+  build-intranet-release:
+    needs:
+      - metadata
+      - test-intranet-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    env:
+      CI: true
+      NODE_OPTIONS: --max-old-space-size=8192
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".node-version"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set package version
+        shell: bash
+        run: npm version "${{ needs.metadata.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - name: Prepare intranet env file
+        shell: bash
+        run: cp .env.intranet.example .env.intranet
+
+      - name: Build intranet package
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            pnpm package:mac:intranet
+          else
+            pnpm package:win:intranet
+          fi
+        env:
+          CHERRY_INTRANET_MODE: "true"
+          CHERRY_DISABLE_PUBLIC_NETWORK: "true"
+          CHERRY_DISABLE_AUTO_UPDATE: "true"
+          CHERRY_DISABLE_TELEMETRY: "true"
+          CHERRY_DISABLE_MARKETPLACE: "true"
+          CHERRY_DISABLE_EXTERNAL_LINKS: "true"
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Collect release artifacts
+        shell: bash
+        run: |
+          mkdir -p release-artifacts
+          PREFIX="cherry-studio-intranet-${{ needs.metadata.outputs.version }}"
+
+          copy_first() {
+            local pattern="$1"
+            local target="$2"
+            local source
+            source=$(find dist -name "$pattern" -type f -print -quit)
+            if [ -n "$source" ]; then
+              cp "$source" "release-artifacts/$target"
+            fi
+          }
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            copy_first "*-x64-setup.exe" "${PREFIX}-windows-x64-setup.exe"
+            copy_first "*-arm64-setup.exe" "${PREFIX}-windows-arm64-setup.exe"
+            copy_first "*-x64-portable.exe" "${PREFIX}-windows-x64-portable.exe"
+            copy_first "*-arm64-portable.exe" "${PREFIX}-windows-arm64-portable.exe"
+          else
+            copy_first "*-arm64.dmg" "${PREFIX}-mac-arm64.dmg"
+            copy_first "*-x64.dmg" "${PREFIX}-mac-x64.dmg"
+            copy_first "*-arm64.zip" "${PREFIX}-mac-arm64.zip"
+            copy_first "*-x64.zip" "${PREFIX}-mac-x64.zip"
+          fi
+
+          cp dist/latest*.yml release-artifacts/ 2>/dev/null || true
+          cp dist/*.blockmap release-artifacts/ 2>/dev/null || true
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const { createHash } = require('crypto')
+          const { readdirSync, readFileSync, writeFileSync } = require('fs')
+          const { join } = require('path')
+
+          const dir = 'release-artifacts'
+          const lines = readdirSync(dir)
+            .filter((file) => file !== 'SHA256SUMS.txt')
+            .sort()
+            .map((file) => `${createHash('sha256').update(readFileSync(join(dir, file))).digest('hex')}  ${file}`)
+
+          writeFileSync(join(dir, 'SHA256SUMS.txt'), `${lines.join('\n')}\n`)
+          NODE
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: intranet-release-${{ matrix.os }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-intranet-release:
+    needs:
+      - metadata
+      - build-intranet-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.metadata.outputs.tag }}
+          name: Cherry Studio Intranet ${{ needs.metadata.outputs.version }}
+          artifacts: "release-artifacts/*"
+          allowUpdates: true
+          replacesArtifacts: true
+          draft: ${{ needs.metadata.outputs.draft }}
+          prerelease: false
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Cherry Studio 企业内网版自动构建产物。
+
+            - macOS: dmg / zip
+            - Windows: setup 安装包 / portable 免安装版
+            - SHA256SUMS.txt: 下载后可用于校验文件完整性

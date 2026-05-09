@@ -5,6 +5,9 @@ import '@ant-design/v5-patch-for-react-19'
 import { createRoot } from 'react-dom/client'
 
 import App from './App'
+import { installRendererIntranetNetworkGuard } from './network/intranetNetworkGuard'
+
+installRendererIntranetNetworkGuard()
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 root.render(<App />)

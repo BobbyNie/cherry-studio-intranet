@@ -18,6 +18,7 @@ import { delay, runAsyncFunction } from '@renderer/utils'
 import { checkDataLimit } from '@renderer/utils'
 import { sendToolApprovalNotification } from '@renderer/utils/userConfirmation'
 import { defaultLanguage } from '@shared/config/constant'
+import { isAutoUpdateDisabled } from '@shared/config/intranet'
 import { IpcChannel } from '@shared/IpcChannel'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
@@ -83,6 +84,10 @@ export function useAppInit() {
 
   useEffect(() => {
     const checkForUpdates = async () => {
+      if (isAutoUpdateDisabled()) {
+        return
+      }
+
       const { isPackaged } = await window.api.getAppInfo()
 
       if (!isPackaged || !autoCheckUpdate) {
@@ -95,6 +100,10 @@ export function useAppInit() {
 
     // Initial check with delay
     void runAsyncFunction(async () => {
+      if (isAutoUpdateDisabled()) {
+        return
+      }
+
       const { isPackaged } = await window.api.getAppInfo()
       if (isPackaged && autoCheckUpdate) {
         await delay(2)

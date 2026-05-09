@@ -1,9 +1,12 @@
 import i18n from '@renderer/i18n'
+import { installRendererIntranetNetworkGuard } from '@renderer/network/intranetNetworkGuard'
 import { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { TraceIcon } from './pages/Component'
 import { TracePage } from './pages/index'
+
+installRendererIntranetNetworkGuard()
 
 const App = () => {
   const [traceId, setTraceId] = useState('')

@@ -1,0 +1,40 @@
+{
+  "provider": {
+    "name": "企业内网模型服务",
+    "type": "openai-compatible",
+    "baseURL": "http://llm-gateway.intranet.local/v1",
+    "apiKey": ""
+  },
+  "models": [
+    {
+      "id": "qwen-coder",
+      "name": "qwen-coder",
+      "group": "Enterprise Intranet",
+      "capabilities": ["text", "function_calling"]
+    },
+    {
+      "id": "deepseek-coder",
+      "name": "deepseek-coder",
+      "group": "Enterprise Intranet",
+      "capabilities": ["text", "reasoning", "function_calling"]
+    },
+    {
+      "id": "glm-coder",
+      "name": "glm-coder",
+      "group": "Enterprise Intranet",
+      "capabilities": ["text", "function_calling"]
+    },
+    {
+      "id": "embedding-model",
+      "name": "embedding-model",
+      "group": "Embedding",
+      "capabilities": ["embedding"]
+    },
+    {
+      "id": "rerank-model",
+      "name": "rerank-model",
+      "group": "Rerank",
+      "capabilities": ["rerank"]
+    }
+  ]
+}

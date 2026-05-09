@@ -3,12 +3,21 @@ import { loggerService } from '@logger'
 import type { WebSearchState } from '@renderer/store/websearch'
 import type { WebSearchProvider, WebSearchProviderResponse } from '@renderer/types'
 import { fetchWebContent, noContent } from '@renderer/utils/fetch'
-import axios from 'axios'
+import { assertNetworkAllowed } from '@shared/config/intranet'
+import { safeAxios } from '@shared/network/safeRequest'
 import ky from 'ky'
 
 import BaseWebSearchProvider from './BaseWebSearchProvider'
 
 const logger = loggerService.withContext('SearxngProvider')
+
+type SearxngConfigResponse = {
+  engines?: Array<{
+    enabled: boolean
+    categories: string[]
+    name: string
+  }>
+}
 
 export default class SearxngProvider extends BaseWebSearchProvider {
   private searxng: SearxngClient
@@ -24,6 +33,7 @@ export default class SearxngProvider extends BaseWebSearchProvider {
     }
 
     this.apiHost = provider.apiHost
+    assertNetworkAllowed(this.apiHost)
     this.basicAuthUsername = provider.basicAuthUsername
     this.basicAuthPassword = provider.basicAuthPassword ? provider.basicAuthPassword : ''
 
@@ -54,7 +64,9 @@ export default class SearxngProvider extends BaseWebSearchProvider {
             password: this.basicAuthPassword ? this.basicAuthPassword : ''
           }
         : undefined
-      const response = await axios.get(`${this.apiHost}/config`, {
+      const response = await safeAxios<SearxngConfigResponse>({
+        method: 'GET',
+        url: `${this.apiHost}/config`,
         timeout: 5000,
         validateStatus: (status) => status === 200, // 仅接受 200 状态码
         auth
