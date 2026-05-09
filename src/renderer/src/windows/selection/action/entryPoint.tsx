@@ -8,6 +8,7 @@ import { getToastUtilities } from '@renderer/components/TopView/toast'
 import AntdProvider from '@renderer/context/AntdProvider'
 import { CodeStyleProvider } from '@renderer/context/CodeStyleProvider'
 import { ThemeProvider } from '@renderer/context/ThemeProvider'
+import { installRendererIntranetNetworkGuard } from '@renderer/network/intranetNetworkGuard'
 import storeSyncService from '@renderer/services/StoreSyncService'
 import store, { persistor } from '@renderer/store'
 import type { FC } from 'react'
@@ -19,6 +20,7 @@ import { PersistGate } from 'redux-persist/integration/react'
 import SelectionActionApp from './SelectionActionApp'
 
 loggerService.initWindowSource('SelectionActionWindow')
+installRendererIntranetNetworkGuard()
 
 /**
  * fetchChatCompletion depends on this,

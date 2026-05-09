@@ -16,6 +16,7 @@
  */
 import type { UpgradeChannel } from '@shared/config/constant'
 import { defaultLanguage, ZOOM_SHORTCUTS } from '@shared/config/constant'
+import { isAutoUpdateDisabled, isTelemetryDisabled } from '@shared/config/intranet'
 import type { LanguageVarious, Shortcut } from '@types'
 import { ThemeMode } from '@types'
 import { app } from 'electron'
@@ -162,6 +163,10 @@ export class ConfigManager {
   }
 
   getAutoUpdate(): boolean {
+    if (isAutoUpdateDisabled()) {
+      return false
+    }
+
     return this.get<boolean>(ConfigKeys.AutoUpdate, true)
   }
 
@@ -186,6 +191,10 @@ export class ConfigManager {
   }
 
   getEnableDataCollection(): boolean {
+    if (isTelemetryDisabled()) {
+      return false
+    }
+
     return this.get<boolean>(ConfigKeys.EnableDataCollection, true)
   }
 

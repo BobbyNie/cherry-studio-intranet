@@ -3,6 +3,7 @@ import { AnalyticsClient } from '@cherrystudio/analytics-client'
 import { loggerService } from '@logger'
 import { generateUserAgent } from '@main/utils/systemInfo'
 import { APP_NAME } from '@shared/config/constant'
+import { isTelemetryDisabled } from '@shared/config/intranet'
 import { app } from 'electron'
 
 import { configManager } from './ConfigManager'
@@ -21,6 +22,11 @@ class AnalyticsService {
   }
 
   public init(): void {
+    if (isTelemetryDisabled()) {
+      logger.info('Analytics service disabled in intranet mode')
+      return
+    }
+
     if (!configManager.getEnableDataCollection()) {
       logger.info('Analytics service disabled by user preference')
       return
@@ -48,6 +54,10 @@ class AnalyticsService {
   }
 
   public trackTokenUsage(data: TokenUsageData): void {
+    if (isTelemetryDisabled()) {
+      return
+    }
+
     const enableDataCollection = configManager.getEnableDataCollection()
 
     if (!this.client || !enableDataCollection) {
@@ -58,6 +68,10 @@ class AnalyticsService {
   }
 
   public async trackAppUpdate(): Promise<void> {
+    if (isTelemetryDisabled()) {
+      return
+    }
+
     if (!this.client || !configManager.getEnableDataCollection()) {
       return
     }

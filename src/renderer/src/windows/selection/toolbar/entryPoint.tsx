@@ -2,6 +2,7 @@ import '@ant-design/v5-patch-for-react-19'
 
 import { loggerService } from '@logger'
 import { ThemeProvider } from '@renderer/context/ThemeProvider'
+import { installRendererIntranetNetworkGuard } from '@renderer/network/intranetNetworkGuard'
 import storeSyncService from '@renderer/services/StoreSyncService'
 import store, { persistor } from '@renderer/store'
 import type { FC } from 'react'
@@ -12,6 +13,7 @@ import { PersistGate } from 'redux-persist/integration/react'
 import SelectionToolbar from './SelectionToolbar'
 
 loggerService.initWindowSource('SelectionToolbar')
+installRendererIntranetNetworkGuard()
 
 //subscribe to store sync
 storeSyncService.subscribe()

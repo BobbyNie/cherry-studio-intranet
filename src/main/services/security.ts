@@ -1,6 +1,7 @@
 /**
  * Security utility functions for the main process.
  */
+import { sanitizeExternalUrl } from '@shared/config/intranet'
 
 const ALLOWED_EXTERNAL_PROTOCOLS = new Set([
   'http:',
@@ -45,6 +46,10 @@ const ZED_FILE_URL_RE = /^zed:\/\/file(\/|[A-Za-z]%3[Aa]\/)/i
  * @see https://benjamin-altpeter.de/shell-openexternal-dangers/
  */
 export function isSafeExternalUrl(url: string): boolean {
+  if (!sanitizeExternalUrl(url)) {
+    return false
+  }
+
   try {
     const parsed = new URL(url)
     if (!ALLOWED_EXTERNAL_PROTOCOLS.has(parsed.protocol)) {

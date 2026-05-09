@@ -1,4 +1,5 @@
 import type { WebSearchProvider } from '@renderer/types'
+import { isIntranetMode } from '@shared/config/intranet'
 
 import type BaseWebSearchProvider from './BaseWebSearchProvider'
 import BochaProvider from './BochaProvider'
@@ -15,6 +16,10 @@ import ZhipuProvider from './ZhipuProvider'
 
 export default class WebSearchProviderFactory {
   static create(provider: WebSearchProvider): BaseWebSearchProvider {
+    if (isIntranetMode() && provider.id !== 'searxng') {
+      throw new Error('联网搜索仅支持内网 SearXNG。')
+    }
+
     switch (provider.id) {
       case 'zhipu':
         return new ZhipuProvider(provider)

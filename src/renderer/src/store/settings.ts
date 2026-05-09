@@ -39,6 +39,7 @@ import type {
   OpenAIVerbosity
 } from '@renderer/types/aiCoreTypes'
 import { API_SERVER_DEFAULTS, UpgradeChannel } from '@shared/config/constant'
+import { isAutoUpdateDisabled } from '@shared/config/intranet'
 import { v4 as uuid } from 'uuid'
 
 import type { RemoteSyncState } from './backup'
@@ -287,7 +288,7 @@ export const initialState: SettingsState = {
   pasteLongTextAsFile: false,
   pasteLongTextThreshold: 1500,
   clickAssistantToShowTopic: true,
-  autoCheckUpdate: true,
+  autoCheckUpdate: !isAutoUpdateDisabled(),
   testPlan: false,
   testChannel: UpgradeChannel.LATEST,
   renderInputMessageAsMarkdown: false,

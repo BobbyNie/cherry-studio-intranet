@@ -8,6 +8,7 @@ import '@main/config'
 import { loggerService } from '@logger'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { replaceDevtoolsFont } from '@main/utils/windowUtil'
+import { isIntranetMode } from '@shared/config/intranet'
 import { app, crashReporter } from 'electron'
 import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from 'electron-devtools-installer'
 import { isDev, isLinux, isWin } from './constant'
@@ -45,6 +46,7 @@ import { initWebviewHotkeys } from './services/WebviewService'
 import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
+import { installMainIntranetNetworkGuard, installSessionIntranetNetworkGuard } from './network/intranetNetworkGuard'
 
 const logger = loggerService.withContext('MainEntry')
 
@@ -55,6 +57,8 @@ crashReporter.start({
   submitURL: '',
   uploadToServer: false
 })
+
+installMainIntranetNetworkGuard()
 
 /**
  * Disable hardware acceleration if setting is enabled
@@ -100,6 +104,8 @@ app.commandLine.appendSwitch(
   'DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync'
 )
 app.on('web-contents-created', (_, webContents) => {
+  installSessionIntranetNetworkGuard(webContents.session)
+
   webContents.session.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -238,8 +244,12 @@ if (!app.requestSingleInstanceLock()) {
         // Register IPC handlers for session stream before starting channels
         registerSessionStreamIpc()
 
-        // Start CherryClaw channel adapters (Telegram, etc.)
-        await channelManager.start()
+        // Start CherryClaw channel adapters only in public-network builds.
+        if (!isIntranetMode()) {
+          await channelManager.start()
+        } else {
+          logger.info('CherryClaw public channel adapters disabled in intranet mode')
+        }
       } catch (error: any) {
         logger.error('Failed to check/start API server:', error)
       }

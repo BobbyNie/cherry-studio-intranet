@@ -4,6 +4,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 import type { SpanEntity, TokenUsage } from '@mcp-trace/trace-core'
 import type { SpanContext } from '@opentelemetry/api'
 import type { GitBashPathInfo, TerminalConfig, UpgradeChannel } from '@shared/config/constant'
+import { INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE, sanitizeExternalUrl } from '@shared/config/intranet'
 import type { LogLevel, LogSourceWithContext } from '@shared/config/logger'
 import type {
   CodeToolsRunResult,
@@ -433,17 +434,22 @@ const api = {
   },
   shell: {
     openExternal: (url: string, options?: Electron.OpenExternalOptions) => {
+      const sanitizedUrl = sanitizeExternalUrl(url)
+      if (!sanitizedUrl) {
+        return Promise.reject(new Error(INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE))
+      }
+
       // Defense-in-depth: validate URL scheme before forwarding to shell.openExternal
       const ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:', 'obsidian:']
       try {
-        const parsed = new URL(url)
+        const parsed = new URL(sanitizedUrl)
         if (!ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
           return Promise.reject(new Error(`Blocked openExternal for untrusted URL scheme: ${parsed.protocol}`))
         }
       } catch {
         return Promise.reject(new Error('Blocked openExternal for invalid URL'))
       }
-      return shell.openExternal(url, options)
+      return shell.openExternal(sanitizedUrl, options)
     }
   },
   copilot: {

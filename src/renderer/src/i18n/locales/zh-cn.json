@@ -745,6 +745,7 @@
     "delete": "删除",
     "documentation": "文档",
     "edit": "编辑",
+    "externalLinksDisabled": "企业内网版已禁用外部链接",
     "feedback": "反馈",
     "file": "文件",
     "forceReload": "强制重新加载",

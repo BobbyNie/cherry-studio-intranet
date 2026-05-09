@@ -1,6 +1,7 @@
 import { isMac } from '@main/constant'
 import { windowService } from '@main/services/WindowService'
-import { locales } from '@main/utils/locales'
+import { locales, t } from '@main/utils/locales'
+import { isIntranetMode } from '@shared/config/intranet'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { MenuItemConstructorOptions } from 'electron'
 import { app, Menu, shell } from 'electron'
@@ -93,35 +94,45 @@ export class AppMenuService {
           { role: 'front', label: appMenu.front }
         ]
       },
-      {
-        label: appMenu.help,
-        submenu: [
-          {
-            label: appMenu.website,
-            click: () => {
-              void shell.openExternal('https://cherry-ai.com')
-            }
-          },
-          {
-            label: appMenu.documentation,
-            click: () => {
-              void shell.openExternal('https://cherry-ai.com/docs')
-            }
-          },
-          {
-            label: appMenu.feedback,
-            click: () => {
-              void shell.openExternal('https://github.com/CherryHQ/cherry-studio/issues/new/choose')
-            }
-          },
-          {
-            label: appMenu.releases,
-            click: () => {
-              void shell.openExternal('https://github.com/CherryHQ/cherry-studio/releases')
-            }
+      isIntranetMode()
+        ? {
+            label: appMenu.help,
+            submenu: [
+              {
+                label: t('appMenu.externalLinksDisabled'),
+                enabled: false
+              }
+            ]
           }
-        ]
-      }
+        : {
+            label: appMenu.help,
+            submenu: [
+              {
+                label: appMenu.website,
+                click: () => {
+                  void shell.openExternal('https://cherry-ai.com')
+                }
+              },
+              {
+                label: appMenu.documentation,
+                click: () => {
+                  void shell.openExternal('https://cherry-ai.com/docs')
+                }
+              },
+              {
+                label: appMenu.feedback,
+                click: () => {
+                  void shell.openExternal('https://github.com/CherryHQ/cherry-studio/issues/new/choose')
+                }
+              },
+              {
+                label: appMenu.releases,
+                click: () => {
+                  void shell.openExternal('https://github.com/CherryHQ/cherry-studio/releases')
+                }
+              }
+            ]
+          }
     ]
 
     const menu = Menu.buildFromTemplate(template)

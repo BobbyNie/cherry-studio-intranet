@@ -1,4 +1,7 @@
 import type { Model, SystemProviderId } from '@renderer/types'
+import { isIntranetMode } from '@shared/config/intranet'
+
+import { intranetModels } from './intranet'
 
 export const qwenModel: Model = {
   id: 'qwen',
@@ -7,17 +10,13 @@ export const qwenModel: Model = {
   group: 'Qwen'
 }
 
+const defaultModels = isIntranetMode()
+  ? [intranetModels[0], intranetModels[0], intranetModels[0], intranetModels[0]]
+  : [qwenModel, qwenModel, qwenModel, qwenModel]
+
 export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> = {
-  defaultModel: [
-    // Default assistant model
-    qwenModel,
-    // Default topic naming model
-    qwenModel,
-    // Default translation model
-    qwenModel,
-    // Default quick assistant model
-    qwenModel
-  ],
+  defaultModel: defaultModels,
+  intranet: intranetModels,
   cherryin: [],
   vertexai: [],
   sophnet: [],

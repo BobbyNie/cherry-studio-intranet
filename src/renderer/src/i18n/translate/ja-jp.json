@@ -745,6 +745,7 @@
     "delete": "削除",
     "documentation": "ドキュメント",
     "edit": "編集",
+    "externalLinksDisabled": "企業イントラネット版では外部リンクが無効です",
     "feedback": "フィードバック",
     "file": "ファイル",
     "forceReload": "強制再読み込み",
