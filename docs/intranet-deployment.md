@@ -71,6 +71,7 @@ corepack pnpm package:win:intranet
 
 触发方式：
 
+- 推送代码到 `main`：自动生成 `intranet-v<package.version>-<short-sha>` tag 并发布 Release
 - 手动触发 `Intranet Release`，输入 release tag，例如 `intranet-v1.9.4`
 - 推送 tag：`v*` 或 `intranet-v*`
 
@@ -85,7 +86,7 @@ corepack pnpm package:win:intranet
 - `build-intranet-release` 依赖测试门禁通过后才开始 macOS/Windows 编译
 - 构建任务先上传 Actions artifact
 - `publish-intranet-release` 统一下载全部 artifact
-- 自动创建或更新 GitHub Release
+- 自动创建或更新 GitHub Release，并把 Release tag 指向触发 workflow 的 commit
 - Release 中包含 `SHA256SUMS.txt`
 
 可选签名 secret：
