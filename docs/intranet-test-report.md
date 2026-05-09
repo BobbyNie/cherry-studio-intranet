@@ -20,8 +20,8 @@
 | `pnpm vitest run --project shared packages/shared/config/intranet.test.ts packages/shared/network/safeRequest.test.ts` | 通过 | allowlist 与 safe request 单测 |
 | `pnpm vitest run --project renderer src/renderer/src/config/__tests__/intranetDefaults.test.ts src/renderer/src/store/__tests__/intranetMcp.test.ts` | 通过 | 内网 provider、Web Search、MCP 默认面 |
 | `pnpm vitest run --project main src/main/services/__tests__/AppUpdater.test.ts --testNamePattern "intranet mode"` | 通过 | autoUpdater 内网模式 no-op |
-| `pnpm vitest run --project scripts scripts/__tests__/intranet-release-workflow.test.ts` | 通过 | GitHub Actions 发布 workflow、release 前测试门禁、main push 自动发布、env 模板和 Windows portable target 校验 |
-| `pnpm test` | 通过 | 240 个测试文件，4291 个测试通过，72 个跳过 |
+| `pnpm vitest run --project scripts scripts/__tests__/intranet-release-workflow.test.ts` | 通过 | GitHub Actions 发布 workflow、release 前测试门禁、main push 自动发布、metadata checkout、env 模板和 Windows portable target 校验 |
+| `pnpm test` | 通过 | 240 个测试文件，4292 个测试通过，72 个跳过 |
 | `pnpm lint` | 通过 | 包含 oxlint、eslint、typecheck、i18n:check、format；存在一个既有 warning：`ManageModelsPopup.tsx` 的 hook dependency |
 | `pnpm format` | 通过 | Biome format/lint 无进一步修改 |
 | `pnpm i18n:hardcoded:strict` | 通过 | 未发现硬编码 UI 文案 |
@@ -47,6 +47,10 @@
 - 失败步骤：`test-intranet-release / Prepare intranet env file`
 - 根因：workflow 执行 `cp .env.intranet.example .env.intranet`，但 `.env.intranet.example` 被 `.gitignore` 的 `.env.*` 规则忽略，未进入 GitHub checkout。
 - 修复：`.gitignore` 增加 `!.env.intranet.example`，并把 `.env.intranet.example` 纳入提交；新增测试覆盖 env 模板可用性。
+- 失败 run：`25597831904`
+- 失败步骤：`metadata / Resolve release metadata`
+- 根因：`metadata` job 在 checkout 前读取 `package.json`，分支 push 自动发布路径中无法解析 package version。
+- 修复：`metadata` job 先执行 `actions/checkout`，再解析 release tag/version；新增测试覆盖步骤顺序。
 
 ## 未在本机完成的验收
 

@@ -30,6 +30,9 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       draft: ${{ steps.meta.outputs.draft }}
     steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v6
+
       - name: Resolve release metadata
         id: meta
         shell: bash

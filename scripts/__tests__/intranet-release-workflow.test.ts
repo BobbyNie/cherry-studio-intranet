@@ -108,6 +108,17 @@ describe('intranet release workflow', () => {
     expect(publishStep?.with?.commit).toBe('${{ github.sha }}')
   })
 
+  it('checks out the repository before resolving package release metadata', () => {
+    const workflow = readWorkflow()
+    const metadataSteps = workflow.jobs.metadata.steps
+    const checkoutIndex = metadataSteps.findIndex((step) => step.uses?.startsWith('actions/checkout'))
+    const metadataIndex = metadataSteps.findIndex((step) => step.id === 'meta')
+
+    expect(checkoutIndex).toBeGreaterThanOrEqual(0)
+    expect(checkoutIndex).toBeLessThan(metadataIndex)
+    expect(metadataSteps[metadataIndex].run).toContain("require('./package.json').version")
+  })
+
   it('keeps Windows portable target available for release users', () => {
     const builderConfig = parse(readFileSync(builderConfigPath, 'utf8'))
     const winTargets = builderConfig.win.target.map((target: { target: string }) => target.target)
