@@ -163,6 +163,29 @@ jobs:
         shell: bash
         run: cp .env.intranet.example .env.intranet
 
+      - name: Configure optional code signing secrets
+        shell: bash
+        env:
+          CSC_LINK_SECRET: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD_SECRET: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID_SECRET: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD_SECRET: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID_SECRET: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          write_secret() {
+            local name="$1"
+            local value="$2"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+            fi
+          }
+
+          write_secret CSC_LINK "$CSC_LINK_SECRET"
+          write_secret CSC_KEY_PASSWORD "$CSC_KEY_PASSWORD_SECRET"
+          write_secret APPLE_ID "$APPLE_ID_SECRET"
+          write_secret APPLE_APP_SPECIFIC_PASSWORD "$APPLE_APP_SPECIFIC_PASSWORD_SECRET"
+          write_secret APPLE_TEAM_ID "$APPLE_TEAM_ID_SECRET"
+
       - name: Build intranet package
         shell: bash
         run: |
@@ -179,11 +202,6 @@ jobs:
           CHERRY_DISABLE_MARKETPLACE: "true"
           CHERRY_DISABLE_EXTERNAL_LINKS: "true"
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Collect release artifacts
         shell: bash

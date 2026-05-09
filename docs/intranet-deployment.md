@@ -97,7 +97,7 @@ corepack pnpm package:win:intranet
 - `APPLE_APP_SPECIFIC_PASSWORD`
 - `APPLE_TEAM_ID`
 
-如果未配置签名 secret，workflow 仍会按 `CSC_IDENTITY_AUTO_DISCOVERY=false` 尝试生成未签名构建产物，适合内网验收和二次签名流程。
+如果未配置签名 secret，workflow 只保留 `CSC_IDENTITY_AUTO_DISCOVERY=false`，不会把空的签名变量传给 electron-builder，会生成未签名构建产物，适合内网验收和二次签名流程。
 
 ## 验收步骤
 
