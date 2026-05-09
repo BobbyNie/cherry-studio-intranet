@@ -127,6 +127,21 @@ describe('intranet release workflow', () => {
     expect(Object.keys(testEnv).filter((name) => name.startsWith('CHERRY_'))).toEqual([])
   })
 
+  it('only exports code signing secrets when they are configured', () => {
+    const workflow = readWorkflow()
+    const buildJob = workflow.jobs['build-intranet-release']
+    const signingStep = buildJob.steps.find((step) => step.name === 'Configure optional code signing secrets')
+    const buildStep = buildJob.steps.find((step) => step.name === 'Build intranet package')
+
+    expect(signingStep?.run).toContain('GITHUB_ENV')
+    expect(signingStep?.env?.CSC_LINK_SECRET).toBe('${{ secrets.CSC_LINK }}')
+    expect(signingStep?.env?.APPLE_ID_SECRET).toBe('${{ secrets.APPLE_ID }}')
+    expect(buildStep?.env).not.toHaveProperty('CSC_LINK')
+    expect(buildStep?.env).not.toHaveProperty('CSC_KEY_PASSWORD')
+    expect(buildStep?.env).not.toHaveProperty('APPLE_ID')
+    expect(buildStep?.env?.CSC_IDENTITY_AUTO_DISCOVERY).toBe('false')
+  })
+
   it('keeps Windows portable target available for release users', () => {
     const builderConfig = parse(readFileSync(builderConfigPath, 'utf8'))
     const winTargets = builderConfig.win.target.map((target: { target: string }) => target.target)
