@@ -13,6 +13,8 @@ on:
         type: boolean
         default: false
   push:
+    branches:
+      - "main"
     tags:
       - "v*"
       - "intranet-v*"
@@ -32,16 +34,28 @@ jobs:
         id: meta
         shell: bash
         run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
             DRAFT="${{ inputs.draft }}"
-          else
+            VERSION="${TAG#intranet-v}"
+            VERSION="${VERSION#v}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
             TAG="${GITHUB_REF_NAME}"
             DRAFT="false"
+            VERSION="${TAG#intranet-v}"
+            VERSION="${VERSION#v}"
+          else
+            SHORT_SHA="${GITHUB_SHA::8}"
+            TAG="intranet-v${PACKAGE_VERSION}-${SHORT_SHA}"
+            DRAFT="false"
+            VERSION="${PACKAGE_VERSION}"
           fi
 
-          VERSION="${TAG#intranet-v}"
-          VERSION="${VERSION#v}"
+          if [ -z "${VERSION}" ] || [ "${VERSION}" = "${TAG}" ]; then
+            VERSION="${PACKAGE_VERSION}"
+          fi
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
@@ -248,6 +262,7 @@ jobs:
           tag: ${{ needs.metadata.outputs.tag }}
           name: Cherry Studio Intranet ${{ needs.metadata.outputs.version }}
           artifacts: "release-artifacts/*"
+          commit: ${{ github.sha }}
           allowUpdates: true
           replacesArtifacts: true
           draft: ${{ needs.metadata.outputs.draft }}

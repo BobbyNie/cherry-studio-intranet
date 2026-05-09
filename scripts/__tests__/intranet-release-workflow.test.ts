@@ -2,48 +2,110 @@ import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 import { parse } from 'yaml'
 
+type WorkflowStep = {
+  env?: Record<string, string>
+  id?: string
+  name?: string
+  run?: string
+  uses?: string
+  with?: Record<string, string>
+}
+
+type WorkflowJob = {
+  needs?: string | string[]
+  steps: WorkflowStep[]
+  strategy?: {
+    matrix: {
+      os: string[]
+    }
+  }
+}
+
+type IntranetReleaseWorkflow = {
+  jobs: Record<string, WorkflowJob>
+  on: {
+    push: {
+      branches?: string[]
+      tags?: string[]
+    }
+  }
+  permissions: {
+    contents: string
+  }
+}
+
 describe('intranet release workflow', () => {
   const root = resolve(__dirname, '../..')
   const workflowPath = resolve(root, '.github/workflows/intranet-release.yml')
   const builderConfigPath = resolve(root, 'electron-builder.yml')
+  const envExamplePath = resolve(root, '.env.intranet.example')
+  const gitignorePath = resolve(root, '.gitignore')
   const packageJsonPath = resolve(root, 'package.json')
+  const readWorkflow = () => parse(readFileSync(workflowPath, 'utf8')) as IntranetReleaseWorkflow
 
   it('builds macOS and Windows intranet packages into a GitHub Release', () => {
     expect(existsSync(workflowPath)).toBe(true)
 
-    const workflow = parse(readFileSync(workflowPath, 'utf8'))
+    const workflow = readWorkflow()
     const buildJob = workflow.jobs['build-intranet-release']
     const publishJob = workflow.jobs['publish-intranet-release']
 
     expect(workflow.permissions.contents).toBe('write')
-    expect(buildJob.strategy.matrix.os).toEqual(['macos-latest', 'windows-latest'])
-    expect(publishJob.steps.some((step: { uses?: string }) => step.uses?.startsWith('ncipollo/release-action'))).toBe(
-      true
-    )
+    expect(buildJob.strategy?.matrix.os).toEqual(['macos-latest', 'windows-latest'])
+    expect(publishJob.steps.some((step) => step.uses?.startsWith('ncipollo/release-action'))).toBe(true)
 
-    const buildStep = buildJob.steps.find((step: { name?: string }) => step.name === 'Build intranet package')
-    expect(buildStep.env.CHERRY_INTRANET_MODE).toBe('true')
-    expect(buildStep.env.CHERRY_DISABLE_PUBLIC_NETWORK).toBe('true')
-    expect(buildStep.env.CHERRY_DISABLE_AUTO_UPDATE).toBe('true')
-    expect(buildStep.env.CHERRY_DISABLE_TELEMETRY).toBe('true')
-    expect(buildStep.env.CHERRY_DISABLE_MARKETPLACE).toBe('true')
-    expect(buildStep.env.CHERRY_DISABLE_EXTERNAL_LINKS).toBe('true')
-    expect(buildStep.run).toContain('pnpm package:mac:intranet')
-    expect(buildStep.run).toContain('pnpm package:win:intranet')
+    const buildStep = buildJob.steps.find((step) => step.name === 'Build intranet package')
+    expect(buildStep?.env?.CHERRY_INTRANET_MODE).toBe('true')
+    expect(buildStep?.env?.CHERRY_DISABLE_PUBLIC_NETWORK).toBe('true')
+    expect(buildStep?.env?.CHERRY_DISABLE_AUTO_UPDATE).toBe('true')
+    expect(buildStep?.env?.CHERRY_DISABLE_TELEMETRY).toBe('true')
+    expect(buildStep?.env?.CHERRY_DISABLE_MARKETPLACE).toBe('true')
+    expect(buildStep?.env?.CHERRY_DISABLE_EXTERNAL_LINKS).toBe('true')
+    expect(buildStep?.run).toContain('pnpm package:mac:intranet')
+    expect(buildStep?.run).toContain('pnpm package:win:intranet')
   })
 
   it('runs tests before compiling release packages', () => {
-    const workflow = parse(readFileSync(workflowPath, 'utf8'))
+    const workflow = readWorkflow()
     const testJob = workflow.jobs['test-intranet-release']
     const buildJob = workflow.jobs['build-intranet-release']
     const buildNeeds = Array.isArray(buildJob.needs) ? buildJob.needs : [buildJob.needs]
-    const testRuns = testJob.steps.map((step: { run?: string }) => step.run ?? '').join('\n')
+    const testRuns = testJob.steps.map((step) => step.run ?? '').join('\n')
 
     expect(testJob.needs).toBe('metadata')
     expect(buildNeeds).toEqual(expect.arrayContaining(['metadata', 'test-intranet-release']))
     expect(testRuns).toContain('pnpm lint')
     expect(testRuns).toContain('pnpm i18n:hardcoded:strict')
     expect(testRuns).toContain('pnpm test')
+  })
+
+  it('keeps the intranet env template available to GitHub Actions', () => {
+    const gitignore = readFileSync(gitignorePath, 'utf8')
+    const workflow = readWorkflow()
+    const prepareEnvSteps = Object.values(workflow.jobs).flatMap((job) =>
+      job.steps.filter((step) => step.name === 'Prepare intranet env file')
+    )
+
+    expect(existsSync(envExamplePath)).toBe(true)
+    expect(gitignore).toContain('!.env.intranet.example')
+    expect(prepareEnvSteps.length).toBeGreaterThan(0)
+    expect(
+      prepareEnvSteps.every((step: { run?: string }) => step.run === 'cp .env.intranet.example .env.intranet')
+    ).toBe(true)
+  })
+
+  it('publishes releases automatically from main branch pushes', () => {
+    const workflow = readWorkflow()
+    const metadataRun = workflow.jobs.metadata.steps.find((step) => step.id === 'meta')?.run
+    const publishStep = workflow.jobs['publish-intranet-release'].steps.find((step) =>
+      step.name?.includes('Publish GitHub Release')
+    )
+
+    expect(workflow.on.push.branches).toContain('main')
+    expect(metadataRun).toContain('PACKAGE_VERSION=')
+    expect(metadataRun).toContain('TAG="intranet-v${PACKAGE_VERSION}-${SHORT_SHA}"')
+    expect(metadataRun).toContain('VERSION="${PACKAGE_VERSION}"')
+    expect(publishStep?.with?.commit).toBe('${{ github.sha }}')
   })
 
   it('keeps Windows portable target available for release users', () => {
