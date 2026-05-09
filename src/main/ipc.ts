@@ -20,6 +20,7 @@ import { handleZoomFactor } from '@main/utils/zoom'
 import type { SpanEntity, TokenUsage } from '@mcp-trace/trace-core'
 import type { UpgradeChannel } from '@shared/config/constant'
 import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '@shared/config/constant'
+import { isIntranetMode } from '@shared/config/intranet'
 import type { LocalTransferConnectPayload } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
 import { extractPdfText } from '@shared/utils/pdf'
@@ -1169,19 +1170,21 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
     mainWindow.webContents.forcefullyCrashRenderer()
   })
 
-  // OpenClaw
-  ipcMain.handle(IpcChannel.OpenClaw_CheckInstalled, openClawService.checkInstalled)
-  ipcMain.handle(IpcChannel.OpenClaw_Install, openClawService.install)
-  ipcMain.handle(IpcChannel.OpenClaw_Uninstall, openClawService.uninstall)
-  ipcMain.handle(IpcChannel.OpenClaw_StartGateway, openClawService.startGateway)
-  ipcMain.handle(IpcChannel.OpenClaw_StopGateway, openClawService.stopGateway)
-  ipcMain.handle(IpcChannel.OpenClaw_GetStatus, openClawService.getStatus)
-  ipcMain.handle(IpcChannel.OpenClaw_CheckHealth, openClawService.checkHealth)
-  ipcMain.handle(IpcChannel.OpenClaw_GetDashboardUrl, openClawService.getDashboardUrl)
-  ipcMain.handle(IpcChannel.OpenClaw_SyncConfig, openClawService.syncProviderConfig)
-  ipcMain.handle(IpcChannel.OpenClaw_GetChannels, openClawService.getChannelStatus)
-  ipcMain.handle(IpcChannel.OpenClaw_CheckUpdate, openClawService.checkUpdate)
-  ipcMain.handle(IpcChannel.OpenClaw_PerformUpdate, openClawService.performUpdate)
+  if (!isIntranetMode()) {
+    // OpenClaw
+    ipcMain.handle(IpcChannel.OpenClaw_CheckInstalled, openClawService.checkInstalled)
+    ipcMain.handle(IpcChannel.OpenClaw_Install, openClawService.install)
+    ipcMain.handle(IpcChannel.OpenClaw_Uninstall, openClawService.uninstall)
+    ipcMain.handle(IpcChannel.OpenClaw_StartGateway, openClawService.startGateway)
+    ipcMain.handle(IpcChannel.OpenClaw_StopGateway, openClawService.stopGateway)
+    ipcMain.handle(IpcChannel.OpenClaw_GetStatus, openClawService.getStatus)
+    ipcMain.handle(IpcChannel.OpenClaw_CheckHealth, openClawService.checkHealth)
+    ipcMain.handle(IpcChannel.OpenClaw_GetDashboardUrl, openClawService.getDashboardUrl)
+    ipcMain.handle(IpcChannel.OpenClaw_SyncConfig, openClawService.syncProviderConfig)
+    ipcMain.handle(IpcChannel.OpenClaw_GetChannels, openClawService.getChannelStatus)
+    ipcMain.handle(IpcChannel.OpenClaw_CheckUpdate, openClawService.checkUpdate)
+    ipcMain.handle(IpcChannel.OpenClaw_PerformUpdate, openClawService.performUpdate)
+  }
 
   // WeChat
   ipcMain.handle(IpcChannel.WeChat_HasCredentials, async (_, channelId: string) => {

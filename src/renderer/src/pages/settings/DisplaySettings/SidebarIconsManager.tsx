@@ -2,6 +2,7 @@ import { CloseOutlined } from '@ant-design/icons'
 import type { DraggableProvided, DroppableProvided, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import { OpenClawSidebarIcon } from '@renderer/components/Icons/SVGIcon'
+import { filterSidebarIconsForCurrentMode } from '@renderer/config/sidebar'
 import { getSidebarIconLabel } from '@renderer/i18n/label'
 import { useAppDispatch } from '@renderer/store'
 import { setSidebarIcons } from '@renderer/store/settings'
@@ -38,6 +39,8 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
   setDisabledIcons
 }) => {
   const { t } = useTranslation()
+  const safeVisibleIcons = filterSidebarIconsForCurrentMode(visibleIcons)
+  const safeDisabledIcons = filterSidebarIconsForCurrentMode(disabledIcons)
 
   const dispatch = useAppDispatch()
 
@@ -48,29 +51,30 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
       const { source, destination } = result
 
       // 如果是chat图标且目标是disabled区域,则不允许移动并提示
-      const draggedItem = source.droppableId === 'visible' ? visibleIcons[source.index] : disabledIcons[source.index]
+      const draggedItem =
+        source.droppableId === 'visible' ? safeVisibleIcons[source.index] : safeDisabledIcons[source.index]
       if (draggedItem === 'assistants' && destination.droppableId === 'disabled') {
         message.warning(t('settings.display.sidebar.chat.hiddenMessage'))
         return
       }
 
       if (source.droppableId === destination.droppableId) {
-        const list = source.droppableId === 'visible' ? [...visibleIcons] : [...disabledIcons]
+        const list = source.droppableId === 'visible' ? [...safeVisibleIcons] : [...safeDisabledIcons]
         const [removed] = list.splice(source.index, 1)
         list.splice(destination.index, 0, removed)
 
         if (source.droppableId === 'visible') {
           setVisibleIcons(list)
-          dispatch(setSidebarIcons({ visible: list, disabled: disabledIcons }))
+          dispatch(setSidebarIcons({ visible: list, disabled: safeDisabledIcons }))
         } else {
           setDisabledIcons(list)
-          dispatch(setSidebarIcons({ visible: visibleIcons, disabled: list }))
+          dispatch(setSidebarIcons({ visible: safeVisibleIcons, disabled: list }))
         }
         return
       }
 
-      const sourceList = source.droppableId === 'visible' ? [...visibleIcons] : [...disabledIcons]
-      const destList = destination.droppableId === 'visible' ? [...visibleIcons] : [...disabledIcons]
+      const sourceList = source.droppableId === 'visible' ? [...safeVisibleIcons] : [...safeDisabledIcons]
+      const destList = destination.droppableId === 'visible' ? [...safeVisibleIcons] : [...safeDisabledIcons]
 
       const [removed] = sourceList.splice(source.index, 1)
       const targetList = destList.filter((icon) => icon !== removed)
@@ -83,7 +87,7 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
       setDisabledIcons(newDisabledIcons)
       dispatch(setSidebarIcons({ visible: newVisibleIcons, disabled: newDisabledIcons }))
     },
-    [visibleIcons, disabledIcons, dispatch, setVisibleIcons, setDisabledIcons, t]
+    [safeVisibleIcons, safeDisabledIcons, dispatch, setVisibleIcons, setDisabledIcons, t]
   )
 
   const onMoveIcon = useCallback(
@@ -95,22 +99,26 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
       }
 
       if (fromList === 'visible') {
-        const newVisibleIcons = visibleIcons.filter((i) => i !== icon)
-        const newDisabledIcons = disabledIcons.some((i) => i === icon) ? disabledIcons : [...disabledIcons, icon]
+        const newVisibleIcons = safeVisibleIcons.filter((i) => i !== icon)
+        const newDisabledIcons = safeDisabledIcons.some((i) => i === icon)
+          ? safeDisabledIcons
+          : [...safeDisabledIcons, icon]
 
         setVisibleIcons(newVisibleIcons)
         setDisabledIcons(newDisabledIcons)
         dispatch(setSidebarIcons({ visible: newVisibleIcons, disabled: newDisabledIcons }))
       } else {
-        const newDisabledIcons = disabledIcons.filter((i) => i !== icon)
-        const newVisibleIcons = visibleIcons.some((i) => i === icon) ? visibleIcons : [...visibleIcons, icon]
+        const newDisabledIcons = safeDisabledIcons.filter((i) => i !== icon)
+        const newVisibleIcons = safeVisibleIcons.some((i) => i === icon)
+          ? safeVisibleIcons
+          : [...safeVisibleIcons, icon]
 
         setDisabledIcons(newDisabledIcons)
         setVisibleIcons(newVisibleIcons)
         dispatch(setSidebarIcons({ visible: newVisibleIcons, disabled: newDisabledIcons }))
       }
     },
-    [t, visibleIcons, disabledIcons, setVisibleIcons, setDisabledIcons, dispatch]
+    [t, safeVisibleIcons, safeDisabledIcons, setVisibleIcons, setDisabledIcons, dispatch]
   )
 
   // 使用useMemo缓存图标映射
@@ -142,7 +150,7 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
           <Droppable droppableId="visible">
             {(provided: DroppableProvided) => (
               <IconList ref={provided.innerRef} {...provided.droppableProps}>
-                {visibleIcons.map((icon, index) => (
+                {safeVisibleIcons.map((icon, index) => (
                   <Draggable key={icon} draggableId={icon} index={index}>
                     {(provided: DraggableProvided) => (
                       <IconItem ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
@@ -169,10 +177,10 @@ const SidebarIconsManager: FC<SidebarIconsManagerProps> = ({
           <Droppable droppableId="disabled">
             {(provided: DroppableProvided) => (
               <IconList ref={provided.innerRef} {...provided.droppableProps}>
-                {disabledIcons.length === 0 ? (
+                {safeDisabledIcons.length === 0 ? (
                   <EmptyPlaceholder>{t('settings.display.sidebar.empty')}</EmptyPlaceholder>
                 ) : (
-                  disabledIcons.map((icon, index) => (
+                  safeDisabledIcons.map((icon, index) => (
                     <Draggable key={icon} draggableId={icon} index={index}>
                       {(provided: DraggableProvided) => (
                         <IconItem ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>

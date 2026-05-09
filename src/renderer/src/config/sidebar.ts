@@ -1,10 +1,11 @@
 import type { SidebarIcon } from '@renderer/types'
+import { isIntranetMode } from '@shared/config/intranet'
 
 /**
  * 默认显示的侧边栏图标
  * 这些图标会在侧边栏中默认显示
  */
-export const DEFAULT_SIDEBAR_ICONS: SidebarIcon[] = [
+const BASE_SIDEBAR_ICONS: SidebarIcon[] = [
   'assistants',
   'agents',
   'store',
@@ -17,6 +18,18 @@ export const DEFAULT_SIDEBAR_ICONS: SidebarIcon[] = [
   'notes',
   'openclaw'
 ]
+
+const INTRANET_HIDDEN_SIDEBAR_ICONS: SidebarIcon[] = ['openclaw']
+
+export const filterSidebarIconsForCurrentMode = (icons: SidebarIcon[]): SidebarIcon[] => {
+  if (!isIntranetMode()) {
+    return icons
+  }
+
+  return icons.filter((icon) => !INTRANET_HIDDEN_SIDEBAR_ICONS.includes(icon))
+}
+
+export const DEFAULT_SIDEBAR_ICONS: SidebarIcon[] = filterSidebarIconsForCurrentMode(BASE_SIDEBAR_ICONS)
 
 /**
  * 必须显示的侧边栏图标（不能被隐藏）

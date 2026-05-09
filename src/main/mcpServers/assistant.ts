@@ -6,6 +6,7 @@ import { loggerService } from '@logger'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js'
+import { isIntranetMode } from '@shared/config/intranet'
 import { app } from 'electron'
 
 const logger = loggerService.withContext('MCPServer:Assistant')
@@ -26,6 +27,8 @@ const ALLOWED_ROUTES = [
   '/launchpad',
   '/'
 ]
+
+const INTRANET_BLOCKED_ROUTES = new Set(['/openclaw'])
 
 const NAVIGATE_TOOL: Tool = {
   name: 'navigate',
@@ -134,8 +137,11 @@ class AssistantServer {
     if (!targetPath) throw new McpError(ErrorCode.InvalidParams, "'path' is required for navigate")
 
     const normalizedPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`
+    const allowedRoutes = isIntranetMode()
+      ? ALLOWED_ROUTES.filter((route) => !INTRANET_BLOCKED_ROUTES.has(route))
+      : ALLOWED_ROUTES
 
-    if (!ALLOWED_ROUTES.some((route) => normalizedPath === route || normalizedPath.startsWith(route))) {
+    if (!allowedRoutes.some((route) => normalizedPath === route || normalizedPath.startsWith(route))) {
       throw new McpError(ErrorCode.InvalidParams, `Blocked navigation to disallowed route: ${normalizedPath}`)
     }
 

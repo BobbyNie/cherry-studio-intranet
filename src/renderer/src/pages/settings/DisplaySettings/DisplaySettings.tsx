@@ -3,7 +3,7 @@ import { ResetIcon } from '@renderer/components/Icons'
 import { HStack } from '@renderer/components/Layout'
 import TextBadge from '@renderer/components/TextBadge'
 import { isLinux, isMac, THEME_COLOR_PRESETS } from '@renderer/config/constant'
-import { DEFAULT_SIDEBAR_ICONS } from '@renderer/config/sidebar'
+import { DEFAULT_SIDEBAR_ICONS, filterSidebarIconsForCurrentMode } from '@renderer/config/sidebar'
 import { useTheme } from '@renderer/context/ThemeProvider'
 import { useNavbarPosition, useSettings } from '@renderer/hooks/useSettings'
 import { useTimer } from '@renderer/hooks/useTimer'
@@ -81,8 +81,10 @@ const DisplaySettings: FC = () => {
   const [currentZoom, setCurrentZoom] = useState(1.0)
   const { setUserTheme } = useUserTheme()
 
-  const [visibleIcons, setVisibleIcons] = useState(sidebarIcons?.visible || DEFAULT_SIDEBAR_ICONS)
-  const [disabledIcons, setDisabledIcons] = useState(sidebarIcons?.disabled || [])
+  const [visibleIcons, setVisibleIcons] = useState(
+    filterSidebarIconsForCurrentMode(sidebarIcons?.visible || DEFAULT_SIDEBAR_ICONS)
+  )
+  const [disabledIcons, setDisabledIcons] = useState(filterSidebarIconsForCurrentMode(sidebarIcons?.disabled || []))
   const [fontList, setFontList] = useState<string[]>([])
 
   const handleWindowStyleChange = useCallback(

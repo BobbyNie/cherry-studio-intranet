@@ -16,7 +16,7 @@
  */
 import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
-import { allMinApps } from '@renderer/config/minapps'
+import { allMinApps, filterMinAppsForCurrentMode } from '@renderer/config/minapps'
 import type { MinAppType } from '@renderer/types'
 
 export interface MinAppsState {
@@ -26,7 +26,7 @@ export interface MinAppsState {
 }
 
 const initialState: MinAppsState = {
-  enabled: allMinApps,
+  enabled: filterMinAppsForCurrentMode(allMinApps),
   disabled: [],
   pinned: []
 }
@@ -36,16 +36,16 @@ const minAppsSlice = createSlice({
   initialState,
   reducers: {
     setMinApps: (state, action: PayloadAction<MinAppType[]>) => {
-      state.enabled = action.payload.map((app) => ({ ...app, logo: undefined }))
+      state.enabled = filterMinAppsForCurrentMode(action.payload).map((app) => ({ ...app, logo: undefined }))
     },
     addMinApp: (state, action: PayloadAction<MinAppType>) => {
-      state.enabled.push(action.payload)
+      state.enabled = filterMinAppsForCurrentMode([...state.enabled, action.payload])
     },
     setDisabledMinApps: (state, action: PayloadAction<MinAppType[]>) => {
-      state.disabled = action.payload.map((app) => ({ ...app, logo: undefined }))
+      state.disabled = filterMinAppsForCurrentMode(action.payload).map((app) => ({ ...app, logo: undefined }))
     },
     setPinnedMinApps: (state, action: PayloadAction<MinAppType[]>) => {
-      state.pinned = action.payload.map((app) => ({ ...app, logo: undefined }))
+      state.pinned = filterMinAppsForCurrentMode(action.payload).map((app) => ({ ...app, logo: undefined }))
     }
   }
 })

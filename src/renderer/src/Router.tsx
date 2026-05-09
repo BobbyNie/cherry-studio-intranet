@@ -1,5 +1,6 @@
 import '@renderer/databases'
 
+import { isIntranetMode } from '@shared/config/intranet'
 import type { FC } from 'react'
 import { useMemo } from 'react'
 import { HashRouter, Route, Routes } from 'react-router-dom'
@@ -29,6 +30,7 @@ import TranslatePage from './pages/translate/TranslatePage'
 const Router: FC = () => {
   const { onboardingCompleted, completeOnboarding } = useOnboardingState()
   const { navbarPosition } = useNavbarPosition()
+  const intranetMode = isIntranetMode()
 
   const routes = useMemo(() => {
     return (
@@ -45,13 +47,13 @@ const Router: FC = () => {
           <Route path="/apps/:appId" element={<MinAppPage />} />
           <Route path="/apps" element={<MinAppsPage />} />
           <Route path="/code" element={<CodeToolsPage />} />
-          <Route path="/openclaw" element={<OpenClawPage />} />
+          <Route path="/openclaw" element={intranetMode ? <HomePage /> : <OpenClawPage />} />
           <Route path="/settings/*" element={<SettingsPage />} />
           <Route path="/launchpad" element={<LaunchpadPage />} />
         </Routes>
       </ErrorBoundary>
     )
-  }, [])
+  }, [intranetMode])
 
   if (!onboardingCompleted) {
     return <OnboardingPage onComplete={completeOnboarding} />

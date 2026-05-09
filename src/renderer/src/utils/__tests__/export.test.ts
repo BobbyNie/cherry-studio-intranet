@@ -10,6 +10,7 @@ vi.mock('@renderer/config/minapps', () => {
   return {
     ORIGIN_DEFAULT_MIN_APPS: [],
     allMinApps: [],
+    filterMinAppsForCurrentMode: (apps: unknown[]) => apps,
     loadCustomMiniApp: async () => [],
     updateAllMinApps: vi.fn()
   }
