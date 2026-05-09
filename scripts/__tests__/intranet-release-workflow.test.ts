@@ -12,6 +12,7 @@ type WorkflowStep = {
 }
 
 type WorkflowJob = {
+  env?: Record<string, string>
   needs?: string | string[]
   steps: WorkflowStep[]
   strategy?: {
@@ -117,6 +118,13 @@ describe('intranet release workflow', () => {
     expect(checkoutIndex).toBeGreaterThanOrEqual(0)
     expect(checkoutIndex).toBeLessThan(metadataIndex)
     expect(metadataSteps[metadataIndex].run).toContain("require('./package.json').version")
+  })
+
+  it('does not force intranet runtime flags while running the generic test suite', () => {
+    const workflow = readWorkflow()
+    const testEnv = workflow.jobs['test-intranet-release'].env ?? {}
+
+    expect(Object.keys(testEnv).filter((name) => name.startsWith('CHERRY_'))).toEqual([])
   })
 
   it('keeps Windows portable target available for release users', () => {
