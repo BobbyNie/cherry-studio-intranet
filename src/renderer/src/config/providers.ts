@@ -753,6 +753,7 @@ export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> =
 } as const
 
 export const INTRANET_VISIBLE_PROVIDER_IDS: SystemProviderId[] = ['intranet', 'ollama']
+export const INTRANET_BLOCKED_PROVIDER_IDS = ['zhinao', 'gitee-ai'] as const
 
 export const SYSTEM_PROVIDERS: SystemProvider[] = isIntranetMode()
   ? INTRANET_VISIBLE_PROVIDER_IDS.map((id, index) => ({

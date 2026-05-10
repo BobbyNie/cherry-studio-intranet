@@ -13,7 +13,7 @@ describe('intranet renderer defaults', () => {
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
     vi.resetModules()
 
-    const { SYSTEM_PROVIDERS } = await import('../providers')
+    const { INTRANET_BLOCKED_PROVIDER_IDS, SYSTEM_PROVIDERS } = await import('../providers')
 
     expect(SYSTEM_PROVIDERS[0]).toMatchObject({
       id: 'intranet',
@@ -29,6 +29,7 @@ describe('intranet renderer defaults', () => {
     expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'lmstudio')).toBe(false)
     expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'ovms')).toBe(false)
     expect(SYSTEM_PROVIDERS.some((provider) => provider.id === 'gpustack')).toBe(false)
+    expect(INTRANET_BLOCKED_PROVIDER_IDS).toEqual(['zhinao', 'gitee-ai'])
   })
 
   it('defaults web search to intranet SearXNG only', async () => {

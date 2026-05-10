@@ -26,7 +26,11 @@ import { allMinApps, filterMinAppsForCurrentMode } from '@renderer/config/minapp
 import { isFunctionCallingModel, isNotSupportTextDeltaModel, qwenModel, SYSTEM_MODELS } from '@renderer/config/models'
 import { BUILTIN_OCR_PROVIDERS, BUILTIN_OCR_PROVIDERS_MAP, DEFAULT_OCR_PROVIDER } from '@renderer/config/ocr'
 import { TRANSLATE_PROMPT } from '@renderer/config/prompts'
-import { INTRANET_VISIBLE_PROVIDER_IDS, SYSTEM_PROVIDERS } from '@renderer/config/providers'
+import {
+  INTRANET_BLOCKED_PROVIDER_IDS,
+  INTRANET_VISIBLE_PROVIDER_IDS,
+  SYSTEM_PROVIDERS
+} from '@renderer/config/providers'
 import { DEFAULT_SIDEBAR_ICONS, filterSidebarIconsForCurrentMode } from '@renderer/config/sidebar'
 import db from '@renderer/databases'
 import { getModel } from '@renderer/hooks/useModel'
@@ -3423,6 +3427,7 @@ const migrateConfig = {
 
       const intranetFallbackModel = SYSTEM_MODELS.defaultModel[0]
       const allowedProviderIds = new Set(INTRANET_VISIBLE_PROVIDER_IDS)
+      const blockedProviderIds = new Set<string>(INTRANET_BLOCKED_PROVIDER_IDS)
 
       state.settings.sidebarIcons.visible = filterSidebarIconsForCurrentMode(state.settings.sidebarIcons.visible)
       state.settings.sidebarIcons.disabled = filterSidebarIconsForCurrentMode(state.settings.sidebarIcons.disabled)
@@ -3435,7 +3440,8 @@ const migrateConfig = {
 
       state.llm.providers = state.llm.providers.filter(
         (provider) =>
-          !provider.isSystem || allowedProviderIds.has(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
+          !blockedProviderIds.has(provider.id) &&
+          (!provider.isSystem || allowedProviderIds.has(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number]))
       )
 
       const ensureAllowedModel = (model?: Model) => {
