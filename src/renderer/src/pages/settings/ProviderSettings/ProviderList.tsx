@@ -7,7 +7,7 @@ import {
 } from '@renderer/components/DraggableList'
 import { DeleteIcon, EditIcon } from '@renderer/components/Icons'
 import { ProviderAvatar } from '@renderer/components/ProviderAvatar'
-import { INTRANET_VISIBLE_PROVIDER_IDS } from '@renderer/config/providers'
+import { INTRANET_BLOCKED_PROVIDER_IDS, INTRANET_VISIBLE_PROVIDER_IDS } from '@renderer/config/providers'
 import { useAllProviders, useProviders } from '@renderer/hooks/useProvider'
 import { useTimer } from '@renderer/hooks/useTimer'
 import ImageStorage from '@renderer/services/ImageStorage'
@@ -54,16 +54,24 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
   const [searchParams, setSearchParams] = useSearchParams()
   const providers = useAllProviders()
   const intranetMode = isIntranetMode()
-  const visibleProviders = useMemo(
-    () =>
-      providers.filter(
-        (provider) =>
-          !intranetMode ||
-          !provider.isSystem ||
-          INTRANET_VISIBLE_PROVIDER_IDS.includes(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
-      ),
-    [intranetMode, providers]
-  )
+  const visibleProviders = useMemo(() => {
+    const blockedProviderIds = new Set<string>(INTRANET_BLOCKED_PROVIDER_IDS)
+
+    return providers.filter((provider) => {
+      if (!intranetMode) {
+        return true
+      }
+
+      if (blockedProviderIds.has(provider.id)) {
+        return false
+      }
+
+      return (
+        !provider.isSystem ||
+        INTRANET_VISIBLE_PROVIDER_IDS.includes(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
+      )
+    })
+  }, [intranetMode, providers])
   const { updateProviders, addProvider, removeProvider, updateProvider } = useProviders()
   const { setTimeoutTimer } = useTimer()
   const [selectedProvider, _setSelectedProvider] = useState<Provider>(visibleProviders[0] ?? providers[0])
