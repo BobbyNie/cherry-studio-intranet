@@ -62,6 +62,8 @@ describe('intranet release workflow', () => {
     expect(buildStep?.env?.CHERRY_DISABLE_TELEMETRY).toBe('true')
     expect(buildStep?.env?.CHERRY_DISABLE_MARKETPLACE).toBe('true')
     expect(buildStep?.env?.CHERRY_DISABLE_EXTERNAL_LINKS).toBe('true')
+    expect(buildStep?.run).toContain('run_package_with_retry')
+    expect(buildStep?.run).toContain('rm -rf dist out')
     expect(buildStep?.run).toContain('pnpm package:mac:intranet')
     expect(buildStep?.run).toContain('pnpm package:win:intranet')
   })

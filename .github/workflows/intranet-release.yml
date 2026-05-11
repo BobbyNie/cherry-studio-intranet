@@ -189,11 +189,35 @@ jobs:
       - name: Build intranet package
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            pnpm package:mac:intranet
-          else
-            pnpm package:win:intranet
-          fi
+          run_package() {
+            if [ "${{ matrix.os }}" = "macos-latest" ]; then
+              pnpm package:mac:intranet
+            else
+              pnpm package:win:intranet
+            fi
+          }
+
+          run_package_with_retry() {
+            local attempt
+            local status
+
+            for attempt in 1 2 3; do
+              if run_package; then
+                return 0
+              fi
+
+              status=$?
+              if [ "$attempt" = "3" ]; then
+                return "$status"
+              fi
+
+              echo "::warning::Intranet package build failed on attempt $attempt. Cleaning outputs and retrying."
+              rm -rf dist out
+              sleep $((attempt * 30))
+            done
+          }
+
+          run_package_with_retry
         env:
           CHERRY_INTRANET_MODE: "true"
           CHERRY_DISABLE_PUBLIC_NETWORK: "false"
