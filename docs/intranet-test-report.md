@@ -17,7 +17,7 @@
 |---|---|---|
 | `CI=true corepack pnpm install --offline` | 未通过 | 本机 pnpm store 缺少 `@anthropic-ai/claude-agent-sdk@0.2.112` tarball |
 | `CI=true corepack pnpm install --ignore-scripts` | 通过 | 用于恢复依赖链接；普通安装脚本阶段曾卡住，已改用跳过 scripts 的方式完成本地验证 |
-| `pnpm vitest run --project shared packages/shared/config/intranet.test.ts packages/shared/network/safeRequest.test.ts` | 通过 | allowlist 与 safe request 单测 |
+| `pnpm vitest run --project shared packages/shared/config/intranet.test.ts packages/shared/network/safeRequest.test.ts` | 通过 | 内网网络策略与 safe request 单测 |
 | `pnpm vitest run --project renderer src/renderer/src/config/__tests__/intranetDefaults.test.ts src/renderer/src/store/__tests__/intranetMcp.test.ts` | 通过 | 内网 provider、Web Search、MCP 默认面 |
 | `pnpm vitest run --project main src/main/services/__tests__/AppUpdater.test.ts --testNamePattern "intranet mode"` | 通过 | autoUpdater 内网模式 no-op |
 | `pnpm vitest run --project scripts scripts/__tests__/intranet-release-workflow.test.ts` | 通过 | GitHub Actions 发布 workflow、release 前测试门禁、main push 自动发布、metadata checkout、测试环境隔离、签名 secret 隔离、env 模板和 Windows portable target 校验 |
@@ -29,8 +29,8 @@
 
 ## 覆盖点
 
-- 默认内网 allowlist 放行 localhost/RFC1918 地址并阻断公网 host。
-- `safeFetch`、`safeWebSocket` 在公网目标上阻断底层请求。
+- 内网模式默认不在 App 内做域名/IP 白名单阻断，用户配置的任意企业域名可直接访问。
+- `safeFetch`、`safeWebSocket` 对用户配置域名透传，不做 App 级 host allowlist 阻断。
 - 内网模式默认 provider 只展示企业内网模型服务和内网/本地可用 provider。
 - Web Search 默认仅保留内网 SearXNG。
 - MCP 自动安装/Marketplace 入口在内网模式下隐藏或不可达。

@@ -3,6 +3,7 @@ import { loggerService } from '@renderer/services/LoggerService'
 import store from '@renderer/store'
 import type { Model } from '@renderer/types'
 import type { SerializedError } from '@renderer/types/error'
+import { isIntranetMode } from '@shared/config/intranet'
 
 import { fetchGenerate, fetchModels } from './ApiService'
 
@@ -26,6 +27,10 @@ export interface DiagnosisContext {
 }
 
 async function getCherryAiFreeModel(): Promise<Model | undefined> {
+  if (isIntranetMode()) {
+    return undefined
+  }
+
   try {
     const models = await fetchModels(CHERRYAI_PROVIDER)
     return models.length > 0 ? models[0] : undefined

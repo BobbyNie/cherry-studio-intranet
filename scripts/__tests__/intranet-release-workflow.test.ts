@@ -57,7 +57,7 @@ describe('intranet release workflow', () => {
 
     const buildStep = buildJob.steps.find((step) => step.name === 'Build intranet package')
     expect(buildStep?.env?.CHERRY_INTRANET_MODE).toBe('true')
-    expect(buildStep?.env?.CHERRY_DISABLE_PUBLIC_NETWORK).toBe('true')
+    expect(buildStep?.env?.CHERRY_DISABLE_PUBLIC_NETWORK).toBe('false')
     expect(buildStep?.env?.CHERRY_DISABLE_AUTO_UPDATE).toBe('true')
     expect(buildStep?.env?.CHERRY_DISABLE_TELEMETRY).toBe('true')
     expect(buildStep?.env?.CHERRY_DISABLE_MARKETPLACE).toBe('true')

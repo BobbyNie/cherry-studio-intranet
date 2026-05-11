@@ -1,8 +1,5 @@
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 
-export const INTRANET_BLOCKED_MESSAGE = (host: string) =>
-  `内网版已阻止公网访问：${host}。请改用内网模型 API 或在管理员设置中加入白名单。`
-
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 
 const DEFAULT_ALLOWED_HOSTS = ['localhost', '127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
@@ -31,7 +28,9 @@ export function isIntranetMode(): boolean {
 }
 
 export function isPublicNetworkDisabled(): boolean {
-  return isIntranetMode() || isFlagEnabled('CHERRY_DISABLE_PUBLIC_NETWORK')
+  // Network reachability is controlled by enterprise infrastructure, not by
+  // Cherry Studio runtime host filtering.
+  return false
 }
 
 export function isAutoUpdateDisabled(): boolean {
@@ -59,20 +58,10 @@ export function getAllowedHosts(): string[] {
 }
 
 export function assertNetworkAllowed(url: string): void {
-  if (!isPublicNetworkDisabled()) {
-    return
-  }
-
-  const parsed = parseNetworkUrl(url)
-  if (!parsed) {
-    return
-  }
-
-  if (isAllowedHost(parsed)) {
-    return
-  }
-
-  throw new Error(INTRANET_BLOCKED_MESSAGE(parsed.hostname))
+  // Enterprise intranet deployments rely on the physical network boundary to block
+  // public internet access. Keep this API as a compatibility seam, but do not
+  // enforce host allowlists in application code.
+  void url
 }
 
 export function sanitizeExternalUrl(url: string): string | null {
@@ -121,77 +110,4 @@ function normalizeAllowlistEntry(entry: string): string {
 
 function normalizeHostWithOptionalPort(value: string): string {
   return value.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
-}
-
-function parseNetworkUrl(rawUrl: string): URL | null {
-  try {
-    const parsed = new URL(rawUrl)
-    if (!['http:', 'https:', 'ws:', 'wss:'].includes(parsed.protocol)) {
-      return null
-    }
-    return parsed
-  } catch {
-    try {
-      return new URL(rawUrl, 'http://localhost')
-    } catch {
-      return null
-    }
-  }
-}
-
-function isAllowedHost(parsed: URL): boolean {
-  const hostname = normalizeHostname(parsed.hostname)
-  const hostWithPort = parsed.port ? `${hostname}:${parsed.port}` : hostname
-
-  for (const entry of getAllowedHosts()) {
-    if (entry === hostname || entry === hostWithPort) {
-      return true
-    }
-
-    if (entry.startsWith('*.') && hostname.endsWith(entry.slice(1))) {
-      return true
-    }
-
-    if (isCidrEntry(entry) && isIpInCidr(hostname, entry)) {
-      return true
-    }
-  }
-
-  return false
-}
-
-function normalizeHostname(hostname: string): string {
-  return hostname.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
-}
-
-function isCidrEntry(entry: string): boolean {
-  return /^\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2}$/.test(entry)
-}
-
-function isIpInCidr(ip: string, cidr: string): boolean {
-  const [range, prefixText] = cidr.split('/')
-  const prefix = Number(prefixText)
-  const ipNumber = ipv4ToNumber(ip)
-  const rangeNumber = ipv4ToNumber(range)
-
-  if (ipNumber === null || rangeNumber === null || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) {
-    return false
-  }
-
-  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0
-  return (ipNumber & mask) === (rangeNumber & mask)
-}
-
-function ipv4ToNumber(ip: string): number | null {
-  const parts = ip.split('.')
-  if (parts.length !== 4) {
-    return null
-  }
-
-  const bytes = parts.map((part) => Number(part))
-  if (bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) {
-    return null
-  }
-
-  return (((bytes[0] << 24) >>> 0) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3]) >>> 0
 }

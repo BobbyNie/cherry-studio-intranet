@@ -20,12 +20,13 @@ describe('safeRequest', () => {
     globalThis.WebSocket = originalWebSocket
   })
 
-  it('blocks public fetch targets before the underlying fetch is called', async () => {
-    const fetchMock = vi.fn()
+  it('passes public fetch targets through in intranet mode', async () => {
+    const response = new Response('{}', { status: 200 })
+    const fetchMock = vi.fn().mockResolvedValue(response)
     globalThis.fetch = fetchMock as typeof fetch
 
-    await expect(safeFetch('https://api.openai.com/v1/models')).rejects.toThrow('内网版已阻止公网访问：api.openai.com')
-    expect(fetchMock).not.toHaveBeenCalled()
+    await expect(safeFetch('https://api.openai.com/v1/models')).resolves.toBe(response)
+    expect(fetchMock).toHaveBeenCalledWith('https://api.openai.com/v1/models', undefined)
   })
 
   it('allows localhost fetch targets', async () => {
@@ -37,11 +38,11 @@ describe('safeRequest', () => {
     expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:8000/v1/models', undefined)
   })
 
-  it('blocks public websocket targets before constructing WebSocket', () => {
-    const webSocketMock = vi.fn()
+  it('passes public websocket targets through in intranet mode', () => {
+    const webSocketMock = vi.fn(function WebSocketMock() {})
     globalThis.WebSocket = webSocketMock as unknown as typeof WebSocket
 
-    expect(() => safeWebSocket('wss://api.openai.com/realtime')).toThrow('内网版已阻止公网访问：api.openai.com')
-    expect(webSocketMock).not.toHaveBeenCalled()
+    expect(() => safeWebSocket('wss://api.openai.com/realtime')).not.toThrow()
+    expect(webSocketMock).toHaveBeenCalledWith('wss://api.openai.com/realtime', undefined)
   })
 })

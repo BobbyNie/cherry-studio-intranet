@@ -196,7 +196,7 @@ jobs:
           fi
         env:
           CHERRY_INTRANET_MODE: "true"
-          CHERRY_DISABLE_PUBLIC_NETWORK: "true"
+          CHERRY_DISABLE_PUBLIC_NETWORK: "false"
           CHERRY_DISABLE_AUTO_UPDATE: "true"
           CHERRY_DISABLE_TELEMETRY: "true"
           CHERRY_DISABLE_MARKETPLACE: "true"

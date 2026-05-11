@@ -5,6 +5,7 @@ import {
   getAllowedHosts,
   isAutoUpdateDisabled,
   isIntranetMode,
+  isPublicNetworkDisabled,
   sanitizeExternalUrl
 } from './intranet'
 
@@ -27,6 +28,7 @@ describe('intranet config', () => {
   it('detects intranet mode and disabled update flags', () => {
     expect(isIntranetMode()).toBe(true)
     expect(isAutoUpdateDisabled()).toBe(true)
+    expect(isPublicNetworkDisabled()).toBe(false)
   })
 
   it('allows localhost and RFC1918 private network targets by default', () => {
@@ -39,13 +41,14 @@ describe('intranet config', () => {
     expect(() => assertNetworkAllowed('http://[::1]:11434/api/tags')).not.toThrow()
   })
 
-  it('blocks public model APIs with a clear enterprise intranet message', () => {
-    expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(
-      '内网版已阻止公网访问：api.openai.com。请改用内网模型 API 或在管理员设置中加入白名单。'
-    )
+  it('does not block public hostnames by default in intranet mode', () => {
+    expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).not.toThrow()
+    expect(() =>
+      assertNetworkAllowed('https://litellm-route-ai-tools.apps.dcloud.bocmacau.com/v1/chat/completions')
+    ).not.toThrow()
   })
 
-  it('allows administrator configured hosts and ports', () => {
+  it('keeps administrator configured hosts available for compatibility', () => {
     process.env.CHERRY_NETWORK_ALLOWLIST = 'llm-gateway.intranet.local,npm-registry.intranet.local:4873'
 
     expect(getAllowedHosts()).toEqual(

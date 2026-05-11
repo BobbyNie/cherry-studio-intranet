@@ -35,7 +35,12 @@ vi.mock('@renderer/services/LoggerService', () => ({
   }
 }))
 
+vi.mock('@shared/config/intranet', () => ({
+  isIntranetMode: vi.fn(() => false)
+}))
+
 import store from '@renderer/store'
+import { isIntranetMode } from '@shared/config/intranet'
 
 import { fetchGenerate, fetchModels } from '../ApiService'
 import { diagnoseError } from '../ErrorDiagnosisService'
@@ -43,6 +48,7 @@ import { diagnoseError } from '../ErrorDiagnosisService'
 const mockFetchGenerate = vi.mocked(fetchGenerate)
 const mockFetchModels = vi.mocked(fetchModels)
 const mockGetState = vi.mocked(store.getState)
+const mockIsIntranetMode = vi.mocked(isIntranetMode)
 
 function makeError(overrides: Partial<SerializedError> = {}): SerializedError {
   return { name: 'Error', message: 'test error', stack: null, ...overrides }
@@ -54,6 +60,7 @@ describe('ErrorDiagnosisService', () => {
     mockGetState.mockReturnValue({
       llm: { defaultModel: null }
     } as any)
+    mockIsIntranetMode.mockReturnValue(false)
     // Default: CherryAI returns a free model as fallback
     mockFetchModels.mockResolvedValue([{ id: 'qwen', name: 'Qwen', provider: 'cherryai' }] as any)
   })
@@ -119,6 +126,25 @@ describe('ErrorDiagnosisService', () => {
       expect(mockFetchGenerate.mock.calls[0][0]).toEqual(
         expect.objectContaining({ model: expect.objectContaining({ id: 'qwen' }) })
       )
+    })
+
+    it('does not fetch CherryAI free models in intranet mode', async () => {
+      mockIsIntranetMode.mockReturnValue(true)
+      const intranetModel = { id: 'qwen3.5-27b', name: 'Qwen3.5-27B', provider: 'intranet' }
+      mockGetState.mockReturnValue({ llm: { defaultModel: intranetModel } } as any)
+
+      const mockResult = {
+        summary: 'Error',
+        category: 'unknown',
+        explanation: 'Something went wrong.',
+        steps: []
+      }
+      mockFetchGenerate.mockResolvedValue(JSON.stringify(mockResult))
+
+      await diagnoseError(makeError(), 'zh-CN')
+
+      expect(mockFetchModels).not.toHaveBeenCalled()
+      expect(mockFetchGenerate.mock.calls[0][0]).toEqual(expect.objectContaining({ model: intranetModel }))
     })
 
     it('falls back to defaultModel when CherryAI is unavailable', async () => {

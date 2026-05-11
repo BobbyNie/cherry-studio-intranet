@@ -15,22 +15,15 @@
 
 ```bash
 CHERRY_INTRANET_MODE=true
-CHERRY_DISABLE_PUBLIC_NETWORK=true
+CHERRY_DISABLE_PUBLIC_NETWORK=false
 CHERRY_DISABLE_AUTO_UPDATE=true
 CHERRY_DISABLE_TELEMETRY=true
 CHERRY_DISABLE_MARKETPLACE=true
 CHERRY_DISABLE_EXTERNAL_LINKS=true
-CHERRY_NETWORK_ALLOWLIST=llm-gateway.intranet.local,searxng.intranet.local,npm-registry.intranet.local:4873
+CHERRY_NETWORK_ALLOWLIST=
 ```
 
-默认 allowlist 总是包含：
-
-- `localhost`
-- `127.0.0.1`
-- `::1`
-- `10.0.0.0/8`
-- `172.16.0.0/12`
-- `192.168.0.0/16`
+`CHERRY_NETWORK_ALLOWLIST` 仅为历史兼容变量。当前内网版不在 App 内做域名/IP 白名单拦截，默认允许连接用户配置的任意模型 API、WebDAV、SearXNG、MCP HTTP 服务地址。公网不可达由企业内网物理边界、DNS、防火墙或代理策略保证。
 
 ## 默认内网服务
 
@@ -50,7 +43,7 @@ MCP：
 
 - 保留手动 MCP Server 配置
 - 自动安装、Marketplace、npx 搜索默认禁用
-- 如需 npx/uvx/bunx，必须配置 allowlist 内企业包仓库，例如 `http://npm-registry.intranet.local:4873`
+- 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`
 
 ## 构建命令
 
@@ -102,21 +95,21 @@ corepack pnpm package:win:intranet
 ## 验收步骤
 
 1. 启动应用，确认未配置模型时应用不崩溃，并提示配置内网模型。
-2. 使用抓包工具观察 5 分钟，除 allowlist 内服务外不得出现公网 DNS/HTTP/HTTPS。
+2. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
 3. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文。
-4. 配置 `https://api.openai.com/v1`，确认被阻断并显示“内网版已阻止公网访问”。
+4. 配置企业内网 OpenAI-compatible 域名，确认不需要额外 App 白名单即可访问。
 5. 验证 Web Search 只显示内网 SearXNG。
 6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
 7. 验证点击关于页外链不会打开浏览器。
-8. 验证知识库 embedding/rerank 使用 allowlist 内模型服务。
+8. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
 9. 在断网 Windows 环境安装并启动。
 
 ## 测试报告模板
 
 本次提交的自动化测试覆盖：
 
-- allowlist 默认私网放行和公网阻断
-- safeFetch/safeWebSocket 阻断
+- 内网模式默认不在 App 内做域名/IP 白名单阻断
+- `safeFetch`、`safeWebSocket` 对用户配置域名透传
 - 内网 provider/Web Search/MCP 默认面
 - autoUpdater 内网模式 no-op
 
