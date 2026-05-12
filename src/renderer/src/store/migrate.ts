@@ -23,7 +23,8 @@ import {
   isMac
 } from '@renderer/config/constant'
 import { allMinApps, filterMinAppsForCurrentMode } from '@renderer/config/minapps'
-import { isFunctionCallingModel, isNotSupportTextDeltaModel, qwenModel, SYSTEM_MODELS } from '@renderer/config/models'
+import { isFunctionCallingModel, isNotSupportTextDeltaModel, SYSTEM_MODELS } from '@renderer/config/models'
+import { intranetModels } from '@renderer/config/models/intranet'
 import { BUILTIN_OCR_PROVIDERS, BUILTIN_OCR_PROVIDERS_MAP, DEFAULT_OCR_PROVIDER } from '@renderer/config/ocr'
 import { TRANSLATE_PROMPT } from '@renderer/config/prompts'
 import {
@@ -3168,20 +3169,20 @@ const migrateConfig = {
     try {
       const GLM_4_5_FLASH_MODEL = 'glm-4.5-flash'
       if (state.llm.defaultModel?.provider === 'cherryai' && state.llm.defaultModel?.id === GLM_4_5_FLASH_MODEL) {
-        state.llm.defaultModel = qwenModel
+        state.llm.defaultModel = intranetModels[0]
       }
       if (state.llm.quickModel?.provider === 'cherryai' && state.llm.quickModel?.id === GLM_4_5_FLASH_MODEL) {
-        state.llm.quickModel = qwenModel
+        state.llm.quickModel = intranetModels[0]
       }
       if (state.llm.translateModel?.provider === 'cherryai' && state.llm.translateModel?.id === GLM_4_5_FLASH_MODEL) {
-        state.llm.translateModel = qwenModel
+        state.llm.translateModel = intranetModels[0]
       }
       state.assistants.assistants.forEach((assistant) => {
         if (assistant.model?.provider === 'cherryai' && assistant.model?.id === GLM_4_5_FLASH_MODEL) {
-          assistant.model = qwenModel
+          assistant.model = intranetModels[0]
         }
         if (assistant.defaultModel?.provider === 'cherryai' && assistant.defaultModel?.id === GLM_4_5_FLASH_MODEL) {
-          assistant.defaultModel = qwenModel
+          assistant.defaultModel = intranetModels[0]
         }
       })
       // Initialize mini app region filter setting
@@ -3351,20 +3352,20 @@ const migrateConfig = {
   '204': (state: RootState) => {
     try {
       if (state.llm.defaultModel?.provider === 'cherryai') {
-        state.llm.defaultModel = qwenModel
+        state.llm.defaultModel = intranetModels[0]
       }
       if (state.llm.quickModel?.provider === 'cherryai') {
-        state.llm.quickModel = qwenModel
+        state.llm.quickModel = intranetModels[0]
       }
       if (state.llm.translateModel?.provider === 'cherryai') {
-        state.llm.translateModel = qwenModel
+        state.llm.translateModel = intranetModels[0]
       }
       state.assistants.assistants.forEach((assistant) => {
         if (assistant.model?.provider === 'cherryai') {
-          assistant.model = qwenModel
+          assistant.model = intranetModels[0]
         }
         if (assistant.defaultModel?.provider === 'cherryai') {
-          assistant.defaultModel = qwenModel
+          assistant.defaultModel = intranetModels[0]
         }
       })
       logger.info('migrate 204 success')

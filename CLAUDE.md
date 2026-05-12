@@ -326,3 +326,17 @@ Do not introduce new features to these files. Bug fixes only.
 - URL sanitization via `strict-url-sanitise`
 - IP validation via `ipaddr.js` (API server)
 - `express-validator` for API server request validation
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked on GitHub. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses canonical triage role labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repository with root-level CONTEXT.md. See `docs/agents/domain.md`.

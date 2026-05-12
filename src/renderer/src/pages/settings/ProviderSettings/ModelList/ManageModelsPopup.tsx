@@ -73,10 +73,17 @@ const PopupContainer: React.FC<Props> = ({ providerId, resolve }) => {
   const { t, i18n } = useTranslation()
   const searchInputRef = useRef<any>(null)
 
-  const allModels = useMemo(
-    () => uniqBy([...(SYSTEM_MODELS[provider.id] || []), ...listModels, ...models], 'id'),
-    [provider.id, listModels, models]
-  )
+  // 当从 provider 获取到模型列表后，只显示实际存在的模型
+  // 过滤掉 SYSTEM_MODELS 中预定义但 provider 不支持的模型
+  const allModels = useMemo(() => {
+    const systemModels = SYSTEM_MODELS[provider.id] || []
+    // 如果成功获取了 provider 的模型列表，则过滤 SYSTEM_MODELS
+    const filteredSystemModels =
+      !loadingModels && listModels.length > 0
+        ? systemModels.filter((sm) => listModels.some((lm) => lm.id === sm.id))
+        : systemModels
+    return uniqBy([...filteredSystemModels, ...listModels, ...models], 'id')
+  }, [provider.id, listModels, models, loadingModels])
   const duplicateModelNames = useMemo(() => getDuplicateModelNames(allModels), [allModels])
 
   const isLoading = useMemo(
@@ -174,7 +181,7 @@ const PopupContainer: React.FC<Props> = ({ providerId, resolve }) => {
         }
       }
     })
-  }, [list, models, onAddModel, provider, t])
+  }, [list, onAddModel, provider, t])
 
   const loadModels = useCallback(async (provider: Provider) => {
     setLoadingModels(true)

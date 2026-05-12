@@ -1,9 +1,8 @@
-import { CHERRYAI_PROVIDER } from '@renderer/config/providers'
+import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
 import { loggerService } from '@renderer/services/LoggerService'
 import store from '@renderer/store'
 import type { Model } from '@renderer/types'
 import type { SerializedError } from '@renderer/types/error'
-import { isIntranetMode } from '@shared/config/intranet'
 
 import { fetchGenerate, fetchModels } from './ApiService'
 
@@ -26,16 +25,12 @@ export interface DiagnosisContext {
   modelId?: string
 }
 
-async function getCherryAiFreeModel(): Promise<Model | undefined> {
-  if (isIntranetMode()) {
-    return undefined
-  }
-
+async function getIntranetFreeModel(): Promise<Model | undefined> {
   try {
-    const models = await fetchModels(CHERRYAI_PROVIDER)
+    const models = await fetchModels(SYSTEM_PROVIDERS_CONFIG.intranet)
     return models.length > 0 ? models[0] : undefined
   } catch {
-    logger.warn('Failed to fetch CherryAI free models')
+    logger.warn('Failed to fetch intranet models')
     return undefined
   }
 }
@@ -44,10 +39,10 @@ async function buildModelsToTry(context?: DiagnosisContext): Promise<Model[]> {
   const defaultModel = store.getState().llm.defaultModel
   const models: Model[] = []
 
-  // CherryAI free model as primary diagnosis model
-  const cherryModel = await getCherryAiFreeModel()
-  if (cherryModel) {
-    models.push(cherryModel)
+  // Intranet model as primary diagnosis model
+  const intranetModel = await getIntranetFreeModel()
+  if (intranetModel) {
+    models.push(intranetModel)
   }
 
   // User's default model as fallback (skip if same as failing model)

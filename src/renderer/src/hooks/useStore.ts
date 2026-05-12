@@ -14,7 +14,7 @@
  * - v2 Refactor PR   : https://github.com/CherryHQ/cherry-studio/pull/10162
  * --------------------------------------------------------------------------
  */
-import { CHERRYAI_PROVIDER } from '@renderer/config/providers'
+import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
 import store, { useAppDispatch, useAppSelector } from '@renderer/store'
 import {
   setAssistantsTabSortType,
@@ -58,5 +58,5 @@ export function useAssistantsTabSortType() {
 }
 
 export function getStoreProviders() {
-  return store.getState().llm.providers.concat([CHERRYAI_PROVIDER])
+  return store.getState().llm.providers.concat([SYSTEM_PROVIDERS_CONFIG.intranet])
 }

@@ -3,16 +3,9 @@ import { isIntranetMode } from '@shared/config/intranet'
 
 import { intranetModels } from './intranet'
 
-export const qwenModel: Model = {
-  id: 'qwen',
-  name: 'Qwen',
-  provider: 'cherryai',
-  group: 'Qwen'
-}
-
 const defaultModels = isIntranetMode()
   ? [intranetModels[0], intranetModels[0], intranetModels[0], intranetModels[0]]
-  : [qwenModel, qwenModel, qwenModel, qwenModel]
+  : [intranetModels[0], intranetModels[0], intranetModels[0], intranetModels[0]]
 
 export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> = {
   defaultModel: defaultModels,

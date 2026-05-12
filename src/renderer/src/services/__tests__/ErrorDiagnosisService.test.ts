@@ -7,9 +7,16 @@ vi.mock('../ApiService', () => ({
   fetchModels: vi.fn().mockResolvedValue([])
 }))
 
-// Mock CHERRYAI_PROVIDER
+// Mock SYSTEM_PROVIDERS_CONFIG
 vi.mock('@renderer/config/providers', () => ({
-  CHERRYAI_PROVIDER: { id: 'cherryai', type: 'openai', apiHost: 'https://api.cherry-ai.com', models: [] }
+  SYSTEM_PROVIDERS_CONFIG: {
+    intranet: {
+      id: 'intranet',
+      type: 'openai',
+      apiHost: 'http://llm-gateway.intranet.local/v1',
+      models: []
+    }
+  }
 }))
 
 // Mock store
@@ -36,7 +43,7 @@ vi.mock('@renderer/services/LoggerService', () => ({
 }))
 
 vi.mock('@shared/config/intranet', () => ({
-  isIntranetMode: vi.fn(() => false)
+  isIntranetMode: vi.fn(() => true)
 }))
 
 import store from '@renderer/store'
@@ -60,9 +67,9 @@ describe('ErrorDiagnosisService', () => {
     mockGetState.mockReturnValue({
       llm: { defaultModel: null }
     } as any)
-    mockIsIntranetMode.mockReturnValue(false)
-    // Default: CherryAI returns a free model as fallback
-    mockFetchModels.mockResolvedValue([{ id: 'qwen', name: 'Qwen', provider: 'cherryai' }] as any)
+    mockIsIntranetMode.mockReturnValue(true)
+    // Default: intranet returns a free model as fallback
+    mockFetchModels.mockResolvedValue([{ id: 'qwen3.5-27b', name: 'Qwen3.5-27B', provider: 'intranet' }] as any)
   })
 
   describe('diagnoseError', () => {
@@ -109,7 +116,7 @@ describe('ErrorDiagnosisService', () => {
       await expect(diagnoseError(makeError(), 'en')).rejects.toThrow('Invalid diagnosis response format')
     })
 
-    it('uses CherryAI free model as primary', async () => {
+    it('uses intranet free model as primary', async () => {
       const customModel = { id: 'gpt-4', name: 'GPT-4', provider: 'openai' }
       mockGetState.mockReturnValue({ llm: { defaultModel: customModel } } as any)
 
@@ -122,32 +129,13 @@ describe('ErrorDiagnosisService', () => {
       mockFetchGenerate.mockResolvedValue(JSON.stringify(mockResult))
 
       await diagnoseError(makeError(), 'en')
-      // First call should use CherryAI free model (primary), not defaultModel
+      // First call should use intranet free model (primary), not defaultModel
       expect(mockFetchGenerate.mock.calls[0][0]).toEqual(
-        expect.objectContaining({ model: expect.objectContaining({ id: 'qwen' }) })
+        expect.objectContaining({ model: expect.objectContaining({ id: 'qwen3.5-27b' }) })
       )
     })
 
-    it('does not fetch CherryAI free models in intranet mode', async () => {
-      mockIsIntranetMode.mockReturnValue(true)
-      const intranetModel = { id: 'qwen3.5-27b', name: 'Qwen3.5-27B', provider: 'intranet' }
-      mockGetState.mockReturnValue({ llm: { defaultModel: intranetModel } } as any)
-
-      const mockResult = {
-        summary: 'Error',
-        category: 'unknown',
-        explanation: 'Something went wrong.',
-        steps: []
-      }
-      mockFetchGenerate.mockResolvedValue(JSON.stringify(mockResult))
-
-      await diagnoseError(makeError(), 'zh-CN')
-
-      expect(mockFetchModels).not.toHaveBeenCalled()
-      expect(mockFetchGenerate.mock.calls[0][0]).toEqual(expect.objectContaining({ model: intranetModel }))
-    })
-
-    it('falls back to defaultModel when CherryAI is unavailable', async () => {
+    it('falls back to defaultModel when intranet is unavailable', async () => {
       mockFetchModels.mockResolvedValue([])
       const customModel = { id: 'gpt-4', name: 'GPT-4', provider: 'openai' }
       mockGetState.mockReturnValue({ llm: { defaultModel: customModel } } as any)
@@ -164,7 +152,7 @@ describe('ErrorDiagnosisService', () => {
       expect(mockFetchGenerate.mock.calls[0][0]).toEqual(expect.objectContaining({ model: customModel }))
     })
 
-    it('uses only CherryAI when no default model', async () => {
+    it('uses only intranet when no default model', async () => {
       mockGetState.mockReturnValue({ llm: { defaultModel: null } } as any)
 
       const mockResult = {
@@ -178,7 +166,7 @@ describe('ErrorDiagnosisService', () => {
       await diagnoseError(makeError(), 'en')
       expect(mockFetchGenerate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: expect.objectContaining({ id: 'qwen' })
+          model: expect.objectContaining({ id: 'qwen3.5-27b' })
         })
       )
     })
@@ -194,13 +182,13 @@ describe('ErrorDiagnosisService', () => {
 
       await diagnoseError(makeError({ statusCode: 401 }), 'zh-CN', {
         errorSource: 'chat',
-        providerName: 'openai',
-        modelId: 'gpt-4'
+        providerName: 'intranet',
+        modelId: 'qwen3.5-27b'
       })
 
       const callArgs = mockFetchGenerate.mock.calls[0][0]
-      expect(callArgs.content).toContain('openai')
-      expect(callArgs.content).toContain('gpt-4')
+      expect(callArgs.content).toContain('intranet')
+      expect(callArgs.content).toContain('qwen3.5-27b')
       expect(callArgs.content).toContain('401')
     })
 
