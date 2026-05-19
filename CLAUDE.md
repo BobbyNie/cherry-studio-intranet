@@ -340,3 +340,32 @@ Uses canonical triage role labels. See `docs/agents/triage-labels.md`.
 ### Domain docs
 
 Single-context repository with root-level CONTEXT.md. See `docs/agents/domain.md`.
+
+## Cursor Cloud specific instructions
+
+### Environment Prerequisites
+
+- **Node.js 24.11.1** is required (matches `.nvmrc`). Use `nvm use` to activate.
+- **pnpm 10.27.0** is managed via corepack (`corepack enable` then `pnpm --version`).
+- **System libraries** needed for native module compilation: `libxtst-dev`, `libx11-dev`, `libxkbfile-dev`, `libevdev-dev` (for `selection-hook` native addon).
+- After checkout, if `git config core.hooksPath` is set, unset it so `prek` (git hooks installer) can complete during `pnpm install`.
+
+### Running the dev app
+
+- Copy `.env.example` to `.env` before first run.
+- `pnpm dev` launches the Electron app with hot reload. Requires a display server (DISPLAY=:1 via Xvfb is fine).
+- The app will show API errors if no LLM provider API key is configured — this is expected and does not indicate a broken environment.
+
+### Key commands (reference)
+
+All commands are documented in the Development Commands section above. Most commonly used:
+- `pnpm test` — runs all 247+ test files (unit tests, no external deps needed)
+- `pnpm typecheck` — concurrent type-checking of node, web, and aiCore
+- `pnpm format` — Biome format + lint (write mode)
+- `pnpm lint` — full lint pipeline including oxlint, eslint, typecheck, i18n check, format check
+
+### Gotchas
+
+- The `pnpm install` prepare script requires `core.hooksPath` to be unset. If you see `Cowardly refusing to install hooks with core.hooksPath set`, run `git config --unset-all core.hooksPath` (both local and global).
+- The `core-js@2.6.12` build script warning is benign and can be ignored.
+- `pnpm dev` runs `generate:openapi` first which requires the `.env` file to exist (even if empty/placeholder values).
