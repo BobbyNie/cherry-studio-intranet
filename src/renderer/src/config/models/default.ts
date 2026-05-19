@@ -1186,6 +1186,12 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
   ],
   grok: [
     {
+      id: 'grok-4.3',
+      provider: 'grok',
+      name: 'Grok 4.3',
+      group: 'Grok'
+    },
+    {
       id: 'grok-4',
       provider: 'grok',
       name: 'Grok 4',
