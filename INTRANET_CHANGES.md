@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2025-05-12
+> 最后更新: 2026-05-23
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -63,6 +63,23 @@ const filteredSystemModels =
 - `CLAUDE.md` - 添加 `## Agent skills` 章节
 
 **同步建议**: 需要上游团队确认工作流
+
+---
+
+## 5. 上游同步记录 (2026-05-23)
+
+从 `CherryHQ/cherry-studio` `main` 合并了 v1.9.6 之后的 4 个修复提交：
+
+| 提交 | 说明 | 内网适用 |
+|------|------|----------|
+| #15185 | agents: 向 Claude Code 传递自定义 headers | ✅ |
+| #15188 | 从包内本地可执行文件启动 opencode | ✅ |
+| #15204 | Gemini 3.x UI 与采样参数 hotfix | ✅ |
+| #15201 | gitignore: 忽略 Antigravity CLI 本地文件 | ✅ |
+
+内网专用排除逻辑未受影响（`packages/shared/config/intranet.ts`、MCP 公网限制、自动更新禁用等保持不变）。
+
+自动化检查：`scripts/__tests__/upstream-sync.test.ts`（需配置 `upstream` remote）。
 
 ---
 
