@@ -195,7 +195,7 @@ export class ConfigManager {
       return false
     }
 
-    return this.get<boolean>(ConfigKeys.EnableDataCollection, true)
+    return this.get<boolean>(ConfigKeys.EnableDataCollection, false)
   }
 
   setEnableDataCollection(value: boolean) {
