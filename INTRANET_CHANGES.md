@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-05-23
+> 最后更新: 2026-05-25
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -79,7 +79,19 @@ const filteredSystemModels =
 
 内网专用排除逻辑未受影响（`packages/shared/config/intranet.ts`、MCP 公网限制、自动更新禁用等保持不变）。
 
-自动化检查：`scripts/__tests__/upstream-sync.test.ts`（需配置 `upstream` remote）。
+## 6. 上游同步记录 (2026-05-25)
+
+从 `CherryHQ/cherry-studio` `main` cherry-pick 了 v1.9.6 之后的 5 个修复提交：
+
+| PR | 说明 | 内网适用 | 备注 |
+|----|------|----------|------|
+| #15233 | InputbarCore SendMessageButton 补 key | ✅ | |
+| #15283 | AIHubMix reasoning effort provider ID | ✅ | |
+| #15277 | StepFun Anthropic 兼容 provider | ✅ | 迁移编号改为 `208`（`207` 保留给内网 provider 清理） |
+| #15256 | grok-build-0.1 模型能力识别 | ✅ | |
+| #15288 | Qwen max 系列排除 vision 误判 | ✅ | |
+
+内网专用排除逻辑未受影响。同步检测见 `scripts/__tests__/upstream-sync.test.ts`（按 PR 编号匹配，允许内网迁移编号差异）。
 
 ---
 

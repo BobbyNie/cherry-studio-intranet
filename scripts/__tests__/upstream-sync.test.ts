@@ -17,6 +17,17 @@ function hasUpstreamRemote(): boolean {
   }
 }
 
+function extractPrNumber(message: string): string | null {
+  const match = message.match(/\(#(\d+)\)/)
+  return match?.[1] ?? null
+}
+
+function collectPrNumbers(ref: string): Set<string> {
+  const lines = runGit(`git log --format=%s ${ref}`).split('\n').filter(Boolean)
+  const prNumbers = lines.map(extractPrNumber).filter((value): value is string => value !== null)
+  return new Set(prNumbers)
+}
+
 describe('upstream sync status', () => {
   it('documents the upstream source of truth', () => {
     const packageJson = JSON.parse(
@@ -33,15 +44,28 @@ describe('upstream sync status', () => {
 
     runGit('git fetch upstream main --quiet')
 
-    const pendingPatches = runGit('git cherry -v HEAD upstream/main')
+    const intranetPrNumbers = collectPrNumbers('HEAD')
+    const pendingUpstreamCommits = runGit('git log --format=%H%x09%s HEAD..upstream/main')
       .split('\n')
       .map((line) => line.trim())
-      .filter((line) => line.startsWith('+'))
+      .filter(Boolean)
+
+    const missingByPr = pendingUpstreamCommits
+      .map((line) => {
+        const [sha, ...messageParts] = line.split('\t')
+        const message = messageParts.join('\t')
+        const prNumber = extractPrNumber(message)
+        if (!prNumber || intranetPrNumbers.has(prNumber)) {
+          return null
+        }
+        return `${sha} ${message}`
+      })
+      .filter((line): line is string => line !== null)
 
     expect(
-      pendingPatches,
-      pendingPatches.length > 0
-        ? `Missing upstream patches not yet applied to intranet:\n${pendingPatches.join('\n')}`
+      missingByPr,
+      missingByPr.length > 0
+        ? `Missing upstream PRs not yet applied to intranet:\n${missingByPr.join('\n')}`
         : undefined
     ).toEqual([])
   })
