@@ -49,7 +49,8 @@ export function classifyError(error?: SerializedError, providerId?: string): Err
     numStatus === 404 ||
     msg.includes('model_not_found') ||
     msg.includes('model not found') ||
-    msg.includes('model does not exist')
+    msg.includes('model does not exist') ||
+    msg.includes('no healthy deployments')
   ) {
     return { category: 'model', i18nKey: 'error.diagnosis.model', navTarget: `/settings/provider${providerSuffix}` }
   }

@@ -156,4 +156,13 @@ describe('intranet release workflow', () => {
     expect(packageJson.scripts['package:mac:intranet']).toContain('--mac')
     expect(packageJson.scripts['package:mac:intranet']).toContain('.env.intranet.example')
   })
+
+  it('provides an intranet debug script with the intranet env loaded', () => {
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
+    const debugScript = packageJson.scripts['debug:intranet']
+
+    expect(debugScript).toContain('.env.intranet.example')
+    expect(debugScript).toContain('.env.intranet')
+    expect(debugScript).toContain('pnpm debug')
+  })
 })
