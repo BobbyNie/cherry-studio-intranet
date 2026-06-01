@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { OfflineNetworkBlockedError, setOfflineNetworkRuntimeConfig } from '../config/intranet'
 import { safeFetch, safeWebSocket } from './safeRequest'
 
 describe('safeRequest', () => {
@@ -9,40 +10,45 @@ describe('safeRequest', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv }
-    process.env.CHERRY_INTRANET_MODE = 'true'
+    process.env.CHERRY_OFFLINE_MODE = 'true'
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
-    delete process.env.CHERRY_NETWORK_ALLOWLIST
+    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
     globalThis.fetch = originalFetch
     globalThis.WebSocket = originalWebSocket
+    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
   })
 
-  it('passes public fetch targets through in intranet mode', async () => {
-    const response = new Response('{}', { status: 200 })
-    const fetchMock = vi.fn().mockResolvedValue(response)
+  it('blocks public fetch targets in offline mode', async () => {
+    const fetchMock = vi.fn()
     globalThis.fetch = fetchMock as typeof fetch
 
-    await expect(safeFetch('https://api.openai.com/v1/models')).resolves.toBe(response)
-    expect(fetchMock).toHaveBeenCalledWith('https://api.openai.com/v1/models', undefined)
+    await expect(safeFetch('https://api.openai.com/v1/models')).rejects.toThrow(OfflineNetworkBlockedError)
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('allows localhost fetch targets', async () => {
-    const response = new Response('{}', { status: 200 })
-    const fetchMock = vi.fn().mockResolvedValue(response)
+  it('blocks localhost fetch targets until local model service is enabled', async () => {
+    const fetchMock = vi.fn()
     globalThis.fetch = fetchMock as typeof fetch
+
+    await expect(safeFetch('http://127.0.0.1:8000/v1/models')).rejects.toThrow(OfflineNetworkBlockedError)
+
+    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [8000] })
+    const response = new Response('{}', { status: 200 })
+    fetchMock.mockResolvedValue(response)
 
     await expect(safeFetch('http://127.0.0.1:8000/v1/models')).resolves.toBe(response)
     expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:8000/v1/models', undefined)
   })
 
-  it('passes public websocket targets through in intranet mode', () => {
+  it('blocks public websocket targets in offline mode', () => {
     const webSocketMock = vi.fn(function WebSocketMock() {})
     globalThis.WebSocket = webSocketMock as unknown as typeof WebSocket
 
-    expect(() => safeWebSocket('wss://api.openai.com/realtime')).not.toThrow()
-    expect(webSocketMock).toHaveBeenCalledWith('wss://api.openai.com/realtime', undefined)
+    expect(() => safeWebSocket('wss://api.openai.com/realtime')).toThrow(OfflineNetworkBlockedError)
+    expect(webSocketMock).not.toHaveBeenCalled()
   })
 })

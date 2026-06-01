@@ -8,7 +8,7 @@ vi.mock('electron', () => ({
   }
 }))
 
-describe('main intranet network guard', () => {
+describe('main offline network guard', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.clearAllMocks()
@@ -16,13 +16,13 @@ describe('main intranet network guard', () => {
     netFetch.mockReset()
   })
 
-  it('installs global fetch and net.fetch guards when intranet mode blocks public network', async () => {
+  it('installs global fetch and net.fetch guards when offline mode blocks network', async () => {
     const originalFetch = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('fetch', originalFetch)
     netFetch.mockResolvedValue(undefined)
 
     const assertNetworkAllowed = vi.fn((url: string) => {
-      if (url.includes('openai.com')) {
+      if (url.includes('openai.com') || url.includes('10.10.8.20')) {
         throw new Error('blocked')
       }
     })
@@ -36,11 +36,12 @@ describe('main intranet network guard', () => {
     const { net } = await import('electron')
     installMainIntranetNetworkGuard()
 
-    await expect(globalThis.fetch('http://10.10.8.20:8000/v1/models')).resolves.toBeUndefined()
+    await expect(globalThis.fetch('http://127.0.0.1:11434/v1/models')).resolves.toBeUndefined()
     expect(() => globalThis.fetch('https://api.openai.com/v1/models')).toThrow('blocked')
+    expect(() => globalThis.fetch('http://10.10.8.20:8000/v1/models')).toThrow('blocked')
     expect(() => net.fetch('https://api.openai.com/v1/models')).toThrow('blocked')
 
-    expect(assertNetworkAllowed).toHaveBeenCalledWith('http://10.10.8.20:8000/v1/models')
+    expect(assertNetworkAllowed).toHaveBeenCalledWith('http://127.0.0.1:11434/v1/models')
     expect(assertNetworkAllowed).toHaveBeenCalledWith('https://api.openai.com/v1/models')
     expect(originalFetch).toHaveBeenCalledTimes(1)
   })
@@ -70,7 +71,7 @@ describe('main intranet network guard', () => {
     const listener = onBeforeRequest.mock.calls[0][1]
     const allowCallback = vi.fn()
     const denyCallback = vi.fn()
-    listener({ url: 'http://10.10.8.20:8000/v1/models' }, allowCallback)
+    listener({ url: 'http://127.0.0.1:11434/v1/models' }, allowCallback)
     listener({ url: 'https://api.openai.com/v1/models' }, denyCallback)
 
     expect(allowCallback).toHaveBeenCalledWith({ cancel: false })

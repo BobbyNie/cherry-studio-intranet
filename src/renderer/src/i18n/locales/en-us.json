@@ -745,7 +745,7 @@
     "delete": "Delete",
     "documentation": "Documentation",
     "edit": "Edit",
-    "externalLinksDisabled": "External links are disabled in the enterprise intranet edition",
+    "externalLinksDisabled": "External links are disabled in the fully offline edition",
     "feedback": "Feedback",
     "file": "File",
     "forceReload": "Force Reload",
@@ -6057,5 +6057,28 @@
     "quit": "Quit",
     "show_window": "Show Window",
     "visualization": "Visualization"
+  },
+  "offline": {
+    "settings": {
+      "title": "Fully Offline Edition",
+      "menu": "Offline Edition",
+      "edition_label": "Edition",
+      "edition_tag": "Fully Offline Edition",
+      "description": "Network access is denied by default. Enable local model service to allow localhost endpoints only.",
+      "enable_local_model": "Enable local model service",
+      "api_host": "API Base URL",
+      "api_host_placeholder": "http://127.0.0.1:11434/v1",
+      "allowed_ports": "Allowed ports",
+      "save": "Save offline network settings",
+      "saved": "Offline network settings saved",
+      "check_update": "Check for updates",
+      "update_notice": "This is a fully offline edition. Please update through your enterprise offline software distribution process.",
+      "audit": "Fully offline edition: all network access is denied by default. After enabling local model service, only configured localhost ports are allowed.",
+      "validation": {
+        "api_host_required": "Please enter a local API Base URL before enabling local model service.",
+        "invalid_host": "Only localhost, 127.0.0.1, or ::1 with an explicit port are allowed.",
+        "invalid_port": "The port is not in the allowed port list."
+      }
+    }
   }
 }

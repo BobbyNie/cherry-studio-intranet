@@ -3427,23 +3427,6 @@ const migrateConfig = {
       }
 
       const intranetFallbackModel = SYSTEM_MODELS.defaultModel[0]
-      const allowedProviderIds = new Set(INTRANET_VISIBLE_PROVIDER_IDS)
-      const blockedProviderIds = new Set<string>(INTRANET_BLOCKED_PROVIDER_IDS)
-
-      state.settings.sidebarIcons.visible = filterSidebarIconsForCurrentMode(state.settings.sidebarIcons.visible)
-      state.settings.sidebarIcons.disabled = filterSidebarIconsForCurrentMode(state.settings.sidebarIcons.disabled)
-
-      if (state.minapps) {
-        state.minapps.enabled = filterMinAppsForCurrentMode(state.minapps.enabled)
-        state.minapps.disabled = filterMinAppsForCurrentMode(state.minapps.disabled)
-        state.minapps.pinned = filterMinAppsForCurrentMode(state.minapps.pinned)
-      }
-
-      state.llm.providers = state.llm.providers.filter(
-        (provider) =>
-          !blockedProviderIds.has(provider.id) &&
-          (!provider.isSystem || allowedProviderIds.has(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number]))
-      )
 
       const ensureAllowedModel = (model?: Model) => {
         if (!model || allowedProviderIds.has(model.provider as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])) {

@@ -45,6 +45,7 @@ resources/binaries/
 .env.*
 !.env.example
 !.env.intranet.example
+!.env.offline.example
 
 # Local
 local

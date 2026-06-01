@@ -184,6 +184,7 @@ const SettingsPage: FC = () => {
             <Route path="mcp/*" element={<MCPSettings />} />
             <Route path="skills" element={<SkillsSettings />} />
             <Route path="memory" element={<MemorySettings />} />
+            <Route path="offline" element={<OfflineSettings />} />
             <Route path="general/*" element={<GeneralSettings />} />
             <Route path="display" element={<DisplaySettings />} />
             <Route path="shortcut" element={<ShortcutSettings />} />
