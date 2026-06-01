@@ -1,10 +1,10 @@
+import type { OfflineNetworkRuntimeConfig } from '@shared/config/intranet'
 import {
   getDefaultLocalModelPorts,
   getOfflineNetworkRuntimeConfig,
   normalizePortList,
   setOfflineNetworkRuntimeConfig,
-  validateLocalModelApiHost,
-  type OfflineNetworkRuntimeConfig
+  validateLocalModelApiHost
 } from '@shared/config/intranet'
 
 const CONFIG_KEYS = {

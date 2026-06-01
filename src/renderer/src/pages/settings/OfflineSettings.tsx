@@ -1,5 +1,4 @@
 import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
-import { updateProvider } from '@renderer/store/llm'
 import {
   applyOfflineSettings,
   getPersistedOfflineSettings,
@@ -7,6 +6,7 @@ import {
   validateOfflineSettings,
   type PersistedOfflineSettings
 } from '@renderer/services/OfflineNetworkSettingsService'
+import { updateProvider } from '@renderer/store/llm'
 import { useAppDispatch } from '@renderer/store'
 import { getDefaultLocalModelPorts, isOfflineMode } from '@shared/config/intranet'
 import { Button, Input, Switch, Tag } from 'antd'
