@@ -126,16 +126,6 @@ export const PUBLIC_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
   }
 ]
 
-export const INTRANET_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
-  {
-    id: 'searxng',
-    name: '内网 SearXNG',
-    apiHost: 'http://searxng.intranet.local',
-    basicAuthUsername: '',
-    basicAuthPassword: ''
-  }
-]
+export const INTRANET_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = []
 
-export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = isIntranetMode()
-  ? INTRANET_WEB_SEARCH_PROVIDERS
-  : PUBLIC_WEB_SEARCH_PROVIDERS
+export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = isIntranetMode() ? [] : PUBLIC_WEB_SEARCH_PROVIDERS

@@ -222,9 +222,14 @@ const AboutSettings: FC = () => {
                 style={{ marginTop: 8, cursor: intranetMode ? 'default' : 'pointer' }}>
                 v{version}
               </Tag>
-              {intranetMode && <Tag color="blue">{t('intranet.edition', '企业内网版')}</Tag>}
+              {intranetMode ? (
+                <Tag color="blue">{t('offline.settings.edition_tag', '企业完全离线版')}</Tag>
+              ) : null}
             </VersionWrapper>
           </Row>
+          {!isPortable && intranetMode ? (
+            <CheckUpdateButton onClick={onCheckUpdate}>{t('offline.settings.check_update')}</CheckUpdateButton>
+          ) : null}
           {!isPortable && !intranetMode && (
             <CheckUpdateButton
               onClick={onCheckUpdate}
@@ -296,7 +301,7 @@ const AboutSettings: FC = () => {
           <SettingRow>
             <SettingRowTitle>
               <Building2 size={18} />
-              {t('intranet.about.audit', '当前为企业内网版，公网模型服务、在线市场、自动更新、反馈和外部链接已禁用。')}
+              {t('offline.settings.audit')}
             </SettingRowTitle>
           </SettingRow>
         ) : (

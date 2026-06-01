@@ -13,7 +13,7 @@ vi.mock('@renderer/config/providers', () => ({
     intranet: {
       id: 'intranet',
       type: 'openai',
-      apiHost: 'http://llm-gateway.intranet.local/v1',
+      apiHost: 'http://127.0.0.1:11434/v1',
       models: []
     }
   }
@@ -72,7 +72,7 @@ const configuredIntranetProvider = {
 const intranetProviderWithoutDiagnosisModels = {
   id: 'intranet',
   type: 'openai',
-  apiHost: 'http://llm-gateway.intranet.local/v1',
+  apiHost: 'http://127.0.0.1:11434/v1',
   enabled: true,
   models: []
 }
@@ -80,7 +80,7 @@ const intranetProviderWithoutDiagnosisModels = {
 const canonicalIntranetProvider = {
   id: 'intranet',
   type: 'openai',
-  apiHost: 'http://llm-gateway.intranet.local/v1',
+  apiHost: 'http://127.0.0.1:11434/v1',
   enabled: true,
   models: [{ id: 'qwen-coder', name: 'qwen-coder', provider: 'intranet', group: 'Enterprise Intranet' }]
 }

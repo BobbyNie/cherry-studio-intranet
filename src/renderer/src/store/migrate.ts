@@ -3502,6 +3502,69 @@ const migrateConfig = {
       logger.error('migrate 209 error', error as Error)
       return state
     }
+  },
+  '210': (state: RootState) => {
+    try {
+      if (!isIntranetMode()) {
+        logger.info('migrate 210 skipped outside offline mode')
+        return state
+      }
+
+      state.settings.proxyMode = 'none'
+      state.settings.proxyUrl = undefined
+      state.settings.proxyBypassRules = undefined
+      state.settings.autoCheckUpdate = false
+
+      state.llm.providers = state.llm.providers.map((provider) => {
+        if (provider.id !== 'intranet') {
+          return provider
+        }
+
+        const hadGatewayHost = /llm-gateway\.intranet\.local/i.test(provider.apiHost ?? '')
+        return {
+          ...provider,
+          name: '本机模型服务',
+          apiHost: hadGatewayHost ? '' : (provider.apiHost ?? ''),
+          anthropicApiHost: hadGatewayHost ? '' : (provider.anthropicApiHost ?? ''),
+          enabled: Boolean(provider.apiHost?.trim()) && !hadGatewayHost,
+          models: []
+        }
+      })
+
+      const clearIntranetOnlyModel = (model?: Model) => {
+        if (!model) {
+          return model
+        }
+        if (model.provider === 'intranet' || model.provider === 'cherryai') {
+          return undefined
+        }
+        return model
+      }
+
+      state.llm.defaultModel = clearIntranetOnlyModel(state.llm.defaultModel)
+      state.llm.quickModel = clearIntranetOnlyModel(state.llm.quickModel)
+      state.llm.translateModel = clearIntranetOnlyModel(state.llm.translateModel)
+      state.llm.topicNamingModel = clearIntranetOnlyModel(state.llm.topicNamingModel)
+
+      state.assistants.assistants.forEach((assistant) => {
+        assistant.model = clearIntranetOnlyModel(assistant.model)
+        assistant.defaultModel = clearIntranetOnlyModel(assistant.defaultModel)
+      })
+
+      if (state.assistants.defaultAssistant) {
+        state.assistants.defaultAssistant.model = clearIntranetOnlyModel(state.assistants.defaultAssistant.model)
+        state.assistants.defaultAssistant.defaultModel = clearIntranetOnlyModel(
+          state.assistants.defaultAssistant.defaultModel
+        )
+      }
+
+      state.websearch.providers = []
+      logger.info('migrate 210 success')
+      return state
+    } catch (error) {
+      logger.error('migrate 210 error', error as Error)
+      return state
+    }
   }
 }
 

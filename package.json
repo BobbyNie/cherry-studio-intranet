@@ -25,6 +25,8 @@
     "build:win": "dotenv npm run build && electron-builder --win --x64 --arm64",
     "package:mac:intranet": "dotenv -e .env.intranet.example -e .env.intranet -- npm run build && dotenv -e .env.intranet.example -e .env.intranet -- electron-builder --mac --arm64 --x64 --publish never",
     "package:win:intranet": "dotenv -e .env.intranet.example -e .env.intranet -- npm run build && dotenv -e .env.intranet.example -e .env.intranet -- electron-builder --win --x64 --arm64 --publish never",
+    "package:mac:offline": "dotenv -e .env.offline.example -e .env.offline -- npm run build:offline && dotenv -e .env.offline.example -e .env.offline -- electron-builder --mac --arm64 --x64 --publish never",
+    "package:win:offline": "dotenv -e .env.offline.example -e .env.offline -- npm run build:offline && dotenv -e .env.offline.example -e .env.offline -- electron-builder --win --x64 --arm64 --publish never",
     "build:win:x64": "dotenv npm run build && electron-builder --win --x64",
     "build:win:arm64": "dotenv npm run build && electron-builder --win --arm64",
     "build:mac": "dotenv npm run build && electron-builder --mac --arm64 --x64",
@@ -85,7 +87,9 @@
     "packages:release": "pnpm packages:build && changeset publish",
     "ci:basic-check": "pnpm test:lint && pnpm format:check && pnpm typecheck && pnpm i18n:check && pnpm i18n:hardcoded:strict && pnpm openapi:check && pnpm skills:check",
     "ci:test-check": "pnpm test:main && pnpm test:renderer && pnpm test:aicore && pnpm test:shared && pnpm test:scripts",
-    "ci": "pnpm ci:basic-check && pnpm ci:test-check"
+    "ci": "pnpm ci:basic-check && pnpm ci:test-check",
+    "debug:offline": "dotenv -e .env.offline.example -e .env.offline -- pnpm debug",
+    "build:offline": "dotenv -e .env.offline.example -e .env.offline -- npm run build"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.2.112",

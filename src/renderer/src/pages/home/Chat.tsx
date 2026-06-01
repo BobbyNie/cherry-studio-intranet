@@ -14,8 +14,11 @@ import { useShortcut } from '@renderer/hooks/useShortcuts'
 import { useShowTopics } from '@renderer/hooks/useStore'
 import { useTimer } from '@renderer/hooks/useTimer'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
+import { useAppSelector } from '@renderer/store'
 import type { Assistant, Model, Topic } from '@renderer/types'
 import { classNames } from '@renderer/utils'
+import { isOfflineChatConfigured } from '@renderer/utils/offlineChat'
+import { isOfflineMode } from '@shared/config/intranet'
 import { Flex } from 'antd'
 import { debounce } from 'lodash'
 import { AnimatePresence, motion } from 'motion/react'
@@ -26,6 +29,7 @@ import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
 import ChatNavbar from './components/ChatNavBar'
+import ChatLocalModelEmpty from './components/ChatLocalModelEmpty'
 import Inputbar from './Inputbar/Inputbar'
 import ChatNavigation from './Messages/ChatNavigation'
 import Messages from './Messages/Messages'
@@ -41,6 +45,68 @@ interface Props {
 }
 
 const Chat: FC<Props> = (props) => {
+  const providers = useAppSelector((state) => state.llm.providers)
+  const offlineMode = isOfflineMode()
+  const chatConfigured = isOfflineChatConfigured(providers)
+
+  if (offlineMode && !chatConfigured) {
+    return <ChatOfflinePlaceholder {...props} />
+  }
+
+  return <ChatContent {...props} />
+}
+
+const ChatOfflinePlaceholder: FC<Props> = (props) => {
+  const { topicPosition, messageStyle } = useSettings()
+  const { showTopics } = useShowTopics()
+  const { isTopNavbar } = useNavbarPosition()
+  const mainHeight = isTopNavbar ? 'calc(100vh - var(--navbar-height) - 6px)' : 'calc(100vh - var(--navbar-height))'
+
+  return (
+    <Container id="chat" className={classNames([messageStyle])}>
+      <HStack>
+        <motion.div
+          layout
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          style={{ flex: 1, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
+          <Main id="chat-main" vertical flex={1} justify="space-between" style={{ height: mainHeight, width: '100%' }}>
+            <ChatNavbar
+              activeAssistant={props.assistant}
+              activeTopic={props.activeTopic}
+              setActiveTopic={props.setActiveTopic}
+              setActiveAssistant={props.setActiveAssistant}
+              position="left"
+            />
+            <div className="flex flex-1 flex-col" style={{ height: `calc(${mainHeight} - var(--navbar-height))` }}>
+              <ChatLocalModelEmpty />
+            </div>
+          </Main>
+        </motion.div>
+        <AnimatePresence initial={false}>
+          {topicPosition === 'right' && showTopics && (
+            <motion.div
+              key="right-tabs"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 'var(--assistants-width)', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}>
+              <Tabs
+                activeAssistant={props.assistant}
+                activeTopic={props.activeTopic}
+                setActiveAssistant={props.setActiveAssistant}
+                setActiveTopic={props.setActiveTopic}
+                position="right"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </HStack>
+    </Container>
+  )
+}
+
+const ChatContent: FC<Props> = (props) => {
   const { assistant, updateAssistant, updateTopic } = useAssistant(props.assistant.id)
   const { t } = useTranslation()
   const { topicPosition, messageStyle, messageNavigation } = useSettings()

@@ -82,15 +82,15 @@ export const CHERRYAI_PROVIDER: SystemProvider = {
 export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> = {
   intranet: {
     id: 'intranet',
-    name: '企业内网模型服务',
+    name: '本机模型服务',
     type: 'openai',
     apiKey: '',
-    apiHost: 'http://llm-gateway.intranet.local/v1',
-    anthropicApiHost: 'http://llm-gateway.intranet.local/v1',
+    apiHost: '',
+    anthropicApiHost: '',
     models: SYSTEM_MODELS.intranet,
     isSystem: true,
-    enabled: true,
-    notes: 'OpenAI-compatible API for air-gapped enterprise deployments.'
+    enabled: false,
+    notes: 'OpenAI-compatible local model server. Enable in Settings > Offline Edition.'
   },
   cherryin: {
     id: 'cherryin',
@@ -757,9 +757,11 @@ export const INTRANET_VISIBLE_PROVIDER_IDS: SystemProviderId[] = ['intranet', 'o
 export const INTRANET_BLOCKED_PROVIDER_IDS = ['zhinao', 'gitee-ai'] as const
 
 export const SYSTEM_PROVIDERS: SystemProvider[] = isIntranetMode()
-  ? INTRANET_VISIBLE_PROVIDER_IDS.map((id, index) => ({
+  ? INTRANET_VISIBLE_PROVIDER_IDS.map((id) => ({
       ...SYSTEM_PROVIDERS_CONFIG[id],
-      enabled: index === 0 ? true : SYSTEM_PROVIDERS_CONFIG[id].enabled
+      enabled: false,
+      apiHost: '',
+      anthropicApiHost: ''
     }))
   : Object.values(SYSTEM_PROVIDERS_CONFIG)
 
@@ -856,13 +858,9 @@ type ProviderUrls = {
 export const PROVIDER_URLS: Record<SystemProviderId, ProviderUrls> = {
   intranet: {
     api: {
-      url: 'http://llm-gateway.intranet.local/v1'
+      url: ''
     },
-    websites: {
-      official: 'http://llm-gateway.intranet.local',
-      docs: 'http://llm-gateway.intranet.local/docs',
-      models: 'http://llm-gateway.intranet.local/v1/models'
-    }
+    websites: {}
   },
   cherryin: {
     api: {

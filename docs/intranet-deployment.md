@@ -1,4 +1,4 @@
-# 企业内网版部署说明
+# 企业完全离线版部署说明
 
 ## 构建环境
 
@@ -6,117 +6,100 @@
 
 - Node.js `>=24.11.1`
 - pnpm `10.27.0`
-- 已经在内网制品库或本机 pnpm store 中缓存依赖
+- 已经在离线制品库或本机 pnpm store 中缓存依赖
 - Windows 打包需在可构建 Windows artifact 的环境执行 Electron Builder
 
 ## 环境变量
 
-复制 `.env.intranet.example` 为 `.env.intranet`，按企业内网实际域名调整：
+复制 `.env.offline.example` 为 `.env.offline`（或沿用 `.env.intranet.example` / `.env.intranet` 兼容命名）：
 
 ```bash
+CHERRY_OFFLINE_MODE=true
 CHERRY_INTRANET_MODE=true
-CHERRY_DISABLE_PUBLIC_NETWORK=false
+CHERRY_DISABLE_PUBLIC_NETWORK=true
 CHERRY_DISABLE_AUTO_UPDATE=true
 CHERRY_DISABLE_TELEMETRY=true
 CHERRY_DISABLE_MARKETPLACE=true
 CHERRY_DISABLE_EXTERNAL_LINKS=true
-CHERRY_NETWORK_ALLOWLIST=
+CHERRY_LOCAL_MODEL_ALLOWED_PORTS=
 ```
 
-`CHERRY_NETWORK_ALLOWLIST` 仅为历史兼容变量。当前内网版不在 App 内做域名/IP 白名单拦截，默认允许连接用户配置的任意模型 API、WebDAV、SearXNG、MCP HTTP 服务地址。公网不可达由企业内网物理边界、DNS、防火墙或代理策略保证。
+**完全离线版在应用内强制执行 Offline Network Guard：**
 
-## 默认内网服务
+- 默认 deny all，包括 localhost
+- 仅当用户在「设置 → 完全离线版」中显式启用本机模型服务，并配置 API Base URL 与允许端口后，才允许访问 `localhost` / `127.0.0.1` / `::1` 的指定端口
+- 不允许企业内网网关、局域网、公网域名或代理
+
+## 默认本机模型服务
 
 模型服务：
 
-- 名称：`企业内网模型服务`
+- 名称：`本机模型服务`
 - 类型：OpenAI-compatible
-- 默认地址：`http://llm-gateway.intranet.local/v1`
-- 默认模型：`qwen-coder`, `deepseek-coder`, `glm-coder`, `embedding-model`, `rerank-model`
+- 默认 `apiHost`：空（必须用户配置）
+- 默认 `enabled`：false
+- 默认模型：无（必须用户导入或手动添加）
+
+可选保留 Ollama provider，但同样默认 disabled，且必须经 Offline Network Guard 放行。
 
 Web Search：
 
-- 仅支持内网 SearXNG
-- 默认地址：`http://searxng.intranet.local`
+- 完全离线版默认禁用，设置入口隐藏
 
 MCP：
 
-- 保留手动 MCP Server 配置
-- 自动安装、Marketplace、npx 搜索默认禁用
-- 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`
+- 保留手动 MCP Server 配置（stdio / 经 Guard 放行的 localhost HTTP）
+- Marketplace、自动安装、远程 npx 搜索默认禁用
+
+备份：
+
+- 默认仅保留本地文件备份
+- WebDAV、S3、Nutstore 等网络备份入口在离线模式下隐藏
 
 ## 构建命令
 
 ```bash
 corepack pnpm install --offline
+corepack pnpm build:offline
+corepack pnpm package:mac:offline
+corepack pnpm package:win:offline
+```
+
+兼容命令（语义等同，仍加载内网/离线 env）：
+
+```bash
 corepack pnpm build:intranet
 corepack pnpm package:mac:intranet
 corepack pnpm package:win:intranet
 ```
 
-`build:intranet`、`package:mac:intranet`、`package:win:intranet` 会先加载 `.env.intranet.example`，再加载可选 `.env.intranet` 覆盖，因此没有本地 env 文件时也会按内网模式构建。
+`build:offline` / `package:*:offline` 会先加载 `.env.offline.example`，再加载可选 `.env.offline` 覆盖。
 
-如果内网没有完整 pnpm store，请先在联网构建机执行依赖缓存同步，再把 pnpm store 和项目 lockfile 带入内网。
-
-## GitHub Actions 自动发布
-
-新增 workflow：`.github/workflows/intranet-release.yml`。
-
-触发方式：
-
-- 推送代码到 `main`：自动生成 `intranet-v<package.version>-<short-sha>` tag 并发布 Release
-- 手动触发 `Intranet Release`，输入 release tag，例如 `intranet-v1.9.4`
-- 推送 tag：`v*` 或 `intranet-v*`
-
-构建矩阵：
-
-- `macos-latest`：生成 macOS `dmg` 和 `zip`，包含 `arm64` / `x64`
-- `windows-latest`：生成 Windows `setup.exe` 和 `portable.exe`，包含 `x64` / `arm64`
-
-发布行为：
-
-- `test-intranet-release` 先执行 `pnpm lint`、`pnpm i18n:hardcoded:strict`、`pnpm test`
-- `build-intranet-release` 依赖测试门禁通过后才开始 macOS/Windows 编译
-- 构建任务先上传 Actions artifact
-- `publish-intranet-release` 统一下载全部 artifact
-- 自动创建或更新 GitHub Release，并把 Release tag 指向触发 workflow 的 commit
-- Release 中包含 `SHA256SUMS.txt`
-
-可选签名 secret：
-
-- `CSC_LINK`
-- `CSC_KEY_PASSWORD`
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_TEAM_ID`
-
-如果未配置签名 secret，workflow 只保留 `CSC_IDENTITY_AUTO_DISCOVERY=false`，不会把空的签名变量传给 electron-builder，会生成未签名构建产物，适合内网验收和二次签名流程。
+如果内网没有完整 pnpm store，请先在联网构建机执行依赖缓存同步，再把 pnpm store 和项目 lockfile 带入离线环境。
 
 ## 验收步骤
 
-1. 启动应用，确认未配置模型时应用不崩溃，并提示配置内网模型。
-2. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
-3. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文。
-4. 配置企业内网 OpenAI-compatible 域名，确认不需要额外 App 白名单即可访问。
-5. 验证 Web Search 只显示内网 SearXNG。
-6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
-7. 验证点击关于页外链不会打开浏览器。
-8. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
-9. 在断网 Windows 环境安装并启动。
+1. 启动应用，未配置本机模型时对话页应显示清晰引导，而不是崩溃或长时间 loading。
+2. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问公网、企业内网或 localhost。
+3. 在「设置 → 完全离线版」启用本机模型服务，配置 `http://127.0.0.1:11434/v1`（或 LM Studio / llama.cpp 等本机服务）及允许端口。
+4. 验证仅配置的 localhost 端口可访问，公网/内网/域名请求均被拦截。
+5. 验证 Web Search、MCP Marketplace、网络备份、代理设置入口不可见或不可用。
+6. 验证检查更新仅显示离线分发说明，不请求任何 release URL。
+7. 验证点击外链不会打开浏览器。
+8. 在完全断网环境安装并启动。
 
 ## 测试报告模板
 
-本次提交的自动化测试覆盖：
+自动化测试覆盖：
 
-- 内网模式默认不在 App 内做域名/IP 白名单阻断
-- `safeFetch`、`safeWebSocket` 对用户配置域名透传
-- 内网 provider/Web Search/MCP 默认面
-- autoUpdater 内网模式 no-op
+- Offline Network Guard 默认 deny all
+- localhost 显式启用 + 端口白名单才放行
+- 本机模型 provider 默认空 apiHost
+- migration 210 清理旧 gateway 配置
+- 对话页未配置空状态
 
 人工验收需补充：
 
-- Windows 安装包完全断网启动
-- 抓包 5 分钟无公网请求
-- 企业实际 LLM Gateway/SearXNG/WebDAV/MCP registry 联调
-
-详见 `docs/intranet-test-report.md`。
+- 完全断网 Windows/macOS 安装包启动
+- 抓包 5 分钟无意外外联
+- 本机 Ollama / LM Studio 联调

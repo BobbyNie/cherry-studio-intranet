@@ -73,6 +73,7 @@ const GeneralSettings: FC = () => {
   const [proxyUrl, setProxyUrl] = useState<string | undefined>(storeProxyUrl)
   const [proxyBypassRules, setProxyBypassRules] = useState<string | undefined>(storeProxyBypassRules)
   const { theme } = useTheme()
+  const offlineMode = isOfflineMode()
   const { enableDeveloperMode, setEnableDeveloperMode } = useEnableDeveloperMode()
   const { setTimeoutTimer } = useTimer()
 
@@ -231,12 +232,16 @@ const GeneralSettings: FC = () => {
             }))}
           />
         </SettingRow>
-        <SettingDivider />
-        <SettingRow>
-          <SettingRowTitle>{t('settings.proxy.mode.title')}</SettingRowTitle>
-          <Selector value={storeProxyMode} onChange={onProxyModeChange} options={proxyModeOptions} />
-        </SettingRow>
-        {storeProxyMode === 'custom' && (
+        {!offlineMode && (
+          <>
+            <SettingDivider />
+            <SettingRow>
+              <SettingRowTitle>{t('settings.proxy.mode.title')}</SettingRowTitle>
+              <Selector value={storeProxyMode} onChange={onProxyModeChange} options={proxyModeOptions} />
+            </SettingRow>
+          </>
+        )}
+        {!offlineMode && storeProxyMode === 'custom' && (
           <>
             <SettingDivider />
             <SettingRow>
@@ -253,7 +258,7 @@ const GeneralSettings: FC = () => {
             </SettingRow>
           </>
         )}
-        {storeProxyMode === 'custom' && (
+        {!offlineMode && storeProxyMode === 'custom' && (
           <>
             <SettingDivider />
             <SettingRow>

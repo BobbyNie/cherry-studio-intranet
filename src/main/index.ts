@@ -46,6 +46,7 @@ import { initWebviewHotkeys } from './services/WebviewService'
 import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
+import { loadOfflineNetworkConfigFromStore } from './services/OfflineNetworkConfigService'
 import { installMainIntranetNetworkGuard, installSessionIntranetNetworkGuard } from './network/intranetNetworkGuard'
 
 const logger = loggerService.withContext('MainEntry')
