@@ -100,12 +100,16 @@ describe('ClickableFilePath', () => {
     vi.useFakeTimers()
     const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
-    registerIconifyCollections()
+    try {
+      registerIconifyCollections()
 
-    render(<ClickableFilePath path="/Users/foo/bar.tsx" />)
-    await vi.runAllTimersAsync()
+      render(<ClickableFilePath path="/Users/foo/bar.tsx" />)
+      await vi.runAllTimersAsync()
 
-    expect(fetchSpy).not.toHaveBeenCalled()
-    vi.useRealTimers()
+      expect(fetchSpy).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
   })
 })
