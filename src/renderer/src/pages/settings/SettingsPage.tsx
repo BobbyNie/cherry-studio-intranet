@@ -71,6 +71,14 @@ const SettingsPage: FC = () => {
             </MenuItem>
           </MenuItemLink>
           <Divider />
+          {offlineMode && (
+            <MenuItemLink to="/settings/offline">
+              <MenuItem className={isRoute('/settings/offline')}>
+                <HardDrive size={18} />
+                {t('offline.settings.menu')}
+              </MenuItem>
+            </MenuItemLink>
+          )}
           <MenuItemLink to="/settings/general">
             <MenuItem className={isRoute('/settings/general')}>
               <Settings2 size={18} />
@@ -184,7 +192,6 @@ const SettingsPage: FC = () => {
             <Route path="mcp/*" element={<MCPSettings />} />
             <Route path="skills" element={<SkillsSettings />} />
             <Route path="memory" element={<MemorySettings />} />
-            <Route path="offline" element={<OfflineSettings />} />
             <Route path="general/*" element={<GeneralSettings />} />
             <Route path="display" element={<DisplaySettings />} />
             <Route path="shortcut" element={<ShortcutSettings />} />
