@@ -3,8 +3,7 @@ const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 export const OFFLINE_NETWORK_BLOCKED_MESSAGE = '完全离线版已禁用网络访问'
 export const OFFLINE_LOCALHOST_BLOCKED_MESSAGE = '请先启用本机模型服务并配置允许的端口'
-export const OFFLINE_INVALID_LOCAL_HOST_MESSAGE =
-  '仅允许 localhost、127.0.0.1 或 ::1，且必须包含明确端口'
+export const OFFLINE_INVALID_LOCAL_HOST_MESSAGE = '仅允许 localhost、127.0.0.1 或 ::1，且必须包含明确端口'
 export const OFFLINE_INVALID_PORT_MESSAGE = '端口不在允许列表中'
 
 const LOCAL_LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
@@ -120,11 +119,7 @@ export function normalizePortList(ports: unknown): number[] {
   }
 
   return Array.from(
-    new Set(
-      ports
-        .map((port) => Number(port))
-        .filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535)
-    )
+    new Set(ports.map((port) => Number(port)).filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535))
   )
 }
 

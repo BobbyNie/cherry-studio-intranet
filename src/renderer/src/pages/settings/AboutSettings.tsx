@@ -222,9 +222,7 @@ const AboutSettings: FC = () => {
                 style={{ marginTop: 8, cursor: intranetMode ? 'default' : 'pointer' }}>
                 v{version}
               </Tag>
-              {intranetMode ? (
-                <Tag color="blue">{t('offline.settings.edition_tag', '企业完全离线版')}</Tag>
-              ) : null}
+              {intranetMode ? <Tag color="blue">{t('offline.settings.edition_tag', '企业完全离线版')}</Tag> : null}
             </VersionWrapper>
           </Row>
           {!isPortable && intranetMode ? (

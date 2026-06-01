@@ -45,7 +45,9 @@ describe('offline network config', () => {
     expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('http://10.10.8.20:8000/v1/models')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('http://192.168.10.9:8000/v1/models')).toThrow(OfflineNetworkBlockedError)
-    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/models')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/models')).toThrow(
+      OfflineNetworkBlockedError
+    )
   })
 
   it('allows localhost only when explicitly enabled with matching port', () => {

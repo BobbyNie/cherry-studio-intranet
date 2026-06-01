@@ -1,10 +1,6 @@
 import { loggerService } from '@logger'
 import { configManager } from '@main/services/ConfigManager'
-import {
-  getDefaultLocalModelPorts,
-  normalizePortList,
-  setOfflineNetworkRuntimeConfig
-} from '@shared/config/intranet'
+import { getDefaultLocalModelPorts, normalizePortList, setOfflineNetworkRuntimeConfig } from '@shared/config/intranet'
 
 const logger = loggerService.withContext('OfflineNetworkConfigService')
 

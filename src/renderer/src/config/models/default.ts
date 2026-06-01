@@ -3,7 +3,9 @@ import { isOfflineMode } from '@shared/config/intranet'
 
 import { intranetModels } from './intranet'
 
-const defaultModels: Model[] = isOfflineMode() ? [] : [intranetModels[0], intranetModels[0], intranetModels[0], intranetModels[0]]
+const defaultModels: Model[] = isOfflineMode()
+  ? []
+  : [intranetModels[0], intranetModels[0], intranetModels[0], intranetModels[0]]
 
 export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> = {
   defaultModel: defaultModels,
