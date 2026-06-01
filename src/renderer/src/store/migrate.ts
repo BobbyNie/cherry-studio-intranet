@@ -3491,13 +3491,15 @@ const migrateConfig = {
       return state
     }
   },
-  '208': (state: RootState) => {
+  '209': (state: RootState) => {
     try {
-      state.settings.enableDataCollection = true
-      logger.info('migrate 208 success')
+      if (!isIntranetMode()) {
+        state.settings.enableDataCollection = true
+      }
+      logger.info('migrate 209 success')
       return state
     } catch (error) {
-      logger.error('migrate 208 error', error as Error)
+      logger.error('migrate 209 error', error as Error)
       return state
     }
   }
