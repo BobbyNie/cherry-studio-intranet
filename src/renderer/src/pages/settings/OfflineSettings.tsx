@@ -2,14 +2,13 @@ import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
 import { updateProvider } from '@renderer/store/llm'
 import {
   applyOfflineSettings,
-  getDefaultLocalModelPorts,
   getPersistedOfflineSettings,
   loadOfflineSettingsFromMain,
   validateOfflineSettings,
   type PersistedOfflineSettings
 } from '@renderer/services/OfflineNetworkSettingsService'
 import { useAppDispatch } from '@renderer/store'
-import { isOfflineMode } from '@shared/config/intranet'
+import { getDefaultLocalModelPorts, isOfflineMode } from '@shared/config/intranet'
 import { Button, Input, Switch, Tag } from 'antd'
 import { ShieldOff } from 'lucide-react'
 import type { FC } from 'react'
