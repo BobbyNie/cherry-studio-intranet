@@ -4,6 +4,12 @@ import { resolve } from 'node:path'
 
 const root = resolve(__dirname, '../..')
 
+/** Latest upstream v1 release tag the intranet edition tracks (not v2/main). */
+const UPSTREAM_SYNC_TAG = 'v1.9.8'
+
+/** Upstream PRs intentionally skipped for intranet (CI-only or release automation). */
+const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362'])
+
 function runGit(command: string): string {
   return execSync(command, { cwd: root, encoding: 'utf8' }).trim()
 }
@@ -37,15 +43,15 @@ describe('upstream sync status', () => {
     expect(packageJson.homepage).toBe('https://github.com/CherryHQ/cherry-studio')
   })
 
-  it('has no pending upstream main commits when upstream remote is configured', () => {
+  it(`has no pending upstream commits through ${UPSTREAM_SYNC_TAG} when upstream remote is configured`, () => {
     if (!hasUpstreamRemote()) {
       return
     }
 
-    runGit('git fetch upstream main --quiet')
+    runGit(`git fetch upstream tag ${UPSTREAM_SYNC_TAG} --quiet`)
 
     const intranetPrNumbers = collectPrNumbers('HEAD')
-    const pendingUpstreamCommits = runGit('git log --format=%H%x09%s HEAD..upstream/main')
+    const pendingUpstreamCommits = runGit(`git log --format=%H%x09%s HEAD..${UPSTREAM_SYNC_TAG}`)
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
@@ -55,7 +61,7 @@ describe('upstream sync status', () => {
         const [sha, ...messageParts] = line.split('\t')
         const message = messageParts.join('\t')
         const prNumber = extractPrNumber(message)
-        if (!prNumber || intranetPrNumbers.has(prNumber)) {
+        if (!prNumber || intranetPrNumbers.has(prNumber) || EXCLUDED_UPSTREAM_PRS.has(prNumber)) {
           return null
         }
         return `${sha} ${message}`

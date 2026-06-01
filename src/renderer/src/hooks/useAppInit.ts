@@ -81,6 +81,11 @@ export function useAppInit() {
   useFullScreenNotice()
 
   useEffect(() => {
+    if (isIntranetMode() || isTelemetryDisabled()) {
+      PrivacyPolicyUpdateNotice.hide()
+      return
+    }
+
     if (privacyPolicyVersion === LATEST_PRIVACY_POLICY_VERSION) {
       PrivacyPolicyUpdateNotice.hide()
       return
