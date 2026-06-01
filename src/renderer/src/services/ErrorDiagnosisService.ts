@@ -1,3 +1,4 @@
+import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
 import { loggerService } from '@renderer/services/LoggerService'
 import store from '@renderer/store'
 import type { Model, Provider } from '@renderer/types'
@@ -30,7 +31,8 @@ function getConfiguredIntranetProvider(): Provider | undefined {
     return undefined
   }
 
-  const intranetProvider = store.getState().llm.providers?.find((provider) => provider.id === 'intranet')
+  const intranetProviderId = SYSTEM_PROVIDERS_CONFIG.intranet.id
+  const intranetProvider = store.getState().llm.providers?.find((provider) => provider.id === intranetProviderId)
   if (!intranetProvider || intranetProvider.enabled === false) {
     return undefined
   }
