@@ -3542,7 +3542,7 @@ const migrateConfig = {
       }
 
       const clearLlmModel = (key: 'defaultModel' | 'quickModel' | 'translateModel' | 'topicNamingModel') => {
-        ;(state.llm as Record<string, Model | undefined>)[key] = clearIntranetOnlyModel(state.llm[key])
+        ;(state.llm as unknown as Record<string, Model | undefined>)[key] = clearIntranetOnlyModel(state.llm[key])
       }
 
       clearLlmModel('defaultModel')
