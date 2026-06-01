@@ -1,8 +1,8 @@
-import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
 import { loggerService } from '@renderer/services/LoggerService'
 import store from '@renderer/store'
-import type { Model } from '@renderer/types'
+import type { Model, Provider } from '@renderer/types'
 import type { SerializedError } from '@renderer/types/error'
+import { isIntranetMode } from '@shared/config/intranet'
 
 import { fetchGenerate, fetchModels } from './ApiService'
 
@@ -25,10 +25,38 @@ export interface DiagnosisContext {
   modelId?: string
 }
 
+function getConfiguredIntranetProvider(): Provider | undefined {
+  if (!isIntranetMode()) {
+    return undefined
+  }
+
+  const intranetProvider = store.getState().llm.providers?.find((provider) => provider.id === 'intranet')
+  if (!intranetProvider || intranetProvider.enabled === false) {
+    return undefined
+  }
+
+  return intranetProvider
+}
+
+function isDiagnosisCapableModel(model: Model): boolean {
+  const capabilityTypes = model.capabilities?.map((capability) => capability.type) ?? []
+  return capabilityTypes.length === 0 || capabilityTypes.some((type) => type !== 'embedding' && type !== 'rerank')
+}
+
 async function getIntranetFreeModel(): Promise<Model | undefined> {
+  const intranetProvider = getConfiguredIntranetProvider()
+  if (!intranetProvider) {
+    return undefined
+  }
+
+  const configuredModel = intranetProvider.models.find(isDiagnosisCapableModel)
+  if (configuredModel) {
+    return configuredModel
+  }
+
   try {
-    const models = await fetchModels(SYSTEM_PROVIDERS_CONFIG.intranet)
-    return models.length > 0 ? models[0] : undefined
+    const models = await fetchModels(intranetProvider)
+    return models.find(isDiagnosisCapableModel)
   } catch {
     logger.warn('Failed to fetch intranet models')
     return undefined

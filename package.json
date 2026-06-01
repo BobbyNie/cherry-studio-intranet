@@ -17,6 +17,7 @@
     "dev": "npm run generate:openapi && dotenv electron-vite dev",
     "dev:watch": "dotenv electron-vite dev -- -w",
     "debug": "electron-vite -- --inspect --sourcemap --remote-debugging-port=9222",
+    "debug:intranet": "dotenv -e .env.intranet.example -e .env.intranet -- pnpm debug",
     "build": "npm run generate:openapi && npm run typecheck && electron-vite build",
     "build:intranet": "dotenv -e .env.intranet.example -e .env.intranet -- npm run build",
     "build:check": "pnpm lint && pnpm openapi:check && pnpm test",

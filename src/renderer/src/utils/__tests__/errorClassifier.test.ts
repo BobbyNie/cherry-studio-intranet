@@ -58,6 +58,20 @@ describe('classifyError', () => {
     expect(result.category).toBe('model')
   })
 
+  it('classifies LiteLLM no healthy deployments as model', () => {
+    const result = classifyError(
+      makeError({
+        statusCode: 400,
+        message:
+          'litellm.BadRequestError: You passed in model=Qwen3.5-27B-nothink. There are no healthy deployments for this model.'
+      }),
+      'intranet'
+    )
+
+    expect(result.category).toBe('model')
+    expect(result.navTarget).toBe('/settings/provider?id=intranet')
+  })
+
   // Quota
   it('classifies 429 as quota', () => {
     const result = classifyError(makeError({ statusCode: 429 }))

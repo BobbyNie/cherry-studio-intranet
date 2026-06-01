@@ -1,3 +1,4 @@
+import { registerIconifyCollections } from '@renderer/components/Icons/registerIconifyCollections'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -93,5 +94,18 @@ describe('ClickableFilePath', () => {
     render(<ClickableFilePath path="/Users/foo/bar.tsx" />)
     fireEvent.keyDown(screen.getByText('/Users/foo/bar.tsx'), { key: ' ' })
     expect(mockOpenPath).toHaveBeenCalledWith('/Users/foo/bar.tsx')
+  })
+
+  it('renders the file icon without hitting the iconify api after registration', async () => {
+    vi.useFakeTimers()
+    const fetchSpy = vi.fn()
+    vi.stubGlobal('fetch', fetchSpy)
+    registerIconifyCollections()
+
+    render(<ClickableFilePath path="/Users/foo/bar.tsx" />)
+    await vi.runAllTimersAsync()
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    vi.useRealTimers()
   })
 })

@@ -50,7 +50,7 @@ import store from '@renderer/store'
 import { isIntranetMode } from '@shared/config/intranet'
 
 import { fetchGenerate, fetchModels } from '../ApiService'
-import { diagnoseError } from '../ErrorDiagnosisService'
+import { classifyErrorByAI, diagnoseError } from '../ErrorDiagnosisService'
 
 const mockFetchGenerate = vi.mocked(fetchGenerate)
 const mockFetchModels = vi.mocked(fetchModels)
@@ -61,11 +61,37 @@ function makeError(overrides: Partial<SerializedError> = {}): SerializedError {
   return { name: 'Error', message: 'test error', stack: null, ...overrides }
 }
 
+const configuredIntranetProvider = {
+  id: 'intranet',
+  type: 'openai',
+  apiHost: 'http://configured-llm-gateway.local/v1',
+  enabled: true,
+  models: []
+}
+
+const intranetProviderWithoutDiagnosisModels = {
+  id: 'intranet',
+  type: 'openai',
+  apiHost: 'http://llm-gateway.intranet.local/v1',
+  enabled: true,
+  models: []
+}
+
+const canonicalIntranetProvider = {
+  id: 'intranet',
+  type: 'openai',
+  apiHost: 'http://llm-gateway.intranet.local/v1',
+  enabled: true,
+  models: [{ id: 'qwen-coder', name: 'qwen-coder', provider: 'intranet', group: 'Enterprise Intranet' }]
+}
+
 describe('ErrorDiagnosisService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockFetchGenerate.mockReset()
+    mockFetchModels.mockReset()
     mockGetState.mockReturnValue({
-      llm: { defaultModel: null }
+      llm: { defaultModel: null, providers: [configuredIntranetProvider] }
     } as any)
     mockIsIntranetMode.mockReturnValue(true)
     // Default: intranet returns a free model as fallback
@@ -118,7 +144,9 @@ describe('ErrorDiagnosisService', () => {
 
     it('uses intranet free model as primary', async () => {
       const customModel = { id: 'gpt-4', name: 'GPT-4', provider: 'openai' }
-      mockGetState.mockReturnValue({ llm: { defaultModel: customModel } } as any)
+      mockGetState.mockReturnValue({
+        llm: { defaultModel: customModel, providers: [configuredIntranetProvider] }
+      } as any)
 
       const mockResult = {
         summary: 'Error',
@@ -138,7 +166,9 @@ describe('ErrorDiagnosisService', () => {
     it('falls back to defaultModel when intranet is unavailable', async () => {
       mockFetchModels.mockResolvedValue([])
       const customModel = { id: 'gpt-4', name: 'GPT-4', provider: 'openai' }
-      mockGetState.mockReturnValue({ llm: { defaultModel: customModel } } as any)
+      mockGetState.mockReturnValue({
+        llm: { defaultModel: customModel, providers: [configuredIntranetProvider] }
+      } as any)
 
       const mockResult = {
         summary: 'Error',
@@ -152,8 +182,28 @@ describe('ErrorDiagnosisService', () => {
       expect(mockFetchGenerate.mock.calls[0][0]).toEqual(expect.objectContaining({ model: customModel }))
     })
 
+    it('does not probe the hard-coded intranet provider outside intranet mode', async () => {
+      mockIsIntranetMode.mockReturnValue(false)
+      const customModel = { id: 'gpt-4', name: 'GPT-4', provider: 'openai' }
+      mockGetState.mockReturnValue({
+        llm: { defaultModel: customModel, providers: [configuredIntranetProvider] }
+      } as any)
+
+      const mockResult = {
+        summary: 'Error',
+        category: 'unknown',
+        explanation: 'Something went wrong.',
+        steps: []
+      }
+      mockFetchGenerate.mockResolvedValue(JSON.stringify(mockResult))
+
+      await diagnoseError(makeError(), 'en')
+      expect(mockFetchModels).not.toHaveBeenCalled()
+      expect(mockFetchGenerate.mock.calls[0][0]).toEqual(expect.objectContaining({ model: customModel }))
+    })
+
     it('uses only intranet when no default model', async () => {
-      mockGetState.mockReturnValue({ llm: { defaultModel: null } } as any)
+      mockGetState.mockReturnValue({ llm: { defaultModel: null, providers: [configuredIntranetProvider] } } as any)
 
       const mockResult = {
         summary: 'Error',
@@ -203,6 +253,39 @@ describe('ErrorDiagnosisService', () => {
 
       const result = await diagnoseError(makeError(), 'en')
       expect(result.category).toBe('unknown')
+    })
+  })
+
+  describe('classifyErrorByAI', () => {
+    it('uses a configured canonical intranet host when it already has a diagnosis model', async () => {
+      mockGetState.mockReturnValue({
+        llm: { defaultModel: null, providers: [canonicalIntranetProvider] }
+      } as any)
+
+      mockFetchGenerate.mockResolvedValue('configured intranet summary')
+
+      const summary = await classifyErrorByAI(makeError({ message: 'unclassified failure' }), 'en')
+
+      expect(summary).toBe('configured intranet summary')
+      expect(mockFetchModels).not.toHaveBeenCalled()
+      expect(mockFetchGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: expect.objectContaining({ id: 'qwen-coder', provider: 'intranet' })
+        })
+      )
+    })
+
+    it('returns an empty summary when the intranet provider has no diagnosis-capable models', async () => {
+      mockGetState.mockReturnValue({
+        llm: { defaultModel: null, providers: [intranetProviderWithoutDiagnosisModels] }
+      } as any)
+      mockFetchModels.mockResolvedValue([])
+
+      const summary = await classifyErrorByAI(makeError({ message: 'unclassified failure' }), 'en')
+
+      expect(summary).toBe('')
+      expect(mockFetchModels).toHaveBeenCalledWith(intranetProviderWithoutDiagnosisModels)
+      expect(mockFetchGenerate).not.toHaveBeenCalled()
     })
   })
 })
