@@ -20,6 +20,7 @@ import {
   Settings2,
   Sparkles,
   TextCursorInput,
+  ShieldOff,
   Zap
 } from 'lucide-react'
 import type { FC } from 'react'
@@ -44,12 +45,15 @@ import SkillsSettings from './SkillsSettings'
 import TasksSettings from './TasksSettings'
 import { ApiServerSettings } from './ToolSettings/ApiServerSettings'
 import WebSearchSettings from './WebSearchSettings'
+import OfflineSettings from './OfflineSettings'
+import { isOfflineMode } from '@shared/config/intranet'
 
 const SettingsPage: FC = () => {
   const { pathname } = useLocation()
   const { t } = useTranslation()
 
   const isRoute = (path: string): string => (pathname.startsWith(path) ? 'active' : '')
+  const offlineMode = isOfflineMode()
 
   return (
     <Container>
@@ -74,7 +78,7 @@ const SettingsPage: FC = () => {
           {offlineMode && (
             <MenuItemLink to="/settings/offline">
               <MenuItem className={isRoute('/settings/offline')}>
-                <HardDrive size={18} />
+                <ShieldOff size={18} />
                 {t('offline.settings.menu')}
               </MenuItem>
             </MenuItemLink>
@@ -110,12 +114,14 @@ const SettingsPage: FC = () => {
               {t('settings.skills.title')}
             </MenuItem>
           </MenuItemLink>
-          <MenuItemLink to="/settings/websearch">
-            <MenuItem className={isRoute('/settings/websearch')}>
-              <Search size={18} />
-              {t('settings.tool.websearch.title')}
-            </MenuItem>
-          </MenuItemLink>
+          {!offlineMode && (
+            <MenuItemLink to="/settings/websearch">
+              <MenuItem className={isRoute('/settings/websearch')}>
+                <Search size={18} />
+                {t('settings.tool.websearch.title')}
+              </MenuItem>
+            </MenuItemLink>
+          )}
           <MenuItemLink to="/settings/memory">
             <MenuItem className={isRoute('/settings/memory')}>
               <Brain size={18} />
@@ -128,12 +134,14 @@ const SettingsPage: FC = () => {
               {t('apiServer.title')}
             </MenuItem>
           </MenuItemLink>
-          <MenuItemLink to="/settings/channels">
-            <MenuItem className={isRoute('/settings/channels')}>
-              <Radio size={18} />
-              {t('settings.channels.title')}
-            </MenuItem>
-          </MenuItemLink>
+          {!offlineMode && (
+            <MenuItemLink to="/settings/channels">
+              <MenuItem className={isRoute('/settings/channels')}>
+                <Radio size={18} />
+                {t('settings.channels.title')}
+              </MenuItem>
+            </MenuItemLink>
+          )}
           <MenuItemLink to="/settings/scheduled-tasks">
             <MenuItem className={isRoute('/settings/scheduled-tasks')}>
               <CalendarClock size={18} />
@@ -183,6 +191,7 @@ const SettingsPage: FC = () => {
           <Routes>
             <Route path="provider" element={<ProviderList />} />
             <Route path="model" element={<ModelSettings />} />
+            <Route path="offline" element={<OfflineSettings />} />
             <Route path="websearch/*" element={<WebSearchSettings />} />
             <Route path="api-server" element={<ApiServerSettings />} />
             <Route path="channels" element={<ChannelsSettings />} />

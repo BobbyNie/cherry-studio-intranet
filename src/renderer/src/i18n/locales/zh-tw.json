@@ -6079,6 +6079,12 @@
         "invalid_host": "僅允許 localhost、127.0.0.1 或 ::1，且必須包含明確連接埠。",
         "invalid_port": "連接埠不在允許列表中。"
       }
+    },
+    "chat": {
+      "empty_title": "尚未設定本機模型服務",
+      "empty_description": "完全離線版預設禁止一切網路存取。請先在設定中啟用本機模型服務，並設定 localhost API 位址與允許連接埠。",
+      "configure_local_model": "前往離線設定",
+      "configure_provider": "設定模型 Provider"
     }
   }
 }

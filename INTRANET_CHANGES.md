@@ -23,22 +23,27 @@ const filteredSystemModels =
 
 ---
 
-## 2. CherryAI Provider → Intranet Provider ❌ 内网专用
+## 2. 完全离线版：本机模型服务 ❌ 离线专用
 
-内网版本不使用 CherryAI，全部替换为 `SYSTEM_PROVIDERS_CONFIG.intranet`
+原「企业内网模型服务 / llm-gateway.intranet.local」已升级为「企业完全离线版」：
+
+- 默认 deny all 网络访问（含 localhost）
+- 用户显式启用本机模型服务 + 配置端口白名单后才允许 localhost
+- 默认无 apiHost、无默认模型
+- 对话页未配置时显示引导空状态
 
 **修改文件**:
 | 文件 | 修改内容 |
 |------|----------|
-| `src/renderer/src/hooks/useProvider.ts` | fallback 改用 intranet |
-| `src/renderer/src/hooks/useStore.ts` | getStoreProviders 使用 intranet |
-| `src/renderer/src/services/ErrorDiagnosisService.ts` | getIntranetFreeModel 替换 getCherryAiFreeModel |
-| `src/renderer/src/config/providers.ts` | 移除 qwenModel 导入 |
-| `src/renderer/src/config/models/default.ts` | defaultModels 始终用 intranetModels |
-| `src/renderer/src/store/migrate.ts` | 迁移使用 intranetModels[0] |
-| `src/renderer/src/services/__tests__/ErrorDiagnosisService.test.ts` | 测试 mock 更新 |
+| `packages/shared/config/intranet.ts` | Offline Network Guard |
+| `src/renderer/src/config/providers.ts` | 本机模型服务，清空 gateway URL |
+| `src/renderer/src/hooks/useProvider.ts` | 移除 intranet gateway fallback |
+| `src/renderer/src/pages/settings/OfflineSettings.tsx` | 离线设置页 |
+| `src/renderer/src/pages/home/components/ChatLocalModelEmpty.tsx` | 对话页空状态 |
+| `src/renderer/src/store/migrate.ts` | migration 210 清理旧 gateway |
+| `.env.offline.example` | 完全离线 env 模板 |
 
-**同步建议**: 内网专用，不应同步
+**同步建议**: 离线专用，不应同步到上游
 
 ---
 
@@ -124,7 +129,7 @@ const filteredSystemModels =
 | 高 | 模型列表过滤 | 解决实际问题，通用性强 |
 | 中 | React Hooks 依赖修复 | 代码质量改进 |
 | 低 | 工程技能配置 | 需团队确认 |
-| 不同步 | CherryAI → Intranet | 内网专用 |
+| 不同步 | 完全离线版 / 本机模型服务 | 离线专用 |
 
 ---
 
