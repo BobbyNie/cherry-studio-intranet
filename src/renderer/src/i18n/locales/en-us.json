@@ -2905,8 +2905,8 @@
     "chat": {
       "configure_local_model": "Open offline settings",
       "configure_provider": "Configure model provider",
-      "empty_description": "The fully offline edition blocks all network access by default. Enable model service in settings and configure provider API addresses (localhost and internal domains are supported).",
-      "empty_title": "Model service is not configured"
+      "empty_description": "The fully offline edition blocks network access by default. Configure and enable a model provider API address; localhost and internal domains are supported.",
+      "empty_title": "Model provider is not configured"
     },
     "settings": {
       "allowed_ports": "Allowed ports",
@@ -2914,17 +2914,17 @@
       "api_host_placeholder": "http://llm-gateway.intranet.local/v1",
       "audit": "Enterprise fully offline edition: network access is blocked by default; only API addresses configured on model providers are allowed (including internal domains).",
       "check_update": "Check for updates",
-      "description": "All network access is blocked by default. After enabling model service, only API addresses configured on model providers are allowed (including localhost and internal domains).",
+      "description": "All network access is blocked by default. Only API addresses configured on enabled model providers are allowed, including localhost and internal domains.",
       "edition_label": "Edition",
       "edition_tag": "Fully Offline Edition",
-      "enable_local_model": "Enable model service",
+      "enable_local_model": "Enable intranet provider",
       "menu": "Offline Edition",
       "save": "Save offline network settings",
       "saved": "Offline network settings saved",
       "title": "Fully Offline Edition",
       "update_notice": "This is a fully offline edition. Please update through your enterprise offline software distribution process.",
       "validation": {
-        "api_host_required": "Please enter a local API Base URL before enabling local model service.",
+        "api_host_required": "Please enter a provider API Base URL before enabling the intranet provider.",
         "invalid_host": "Enter a valid HTTP(S) API Base URL (localhost and internal domains are supported).",
         "invalid_port": "The port is not in the allowed port list."
       }

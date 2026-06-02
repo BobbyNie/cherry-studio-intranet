@@ -65,4 +65,69 @@ describe('intranet provider migration', () => {
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_DISABLE_PUBLIC_NETWORK
   })
+
+  it('preserves configured intranet gateway provider details in migration 210', async () => {
+    vi.resetModules()
+    process.env.CHERRY_INTRANET_MODE = 'true'
+    process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
+
+    const { default: migrate } = await import('../migrate')
+
+    const state = {
+      _persist: { version: 209, rehydrated: false },
+      llm: {
+        providers: [
+          {
+            id: 'intranet',
+            isSystem: true,
+            enabled: true,
+            apiHost: 'http://llm-gateway.intranet.local/v1',
+            anthropicApiHost: 'http://llm-gateway.intranet.local/anthropic',
+            models: [{ id: 'intranet-chat', provider: 'intranet' }]
+          }
+        ],
+        defaultModel: { id: 'intranet-chat', provider: 'intranet' },
+        quickModel: { id: 'intranet-chat', provider: 'intranet' },
+        translateModel: { id: 'intranet-chat', provider: 'intranet' },
+        topicNamingModel: { id: 'intranet-chat', provider: 'intranet' }
+      },
+      settings: {
+        proxyMode: 'custom',
+        proxyUrl: 'http://proxy.example.test:8080',
+        proxyBypassRules: 'localhost',
+        autoCheckUpdate: true
+      },
+      assistants: {
+        assistants: [
+          {
+            model: { id: 'intranet-chat', provider: 'intranet' },
+            defaultModel: { id: 'intranet-chat', provider: 'intranet' }
+          }
+        ],
+        defaultAssistant: {
+          model: { id: 'intranet-chat', provider: 'intranet' },
+          defaultModel: { id: 'intranet-chat', provider: 'intranet' }
+        }
+      }
+    }
+
+    const migrated = (await migrate(state as never, 210)) as unknown as typeof state
+    const intranetProvider = migrated.llm.providers[0]
+
+    expect(intranetProvider).toMatchObject({
+      id: 'intranet',
+      name: '企业内网模型服务',
+      enabled: true,
+      apiHost: 'http://llm-gateway.intranet.local/v1',
+      anthropicApiHost: 'http://llm-gateway.intranet.local/anthropic',
+      models: [{ id: 'intranet-chat', provider: 'intranet' }]
+    })
+    expect(migrated.llm.defaultModel?.provider).toBe('intranet')
+    expect(migrated.assistants.assistants[0].model?.provider).toBe('intranet')
+    expect(migrated.settings.proxyMode).toBe('none')
+    expect(migrated.settings.autoCheckUpdate).toBe(false)
+
+    delete process.env.CHERRY_INTRANET_MODE
+    delete process.env.CHERRY_DISABLE_PUBLIC_NETWORK
+  })
 })

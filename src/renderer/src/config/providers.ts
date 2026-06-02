@@ -82,7 +82,7 @@ export const CHERRYAI_PROVIDER: SystemProvider = {
 export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> = {
   intranet: {
     id: 'intranet',
-    name: '本机模型服务',
+    name: '企业内网模型服务',
     type: 'openai',
     apiKey: '',
     apiHost: '',
@@ -90,7 +90,7 @@ export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> =
     models: SYSTEM_MODELS.intranet,
     isSystem: true,
     enabled: false,
-    notes: 'OpenAI-compatible local model server. Enable in Settings > Offline Edition.'
+    notes: 'OpenAI-compatible intranet model provider. Configure any reachable provider API Base URL.'
   },
   cherryin: {
     id: 'cherryin',

@@ -133,7 +133,7 @@ const filteredSystemModels =
 ### 内网/离线网络策略（2026-06-01）
 
 - 见根目录 `CONTEXT.md`：内网模式 **不是** 只能访问本机模型，可访问用户在 Provider 中配置的内网域名/API 地址。
-- 完全离线版默认 deny-all，仅放行 **已启用模型 Provider** 上配置的 `apiHost` / `anthropicApiHost`。
+- 完全离线版默认 deny-all，仅按协议、主机、端口和路径前缀放行 **已启用模型 Provider** 上配置的 `apiHost` / `anthropicApiHost`。
 - 相关实现：`packages/shared/config/providerEndpoints.ts`、`packages/shared/config/intranet.ts`。
 
 已为项目启用 `CLAUDE_MEM_RUNTIME = server-beta` 以支持完整记忆功能：

@@ -1,6 +1,7 @@
 export interface ProviderEndpoint {
+  basePath: string
   hostname: string
-  port: number | null
+  port: number
   protocols: string[]
 }
 
@@ -11,8 +12,6 @@ export interface ProviderEndpointSource {
 }
 
 const ALLOWED_PROTOCOLS = new Set(['http', 'https', 'ws', 'wss'])
-const HTTP_PROTOCOL_FAMILY = new Set(['http', 'https'])
-const WS_PROTOCOL_FAMILY = new Set(['ws', 'wss'])
 
 function normalizeProtocol(protocol: string): string {
   return protocol.replace(/:$/, '').toLowerCase()
@@ -32,6 +31,25 @@ function resolvePort(url: URL): number {
     return Number(url.port)
   }
   return defaultPortForProtocol(url.protocol)
+}
+
+function normalizeBasePath(pathname: string): string {
+  const normalized = pathname.trim().replace(/\/+$/, '')
+  return normalized ? (normalized.startsWith('/') ? normalized : `/${normalized}`) : '/'
+}
+
+function requestPathMatchesBasePath(requestPathname: string, basePath: string): boolean {
+  const normalizedBasePath = normalizeBasePath(basePath)
+  if (normalizedBasePath === '/') {
+    return true
+  }
+
+  const normalizedRequestPath = normalizeBasePath(requestPathname)
+  return normalizedRequestPath === normalizedBasePath || normalizedRequestPath.startsWith(`${normalizedBasePath}/`)
+}
+
+function normalizeProtocolList(protocols: string[]): string[] {
+  return Array.from(new Set(protocols.map(normalizeProtocol).filter((protocol) => ALLOWED_PROTOCOLS.has(protocol))))
 }
 
 export function parseProviderEndpointUrl(rawUrl: string): ProviderEndpoint | null {
@@ -61,8 +79,9 @@ export function parseProviderEndpointUrl(rawUrl: string): ProviderEndpoint | nul
   }
 
   return {
+    basePath: normalizeBasePath(parsed.pathname),
     hostname,
-    port: parsed.port ? Number(parsed.port) : null,
+    port: resolvePort(parsed),
     protocols: [normalizeProtocol(parsed.protocol)]
   }
 }
@@ -91,12 +110,25 @@ export function dedupeProviderEndpoints(endpoints: ProviderEndpoint[]): Provider
   const deduped: ProviderEndpoint[] = []
 
   for (const endpoint of endpoints) {
-    const key = `${endpoint.hostname}|${endpoint.port ?? '*'}|${endpoint.protocols.join(',')}`
+    const hostname = normalizeHostname(endpoint.hostname)
+    const port = Number(endpoint.port)
+    const protocols = normalizeProtocolList(endpoint.protocols)
+    if (!hostname || !Number.isInteger(port) || port < 1 || port > 65535 || protocols.length === 0) {
+      continue
+    }
+
+    const key = `${hostname}|${port}|${normalizeBasePath(endpoint.basePath)}|${protocols.join(',')}`
     if (seen.has(key)) {
       continue
     }
     seen.add(key)
-    deduped.push(endpoint)
+    deduped.push({
+      ...endpoint,
+      basePath: normalizeBasePath(endpoint.basePath),
+      hostname,
+      port,
+      protocols
+    })
   }
 
   return deduped
@@ -124,37 +156,17 @@ export function urlMatchesProviderEndpoints(url: URL, endpoints: ProviderEndpoin
       return false
     }
 
-    if (endpoint.protocols.length > 0) {
-      const endpointProtocols = expandProviderProtocols(endpoint.protocols)
-      if (!endpointProtocols.has(requestProtocol)) {
-        return false
-      }
+    const endpointProtocols = new Set(normalizeProtocolList(endpoint.protocols))
+    if (!endpointProtocols.has(requestProtocol)) {
+      return false
     }
 
-    if (endpoint.port === null) {
-      return true
+    if (endpoint.port !== requestPort) {
+      return false
     }
 
-    return endpoint.port === requestPort
+    return requestPathMatchesBasePath(url.pathname, endpoint.basePath)
   })
-}
-
-function expandProviderProtocols(protocols: string[]): Set<string> {
-  const expanded = new Set(protocols.map(normalizeProtocol))
-
-  if (protocols.some((protocol) => HTTP_PROTOCOL_FAMILY.has(normalizeProtocol(protocol)))) {
-    for (const protocol of WS_PROTOCOL_FAMILY) {
-      expanded.add(protocol)
-    }
-  }
-
-  if (protocols.some((protocol) => WS_PROTOCOL_FAMILY.has(normalizeProtocol(protocol)))) {
-    for (const protocol of HTTP_PROTOCOL_FAMILY) {
-      expanded.add(protocol)
-    }
-  }
-
-  return expanded
 }
 
 export function serializeProviderEndpoints(endpoints: ProviderEndpoint[]): string {
@@ -176,20 +188,30 @@ export function deserializeProviderEndpoints(raw: unknown): ProviderEndpoint[] {
     if (typeof candidate.hostname !== 'string' || !candidate.hostname.trim()) {
       continue
     }
+    if (typeof candidate.basePath !== 'string') {
+      continue
+    }
 
-    const protocols = Array.isArray(candidate.protocols)
-      ? candidate.protocols.filter((protocol): protocol is string => typeof protocol === 'string')
-      : ['http', 'https']
+    if (!Array.isArray(candidate.protocols)) {
+      continue
+    }
+
+    const protocols = normalizeProtocolList(
+      candidate.protocols.filter((protocol): protocol is string => typeof protocol === 'string')
+    )
+    if (protocols.length === 0) {
+      continue
+    }
+    const port = Number(candidate.port)
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      continue
+    }
 
     endpoints.push({
+      basePath: normalizeBasePath(candidate.basePath),
       hostname: normalizeHostname(candidate.hostname),
-      port:
-        candidate.port === null || candidate.port === undefined
-          ? null
-          : Number.isInteger(candidate.port) && candidate.port >= 1 && candidate.port <= 65535
-            ? candidate.port
-            : null,
-      protocols: protocols.map(normalizeProtocol)
+      port,
+      protocols
     })
   }
 

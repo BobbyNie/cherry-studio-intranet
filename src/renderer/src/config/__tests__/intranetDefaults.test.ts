@@ -17,7 +17,7 @@ describe('offline renderer defaults', () => {
 
     expect(SYSTEM_PROVIDERS[0]).toMatchObject({
       id: 'intranet',
-      name: '本机模型服务',
+      name: '企业内网模型服务',
       apiHost: '',
       enabled: false
     })

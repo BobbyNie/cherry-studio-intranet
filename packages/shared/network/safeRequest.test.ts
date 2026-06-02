@@ -49,6 +49,8 @@ describe('safeRequest', () => {
 
     await expect(safeFetch('http://127.0.0.1:8000/v1/models')).resolves.toBe(response)
     expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:8000/v1/models', undefined)
+
+    await expect(safeFetch('http://127.0.0.1:8000/oauth/token')).rejects.toThrow(OfflineNetworkBlockedError)
   })
 
   it('blocks public websocket targets in offline mode', () => {
@@ -57,5 +59,19 @@ describe('safeRequest', () => {
 
     expect(() => safeWebSocket('wss://api.openai.com/realtime')).toThrow(OfflineNetworkBlockedError)
     expect(webSocketMock).not.toHaveBeenCalled()
+  })
+
+  it('allows websocket targets only when configured as websocket provider endpoints', () => {
+    const webSocketMock = vi.fn(function WebSocketMock() {})
+    globalThis.WebSocket = webSocketMock as unknown as typeof WebSocket
+
+    setProviderAllowedEndpoints(
+      extractProviderEndpoints([{ enabled: true, apiHost: 'wss://realtime.intranet.local/v1' }])
+    )
+
+    expect(() => safeWebSocket('wss://realtime.intranet.local/v1/chat')).not.toThrow()
+    expect(() => safeWebSocket('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
+    expect(() => safeWebSocket('wss://realtime.intranet.local/oauth/token')).toThrow(OfflineNetworkBlockedError)
+    expect(webSocketMock).toHaveBeenCalledTimes(1)
   })
 })

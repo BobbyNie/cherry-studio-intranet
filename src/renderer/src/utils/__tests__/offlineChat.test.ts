@@ -33,16 +33,30 @@ describe('isOfflineChatConfigured', () => {
     expect(isOfflineChatConfigured([])).toBe(true)
   })
 
-  it('returns false when model service is disabled', () => {
+  it('returns true when an enabled provider has chat models and an api host', () => {
     process.env.CHERRY_OFFLINE_MODE = 'true'
     setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [11434] })
-    expect(isOfflineChatConfigured([baseProvider])).toBe(false)
+    expect(isOfflineChatConfigured([baseProvider])).toBe(true)
   })
 
-  it('returns true when an enabled provider has chat models and api host', () => {
+  it('returns true when local model service is enabled for the intranet provider', () => {
     process.env.CHERRY_OFFLINE_MODE = 'true'
     setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [11434] })
     expect(isOfflineChatConfigured([baseProvider])).toBe(true)
+  })
+
+  it('supports providers configured with anthropic api hosts only', () => {
+    process.env.CHERRY_OFFLINE_MODE = 'true'
+
+    expect(
+      isOfflineChatConfigured([
+        {
+          ...baseProvider,
+          apiHost: '',
+          anthropicApiHost: 'http://anthropic.intranet.local/v1'
+        }
+      ])
+    ).toBe(true)
   })
 
   it('supports internal domain api hosts configured on providers', () => {

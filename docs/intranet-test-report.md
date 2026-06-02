@@ -1,15 +1,15 @@
 # 企业内网版测试报告
 
-测试日期：2026-05-09
+测试日期：2026-06-02
 
 ## 环境
 
 - macOS 本地开发环境
-- Node.js：`v22.22.0`
+- Node.js：`v24.11.1`
 - pnpm：`10.27.0`
 - 仓库要求 Node.js：`>=24.11.1`
 
-说明：本机 Node.js 低于仓库声明版本，因此所有命令均有 engine warning；测试、lint、typecheck 和构建均已完成。
+说明：本机 Node.js 匹配 `.nvmrc`；测试、lint、typecheck 和格式化均已完成。
 
 ## 已执行命令
 
@@ -21,16 +21,16 @@
 | `pnpm vitest run --project renderer src/renderer/src/config/__tests__/intranetDefaults.test.ts src/renderer/src/store/__tests__/intranetMcp.test.ts` | 通过 | 内网 provider、Web Search、MCP 默认面 |
 | `pnpm vitest run --project main src/main/services/__tests__/AppUpdater.test.ts --testNamePattern "intranet mode"` | 通过 | autoUpdater 内网模式 no-op |
 | `pnpm vitest run --project scripts scripts/__tests__/intranet-release-workflow.test.ts` | 通过 | GitHub Actions 发布 workflow、release 前测试门禁、main push 自动发布、metadata checkout、测试环境隔离、签名 secret 隔离、env 模板和 Windows portable target 校验 |
-| `pnpm test` | 通过 | 240 个测试文件，4294 个测试通过，72 个跳过 |
-| `pnpm lint` | 通过 | 包含 oxlint、eslint、typecheck、i18n:check、format；存在一个既有 warning：`ManageModelsPopup.tsx` 的 hook dependency |
+| `pnpm test` | 通过 | 261 个测试文件，4418 个测试通过，72 个跳过 |
+| `pnpm lint` | 通过 | 包含 oxlint、eslint、typecheck、i18n:check、format |
 | `pnpm format` | 通过 | Biome format/lint 无进一步修改 |
 | `pnpm i18n:hardcoded:strict` | 通过 | 未发现硬编码 UI 文案 |
 | `pnpm build:intranet` | 通过 | 完成 OpenAPI 生成、typecheck、electron-vite build |
 
 ## 覆盖点
 
-- 内网模式默认不在 App 内做域名/IP 白名单阻断，用户配置的任意企业域名可直接访问。
-- `safeFetch`、`safeWebSocket` 对用户配置域名透传，不做 App 级 host allowlist 阻断。
+- 内网模式默认 deny-all，仅放行已启用模型 Provider 配置的协议、主机、端口和路径前缀。
+- `safeFetch`、`safeWebSocket` 阻断未配置目标，并透传已配置的 Provider API Base URL。
 - 内网模式默认 provider 只展示企业内网模型服务和内网/本地可用 provider。
 - Web Search 默认仅保留内网 SearXNG。
 - MCP 自动安装/Marketplace 入口在内网模式下隐藏或不可达。

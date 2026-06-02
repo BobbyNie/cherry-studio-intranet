@@ -3523,11 +3523,11 @@ const migrateConfig = {
         const hadGatewayHost = /llm-gateway\.intranet\.local/i.test(provider.apiHost ?? '')
         return {
           ...provider,
-          name: '本机模型服务',
-          apiHost: hadGatewayHost ? '' : (provider.apiHost ?? ''),
-          anthropicApiHost: hadGatewayHost ? '' : (provider.anthropicApiHost ?? ''),
-          enabled: Boolean(provider.apiHost?.trim()) && !hadGatewayHost,
-          models: []
+          name: '企业内网模型服务',
+          apiHost: provider.apiHost ?? '',
+          anthropicApiHost: provider.anthropicApiHost ?? '',
+          enabled: Boolean(provider.apiHost?.trim() || provider.anthropicApiHost?.trim() || hadGatewayHost),
+          models: provider.models ?? []
         }
       })
 
@@ -3535,7 +3535,7 @@ const migrateConfig = {
         if (!model) {
           return model
         }
-        if (model.provider === 'intranet' || model.provider === 'cherryai') {
+        if (model.provider === 'cherryai') {
           return undefined
         }
         return model
@@ -3562,7 +3562,9 @@ const migrateConfig = {
         )
       }
 
-      state.websearch.providers = []
+      if (state.websearch) {
+        state.websearch.providers = []
+      }
       logger.info('migrate 210 success')
       return state
     } catch (error) {

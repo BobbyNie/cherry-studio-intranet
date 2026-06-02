@@ -18,6 +18,18 @@ export interface PersistedOfflineSettings extends OfflineNetworkRuntimeConfig {
   localModelApiHost: string
 }
 
+interface ProviderShortcutConfig {
+  id: string
+  enabled?: boolean
+  apiHost?: string
+}
+
+export interface IntranetProviderShortcutUpdate {
+  id: string
+  enabled: true
+  apiHost: string
+}
+
 export function getPersistedOfflineSettings(): PersistedOfflineSettings {
   const runtime = getOfflineNetworkRuntimeConfig()
   return {
@@ -27,31 +39,79 @@ export function getPersistedOfflineSettings(): PersistedOfflineSettings {
   }
 }
 
-export function applyOfflineSettings(settings: PersistedOfflineSettings): void {
-  setOfflineNetworkRuntimeConfig({
-    localModelServiceEnabled: settings.localModelServiceEnabled,
+export function normalizeOfflineSettingsForSave(settings: PersistedOfflineSettings): PersistedOfflineSettings {
+  const localModelApiHost = settings.localModelApiHost.trim()
+
+  return {
+    ...settings,
+    localModelApiHost,
+    localModelServiceEnabled: Boolean(localModelApiHost),
     allowedPorts: normalizePortList(settings.allowedPorts)
+  }
+}
+
+export function createIntranetProviderShortcutUpdate(
+  settings: PersistedOfflineSettings,
+  providerId: string
+): IntranetProviderShortcutUpdate | null {
+  const normalized = normalizeOfflineSettingsForSave(settings)
+  if (!normalized.localModelApiHost) {
+    return null
+  }
+
+  return {
+    id: providerId,
+    enabled: true,
+    apiHost: normalized.localModelApiHost
+  }
+}
+
+export function mergeIntranetProviderShortcut<TProvider extends ProviderShortcutConfig>(
+  providers: TProvider[],
+  settings: PersistedOfflineSettings,
+  providerId: string
+): TProvider[] {
+  const update = createIntranetProviderShortcutUpdate(settings, providerId)
+  if (!update) {
+    return providers
+  }
+
+  return providers.map((provider) =>
+    provider.id === providerId
+      ? {
+          ...provider,
+          enabled: update.enabled,
+          apiHost: update.apiHost
+        }
+      : provider
+  )
+}
+
+export function applyOfflineSettings(settings: PersistedOfflineSettings): void {
+  const normalized = normalizeOfflineSettingsForSave(settings)
+
+  setOfflineNetworkRuntimeConfig({
+    localModelServiceEnabled: normalized.localModelServiceEnabled,
+    allowedPorts: normalized.allowedPorts
   })
 
   if (typeof window !== 'undefined' && window.api?.config) {
-    void window.api.config.set(CONFIG_KEYS.localModelServiceEnabled, settings.localModelServiceEnabled)
-    void window.api.config.set(CONFIG_KEYS.localModelApiHost, settings.localModelApiHost)
-    void window.api.config.set(CONFIG_KEYS.localModelAllowedPorts, normalizePortList(settings.allowedPorts))
+    void window.api.config.set(CONFIG_KEYS.localModelServiceEnabled, normalized.localModelServiceEnabled)
+    void window.api.config.set(CONFIG_KEYS.localModelApiHost, normalized.localModelApiHost)
+    void window.api.config.set(CONFIG_KEYS.localModelAllowedPorts, normalized.allowedPorts)
   }
 }
 
 export function validateOfflineSettings(settings: PersistedOfflineSettings): string | null {
-  if (!settings.localModelServiceEnabled) {
+  const normalized = normalizeOfflineSettingsForSave(settings)
+
+  if (!normalized.localModelApiHost) {
     return null
   }
 
-  if (!settings.localModelApiHost.trim()) {
-    return 'offline.settings.validation.api_host_required'
-  }
-
-  const validation = validateLocalModelApiHost(settings.localModelApiHost, {
+  const validation = validateLocalModelApiHost(normalized.localModelApiHost, {
     localModelServiceEnabled: true,
-    allowedPorts: normalizePortList(settings.allowedPorts)
+    allowedPorts: normalized.allowedPorts
   })
 
   if (!validation.ok) {

@@ -2,15 +2,18 @@ import { SYSTEM_PROVIDERS_CONFIG } from '@renderer/config/providers'
 import type { PersistedOfflineSettings } from '@renderer/services/OfflineNetworkSettingsService'
 import {
   applyOfflineSettings,
+  createIntranetProviderShortcutUpdate,
   getPersistedOfflineSettings,
   loadOfflineSettingsFromMain,
+  mergeIntranetProviderShortcut,
+  normalizeOfflineSettingsForSave,
   validateOfflineSettings
 } from '@renderer/services/OfflineNetworkSettingsService'
 import { syncProviderNetworkAllowlist } from '@renderer/services/ProviderNetworkAllowlistService'
 import { useAppDispatch, useAppSelector } from '@renderer/store'
 import { updateProvider } from '@renderer/store/llm'
 import { isOfflineMode } from '@shared/config/intranet'
-import { Button, Input, Switch, Tag } from 'antd'
+import { Button, Input, Tag } from 'antd'
 import { ShieldOff } from 'lucide-react'
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
@@ -39,29 +42,23 @@ const OfflineSettings: FC = () => {
   }
 
   const onSave = () => {
-    const validationKey = validateOfflineSettings(settings)
+    const normalizedSettings = normalizeOfflineSettingsForSave(settings)
+    const validationKey = validateOfflineSettings(normalizedSettings)
     if (validationKey) {
       window.toast.error(t(validationKey))
       return
     }
 
-    applyOfflineSettings(settings)
-    dispatch(
-      updateProvider({
-        id: SYSTEM_PROVIDERS_CONFIG.intranet.id,
-        enabled: settings.localModelServiceEnabled,
-        apiHost: settings.localModelServiceEnabled ? settings.localModelApiHost.trim() : ''
-      })
-    )
+    applyOfflineSettings(normalizedSettings)
+    const shortcutUpdate = createIntranetProviderShortcutUpdate(normalizedSettings, SYSTEM_PROVIDERS_CONFIG.intranet.id)
+    if (shortcutUpdate) {
+      dispatch(updateProvider(shortcutUpdate))
+    }
 
-    const nextProviders = providers.map((provider) =>
-      provider.id === SYSTEM_PROVIDERS_CONFIG.intranet.id
-        ? {
-            ...provider,
-            enabled: settings.localModelServiceEnabled,
-            apiHost: settings.localModelServiceEnabled ? settings.localModelApiHost.trim() : ''
-          }
-        : provider
+    const nextProviders = mergeIntranetProviderShortcut(
+      providers,
+      normalizedSettings,
+      SYSTEM_PROVIDERS_CONFIG.intranet.id
     )
     syncProviderNetworkAllowlist(nextProviders)
     window.toast.success(t('offline.settings.saved'))
@@ -84,20 +81,11 @@ const OfflineSettings: FC = () => {
         </SettingRow>
         <SettingDivider />
         <SettingRow>
-          <SettingRowTitle>{t('offline.settings.enable_local_model')}</SettingRowTitle>
-          <Switch
-            checked={settings.localModelServiceEnabled}
-            onChange={(checked) => setSettings((current) => ({ ...current, localModelServiceEnabled: checked }))}
-          />
-        </SettingRow>
-        <SettingDivider />
-        <SettingRow>
           <SettingRowTitle>{t('offline.settings.api_host')}</SettingRowTitle>
           <Input
             style={{ width: 360 }}
             placeholder={t('offline.settings.api_host_placeholder')}
             value={settings.localModelApiHost}
-            disabled={!settings.localModelServiceEnabled}
             onChange={(event) => setSettings((current) => ({ ...current, localModelApiHost: event.target.value }))}
           />
         </SettingRow>
