@@ -2901,6 +2901,35 @@
       }
     }
   },
+  "offline": {
+    "chat": {
+      "configure_local_model": "前往离线设置",
+      "configure_provider": "配置模型 Provider",
+      "empty_description": "完全离线版默认禁止一切网络访问。请先在设置中启用本机模型服务，并配置 localhost API 地址与允许端口。",
+      "empty_title": "尚未配置本机模型服务"
+    },
+    "settings": {
+      "allowed_ports": "允许端口列表",
+      "api_host": "API Base URL",
+      "api_host_placeholder": "http://127.0.0.1:11434/v1",
+      "audit": "当前为企业完全离线版：默认禁止一切网络访问；启用本机模型服务后，仅允许配置的 localhost 端口。",
+      "check_update": "检查更新",
+      "description": "默认禁止一切网络访问。启用本机模型服务后，仅允许配置的 localhost 端口。",
+      "edition_label": "版本标识",
+      "edition_tag": "企业完全离线版",
+      "enable_local_model": "启用本机模型服务",
+      "menu": "完全离线版",
+      "save": "保存离线网络设置",
+      "saved": "离线网络设置已保存",
+      "title": "企业完全离线版",
+      "update_notice": "当前为完全离线版本，请通过企业离线软件分发流程更新。",
+      "validation": {
+        "api_host_required": "启用本机模型服务前，请先填写本地 API Base URL。",
+        "invalid_host": "仅允许 localhost、127.0.0.1 或 ::1，且必须包含明确端口。",
+        "invalid_port": "端口不在允许列表中。"
+      }
+    }
+  },
   "ollama": {
     "keep_alive_time": {
       "description": "对话后模型在内存中保持的时间（默认：5 分钟）",
@@ -6057,34 +6086,5 @@
     "quit": "退出",
     "show_window": "显示窗口",
     "visualization": "可视化"
-  },
-  "offline": {
-    "settings": {
-      "title": "企业完全离线版",
-      "menu": "完全离线版",
-      "edition_label": "版本标识",
-      "edition_tag": "企业完全离线版",
-      "description": "默认禁止一切网络访问。启用本机模型服务后，仅允许配置的 localhost 端口。",
-      "enable_local_model": "启用本机模型服务",
-      "api_host": "API Base URL",
-      "api_host_placeholder": "http://127.0.0.1:11434/v1",
-      "allowed_ports": "允许端口列表",
-      "save": "保存离线网络设置",
-      "saved": "离线网络设置已保存",
-      "check_update": "检查更新",
-      "update_notice": "当前为完全离线版本，请通过企业离线软件分发流程更新。",
-      "audit": "当前为企业完全离线版：默认禁止一切网络访问；启用本机模型服务后，仅允许配置的 localhost 端口。",
-      "validation": {
-        "api_host_required": "启用本机模型服务前，请先填写本地 API Base URL。",
-        "invalid_host": "仅允许 localhost、127.0.0.1 或 ::1，且必须包含明确端口。",
-        "invalid_port": "端口不在允许列表中。"
-      }
-    },
-    "chat": {
-      "empty_title": "尚未配置本机模型服务",
-      "empty_description": "完全离线版默认禁止一切网络访问。请先在设置中启用本机模型服务，并配置 localhost API 地址与允许端口。",
-      "configure_local_model": "前往离线设置",
-      "configure_provider": "配置模型 Provider"
-    }
   }
 }

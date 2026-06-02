@@ -3541,10 +3541,14 @@ const migrateConfig = {
         return model
       }
 
-      state.llm.defaultModel = clearIntranetOnlyModel(state.llm.defaultModel)
-      state.llm.quickModel = clearIntranetOnlyModel(state.llm.quickModel)
-      state.llm.translateModel = clearIntranetOnlyModel(state.llm.translateModel)
-      state.llm.topicNamingModel = clearIntranetOnlyModel(state.llm.topicNamingModel)
+      const clearLlmModel = (key: 'defaultModel' | 'quickModel' | 'translateModel' | 'topicNamingModel') => {
+        ;(state.llm as unknown as Record<string, Model | undefined>)[key] = clearIntranetOnlyModel(state.llm[key])
+      }
+
+      clearLlmModel('defaultModel')
+      clearLlmModel('quickModel')
+      clearLlmModel('translateModel')
+      clearLlmModel('topicNamingModel')
 
       state.assistants.assistants.forEach((assistant) => {
         assistant.model = clearIntranetOnlyModel(assistant.model)

@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest'
-
 import type { Provider } from '@renderer/types'
 import { setOfflineNetworkRuntimeConfig } from '@shared/config/intranet'
+import { describe, expect, it } from 'vitest'
 
 import { isOfflineChatConfigured } from '../offlineChat'
 

@@ -859,8 +859,7 @@ export const PROVIDER_URLS: Record<SystemProviderId, ProviderUrls> = {
   intranet: {
     api: {
       url: ''
-    },
-    websites: {}
+    }
   },
   cherryin: {
     api: {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 describe('intranet provider migration', () => {
-  it('removes blocked public providers and resets blocked default models in migration 207', async () => {
+  it('removes blocked public providers and clears blocked default models in migration 207 for offline mode', async () => {
     vi.resetModules()
     process.env.CHERRY_INTRANET_MODE = 'true'
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
@@ -9,6 +9,7 @@ describe('intranet provider migration', () => {
     const { default: migrate } = await import('../migrate')
 
     const state = {
+      _persist: { version: 206, rehydrated: false },
       llm: {
         providers: [
           { id: 'zhinao', isSystem: true, enabled: true, models: [] },
@@ -50,15 +51,18 @@ describe('intranet provider migration', () => {
     const providerIds = migrated.llm.providers.map((provider) => provider.id)
 
     expect(providerIds).toEqual(['intranet', 'ollama'])
-    expect(migrated.llm.defaultModel.provider).toBe('intranet')
-    expect(migrated.llm.quickModel.provider).toBe('intranet')
-    expect(migrated.llm.translateModel.provider).toBe('intranet')
-    expect(migrated.llm.topicNamingModel.provider).toBe('intranet')
-    expect(migrated.assistants.assistants[0].model.provider).toBe('intranet')
-    expect(migrated.assistants.assistants[0].defaultModel.provider).toBe('intranet')
-    expect(migrated.assistants.defaultAssistant.model.provider).toBe('intranet')
-    expect(migrated.assistants.defaultAssistant.defaultModel.provider).toBe('ollama')
+    expect(migrated.llm.defaultModel).toBeUndefined()
+    expect(migrated.llm.quickModel).toBeUndefined()
+    expect(migrated.llm.translateModel?.provider).toBe('intranet')
+    expect(migrated.llm.topicNamingModel).toBeUndefined()
+    expect(migrated.assistants.assistants[0].model).toBeUndefined()
+    expect(migrated.assistants.assistants[0].defaultModel?.provider).toBe('intranet')
+    expect(migrated.assistants.defaultAssistant.model).toBeUndefined()
+    expect(migrated.assistants.defaultAssistant.defaultModel?.provider).toBe('ollama')
     expect(migrated.settings.sidebarIcons.visible).not.toContain('openclaw')
     expect(migrated.settings.sidebarIcons.disabled).not.toContain('openclaw')
+
+    delete process.env.CHERRY_INTRANET_MODE
+    delete process.env.CHERRY_DISABLE_PUBLIC_NETWORK
   })
 })

@@ -2,6 +2,7 @@ import { Navbar, NavbarCenter } from '@renderer/components/app/Navbar'
 import { McpLogo } from '@renderer/components/Icons'
 import Scrollbar from '@renderer/components/Scrollbar'
 import ModelSettings from '@renderer/pages/settings/ModelSettings/ModelSettings'
+import { isOfflineMode } from '@shared/config/intranet'
 import { Divider as AntDivider } from 'antd'
 import {
   Brain,
@@ -18,9 +19,9 @@ import {
   Search,
   Server,
   Settings2,
+  ShieldOff,
   Sparkles,
   TextCursorInput,
-  ShieldOff,
   Zap
 } from 'lucide-react'
 import type { FC } from 'react'
@@ -36,6 +37,7 @@ import DocProcessSettings from './DocProcessSettings'
 import GeneralSettings from './GeneralSettings'
 import MCPSettings from './MCPSettings'
 import MemorySettings from './MemorySettings'
+import OfflineSettings from './OfflineSettings'
 import { ProviderList } from './ProviderSettings'
 import QuickAssistantSettings from './QuickAssistantSettings'
 import QuickPhraseSettings from './QuickPhraseSettings'
@@ -45,8 +47,6 @@ import SkillsSettings from './SkillsSettings'
 import TasksSettings from './TasksSettings'
 import { ApiServerSettings } from './ToolSettings/ApiServerSettings'
 import WebSearchSettings from './WebSearchSettings'
-import OfflineSettings from './OfflineSettings'
-import { isOfflineMode } from '@shared/config/intranet'
 
 const SettingsPage: FC = () => {
   const { pathname } = useLocation()

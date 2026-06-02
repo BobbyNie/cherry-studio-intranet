@@ -147,6 +147,8 @@ if (!app.requestSingleInstanceLock()) {
   // Some APIs can only be used after this event occurs.
 
   void app.whenReady().then(async () => {
+    loadOfflineNetworkConfigFromStore()
+
     // Record current version for tracking
     // A preparation for v2 data refactoring
     versionService.recordCurrentVersion()

@@ -77,8 +77,16 @@ const DataSettings: FC = () => {
     ]
 
     if (!intranetMode) {
-      items.splice(5, 0, { key: 'webdav', title: t('settings.data.webdav.title'), icon: <CloudSyncOutlined style={{ fontSize: 16 }} /> })
-      items.splice(6, 0, { key: 's3', title: t('settings.data.s3.title.label'), icon: <CloudServerOutlined style={{ fontSize: 16 }} /> })
+      items.splice(5, 0, {
+        key: 'webdav',
+        title: t('settings.data.webdav.title'),
+        icon: <CloudSyncOutlined style={{ fontSize: 16 }} />
+      })
+      items.splice(6, 0, {
+        key: 's3',
+        title: t('settings.data.s3.title.label'),
+        icon: <CloudServerOutlined style={{ fontSize: 16 }} />
+      })
       items.splice(7, 0, { key: 'nutstore', title: t('settings.data.nutstore.title'), icon: <NutstoreIcon /> })
       items.push({ key: 'divider_4', isDivider: true, text: t('settings.data.divider.third_party') })
       items.push({

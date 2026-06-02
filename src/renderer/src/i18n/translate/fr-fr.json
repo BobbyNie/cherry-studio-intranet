@@ -1601,6 +1601,7 @@
     "copy_failed": "Échec de la copie",
     "current": "Actuel",
     "cut": "Couper",
+    "decline": "[to be translated]:Decline",
     "default": "Défaut",
     "delete": "Supprimer",
     "delete_confirm": "Êtes-vous sûr de vouloir supprimer ?",
@@ -2900,6 +2901,35 @@
       }
     }
   },
+  "offline": {
+    "chat": {
+      "configure_local_model": "[to be translated]:Open offline settings",
+      "configure_provider": "[to be translated]:Configure model provider",
+      "empty_description": "[to be translated]:The fully offline edition blocks all network access by default. Enable the local model service and configure a localhost API base URL and allowed ports in Settings first.",
+      "empty_title": "[to be translated]:Local model service is not configured"
+    },
+    "settings": {
+      "allowed_ports": "[to be translated]:Allowed ports",
+      "api_host": "[to be translated]:API Base URL",
+      "api_host_placeholder": "[to be translated]:http://127.0.0.1:11434/v1",
+      "audit": "[to be translated]:Fully offline edition: all network access is denied by default. After enabling local model service, only configured localhost ports are allowed.",
+      "check_update": "[to be translated]:Check for updates",
+      "description": "[to be translated]:Network access is denied by default. Enable local model service to allow localhost endpoints only.",
+      "edition_label": "[to be translated]:Edition",
+      "edition_tag": "[to be translated]:Fully Offline Edition",
+      "enable_local_model": "[to be translated]:Enable local model service",
+      "menu": "[to be translated]:Offline Edition",
+      "save": "[to be translated]:Save offline network settings",
+      "saved": "[to be translated]:Offline network settings saved",
+      "title": "[to be translated]:Fully Offline Edition",
+      "update_notice": "[to be translated]:This is a fully offline edition. Please update through your enterprise offline software distribution process.",
+      "validation": {
+        "api_host_required": "[to be translated]:Please enter a local API Base URL before enabling local model service.",
+        "invalid_host": "[to be translated]:Only localhost, 127.0.0.1, or ::1 with an explicit port are allowed.",
+        "invalid_port": "[to be translated]:The port is not in the allowed port list."
+      }
+    }
+  },
   "ollama": {
     "keep_alive_time": {
       "description": "Le temps pendant lequel le modèle reste en mémoire après la conversation (par défaut : 5 minutes)",
@@ -2910,6 +2940,7 @@
   },
   "onboarding": {
     "privacy": {
+      "accept_and_continue": "[to be translated]:Accept and Continue",
       "notice": "En continuant, vous confirmez avoir lu et accepté",
       "period": ".",
       "policy": "Politique de confidentialité"
@@ -3391,6 +3422,14 @@
     "source": "Voir le code source",
     "zoom_in": "agrandir",
     "zoom_out": "réduire"
+  },
+  "privacy_policy": {
+    "title": "[to be translated]:Privacy Policy"
+  },
+  "privacy_policy_update": {
+    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
+    "policy": "[to be translated]:Privacy Policy",
+    "title": "[to be translated]:Privacy Policy Updated"
   },
   "prompts": {
     "explanation": "Aidez-moi à expliquer ce concept",
