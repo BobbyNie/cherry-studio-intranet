@@ -64,6 +64,7 @@ import ZhipuProviderLogo from '@renderer/assets/images/providers/zhipu.png'
 import type { AtLeast, SystemProvider, SystemProviderId } from '@renderer/types'
 import { OpenAIServiceTiers } from '@renderer/types'
 import { isIntranetMode } from '@shared/config/intranet'
+import { omit } from 'lodash'
 
 import { TOKENFLUX_HOST } from './constant'
 import { SYSTEM_MODELS } from './models'
@@ -753,6 +754,8 @@ export const SYSTEM_PROVIDERS_CONFIG: Record<SystemProviderId, SystemProvider> =
   }
 } as const
 
+export const INITIAL_STATE_EXCLUDED_PROVIDER_IDS = ['cephalon', 'tokenflux'] as const satisfies SystemProviderId[]
+
 export const INTRANET_VISIBLE_PROVIDER_IDS: SystemProviderId[] = ['intranet', 'ollama']
 export const INTRANET_BLOCKED_PROVIDER_IDS = ['zhinao', 'gitee-ai'] as const
 
@@ -763,7 +766,7 @@ export const SYSTEM_PROVIDERS: SystemProvider[] = isIntranetMode()
       apiHost: '',
       anthropicApiHost: ''
     }))
-  : Object.values(SYSTEM_PROVIDERS_CONFIG)
+  : Object.values(omit(SYSTEM_PROVIDERS_CONFIG, INITIAL_STATE_EXCLUDED_PROVIDER_IDS))
 
 export const PROVIDER_LOGO_MAP: AtLeast<SystemProviderId, string> = {
   intranet: NewAPIProviderLogo,
