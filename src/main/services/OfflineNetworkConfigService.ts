@@ -4,15 +4,23 @@ import { getDefaultLocalModelPorts, normalizePortList, setOfflineNetworkRuntimeC
 
 const logger = loggerService.withContext('OfflineNetworkConfigService')
 
-const CONFIG_KEYS = {
+export const OFFLINE_NETWORK_CONFIG_KEYS = {
   localModelServiceEnabled: 'offlineLocalModelServiceEnabled',
   localModelApiHost: 'offlineLocalModelApiHost',
   localModelAllowedPorts: 'offlineLocalModelAllowedPorts'
 } as const
 
+const OFFLINE_NETWORK_CONFIG_KEY_SET = new Set<string>(Object.values(OFFLINE_NETWORK_CONFIG_KEYS))
+
+export function isOfflineNetworkConfigKey(key: string): boolean {
+  return OFFLINE_NETWORK_CONFIG_KEY_SET.has(key)
+}
+
 export function loadOfflineNetworkConfigFromStore(): void {
-  const enabled = Boolean(configManager.get<boolean>(CONFIG_KEYS.localModelServiceEnabled, false))
-  const allowedPorts = normalizePortList(configManager.get<number[]>(CONFIG_KEYS.localModelAllowedPorts, []))
+  const enabled = Boolean(configManager.get<boolean>(OFFLINE_NETWORK_CONFIG_KEYS.localModelServiceEnabled, false))
+  const allowedPorts = normalizePortList(
+    configManager.get<number[]>(OFFLINE_NETWORK_CONFIG_KEYS.localModelAllowedPorts, [])
+  )
   setOfflineNetworkRuntimeConfig({
     localModelServiceEnabled: enabled,
     allowedPorts: allowedPorts.length > 0 ? allowedPorts : getDefaultLocalModelPorts()
@@ -28,9 +36,9 @@ export function saveOfflineNetworkConfigToStore(config: {
   localModelApiHost: string
   allowedPorts: number[]
 }): void {
-  configManager.set(CONFIG_KEYS.localModelServiceEnabled, config.localModelServiceEnabled)
-  configManager.set(CONFIG_KEYS.localModelApiHost, config.localModelApiHost)
-  configManager.set(CONFIG_KEYS.localModelAllowedPorts, normalizePortList(config.allowedPorts))
+  configManager.set(OFFLINE_NETWORK_CONFIG_KEYS.localModelServiceEnabled, config.localModelServiceEnabled)
+  configManager.set(OFFLINE_NETWORK_CONFIG_KEYS.localModelApiHost, config.localModelApiHost)
+  configManager.set(OFFLINE_NETWORK_CONFIG_KEYS.localModelAllowedPorts, normalizePortList(config.allowedPorts))
   setOfflineNetworkRuntimeConfig({
     localModelServiceEnabled: config.localModelServiceEnabled,
     allowedPorts: normalizePortList(config.allowedPorts)
