@@ -2,8 +2,6 @@ import { isEmbeddingModel, isRerankModel } from '@renderer/config/models'
 import type { Provider } from '@renderer/types'
 import { getOfflineNetworkRuntimeConfig, isOfflineMode } from '@shared/config/intranet'
 
-const LOCAL_PROVIDER_IDS = new Set(['intranet', 'ollama'])
-
 export function isOfflineChatConfigured(providers: Provider[]): boolean {
   if (!isOfflineMode()) {
     return true
@@ -15,10 +13,7 @@ export function isOfflineChatConfigured(providers: Provider[]): boolean {
   }
 
   const configuredProviders = providers.filter(
-    (provider) =>
-      provider.enabled &&
-      LOCAL_PROVIDER_IDS.has(provider.id) &&
-      (provider.id === 'ollama' || Boolean(provider.apiHost?.trim()))
+    (provider) => provider.enabled && Boolean(provider.apiHost?.trim() || provider.anthropicApiHost?.trim())
   )
 
   return configuredProviders.some((provider) =>

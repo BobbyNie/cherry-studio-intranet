@@ -3,6 +3,7 @@ import {
   getDefaultLocalModelPorts,
   getOfflineNetworkRuntimeConfig,
   normalizePortList,
+  OFFLINE_INVALID_MODEL_API_HOST_MESSAGE,
   setOfflineNetworkRuntimeConfig,
   validateLocalModelApiHost
 } from '@shared/config/intranet'
@@ -54,8 +55,8 @@ export function validateOfflineSettings(settings: PersistedOfflineSettings): str
   })
 
   if (!validation.ok) {
-    return validation.message === '端口不在允许列表中'
-      ? 'offline.settings.validation.invalid_port'
+    return validation.message === OFFLINE_INVALID_MODEL_API_HOST_MESSAGE
+      ? 'offline.settings.validation.invalid_host'
       : 'offline.settings.validation.invalid_host'
   }
 

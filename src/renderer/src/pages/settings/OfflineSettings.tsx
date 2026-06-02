@@ -6,9 +6,10 @@ import {
   loadOfflineSettingsFromMain,
   validateOfflineSettings
 } from '@renderer/services/OfflineNetworkSettingsService'
-import { useAppDispatch } from '@renderer/store'
+import { syncProviderNetworkAllowlist } from '@renderer/services/ProviderNetworkAllowlistService'
+import { useAppDispatch, useAppSelector } from '@renderer/store'
 import { updateProvider } from '@renderer/store/llm'
-import { getDefaultLocalModelPorts, isOfflineMode } from '@shared/config/intranet'
+import { isOfflineMode } from '@shared/config/intranet'
 import { Button, Input, Switch, Tag } from 'antd'
 import { ShieldOff } from 'lucide-react'
 import type { FC } from 'react'
@@ -20,6 +21,7 @@ import { SettingContainer, SettingDivider, SettingGroup, SettingRow, SettingRowT
 const OfflineSettings: FC = () => {
   const { t } = useTranslation()
   const dispatch = useAppDispatch()
+  const providers = useAppSelector((state) => state.llm.providers)
   const offlineMode = isOfflineMode()
   const [settings, setSettings] = useState<PersistedOfflineSettings>(() => getPersistedOfflineSettings())
 
@@ -51,6 +53,17 @@ const OfflineSettings: FC = () => {
         apiHost: settings.localModelServiceEnabled ? settings.localModelApiHost.trim() : ''
       })
     )
+
+    const nextProviders = providers.map((provider) =>
+      provider.id === SYSTEM_PROVIDERS_CONFIG.intranet.id
+        ? {
+            ...provider,
+            enabled: settings.localModelServiceEnabled,
+            apiHost: settings.localModelServiceEnabled ? settings.localModelApiHost.trim() : ''
+          }
+        : provider
+    )
+    syncProviderNetworkAllowlist(nextProviders)
     window.toast.success(t('offline.settings.saved'))
   }
 
@@ -86,23 +99,6 @@ const OfflineSettings: FC = () => {
             value={settings.localModelApiHost}
             disabled={!settings.localModelServiceEnabled}
             onChange={(event) => setSettings((current) => ({ ...current, localModelApiHost: event.target.value }))}
-          />
-        </SettingRow>
-        <SettingDivider />
-        <SettingRow>
-          <SettingRowTitle>{t('offline.settings.allowed_ports')}</SettingRowTitle>
-          <Input
-            style={{ width: 360 }}
-            placeholder={getDefaultLocalModelPorts().join(', ')}
-            value={settings.allowedPorts.join(', ')}
-            disabled={!settings.localModelServiceEnabled}
-            onChange={(event) => {
-              const allowedPorts = event.target.value
-                .split(/[\n,;]/)
-                .map((entry) => Number(entry.trim()))
-                .filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535)
-              setSettings((current) => ({ ...current, allowedPorts }))
-            }}
           />
         </SettingRow>
         <SettingDivider />

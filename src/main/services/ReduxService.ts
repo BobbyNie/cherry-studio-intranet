@@ -19,6 +19,7 @@ import { IpcChannel } from '@shared/IpcChannel'
 import { ipcMain } from 'electron'
 
 import { CacheService } from './CacheService'
+import { syncProviderNetworkAllowlistFromRedux } from './ProviderNetworkAllowlistService'
 import { windowService } from './WindowService'
 
 type StoreValue = any
@@ -50,6 +51,7 @@ export class ReduxService {
     ipcMain.handle(IpcChannel.ReduxStoreReady, () => {
       this.isReady = true
       this.resolveReady()
+      void syncProviderNetworkAllowlistFromRedux()
     })
   }
 

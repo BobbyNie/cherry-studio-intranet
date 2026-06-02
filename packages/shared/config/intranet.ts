@@ -1,13 +1,25 @@
+import {
+  deserializeProviderEndpoints,
+  type ProviderEndpoint,
+  serializeProviderEndpoints,
+  urlMatchesProviderEndpoints
+} from './providerEndpoints'
+
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 export const OFFLINE_NETWORK_BLOCKED_MESSAGE = '完全离线版已禁用网络访问'
-export const OFFLINE_LOCALHOST_BLOCKED_MESSAGE = '请先启用本机模型服务并配置允许的端口'
-export const OFFLINE_INVALID_LOCAL_HOST_MESSAGE = '仅允许 localhost、127.0.0.1 或 ::1，且必须包含明确端口'
-export const OFFLINE_INVALID_PORT_MESSAGE = '端口不在允许列表中'
+export const OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE = '请先在模型 Provider 中配置 API 地址'
+export const OFFLINE_INVALID_MODEL_API_HOST_MESSAGE = '请输入有效的 HTTP(S) API Base URL'
 
-const LOCAL_LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1'])
 const DEFAULT_LOCAL_MODEL_PORTS = [11434, 1234, 8080, 8000, 5000, 3000]
+
+/** @deprecated Use OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE */
+export const OFFLINE_LOCALHOST_BLOCKED_MESSAGE = OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE
+/** @deprecated Use OFFLINE_INVALID_MODEL_API_HOST_MESSAGE */
+export const OFFLINE_INVALID_LOCAL_HOST_MESSAGE = OFFLINE_INVALID_MODEL_API_HOST_MESSAGE
+/** @deprecated Port whitelist is no longer enforced by the offline network guard */
+export const OFFLINE_INVALID_PORT_MESSAGE = '端口不在允许列表中'
 
 export interface OfflineNetworkRuntimeConfig {
   localModelServiceEnabled: boolean
@@ -19,7 +31,10 @@ let offlineNetworkRuntimeConfig: OfflineNetworkRuntimeConfig = {
   allowedPorts: []
 }
 
+let providerAllowedEndpoints: ProviderEndpoint[] = []
+
 const OFFLINE_NETWORK_CONFIG_STORAGE_KEY = 'cherry.offlineNetworkConfig'
+const PROVIDER_ENDPOINTS_STORAGE_KEY = 'cherry.providerAllowedEndpoints'
 
 function getProcessEnv(): Record<string, string | undefined> {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
@@ -76,6 +91,22 @@ export function getDefaultLocalModelPorts(): number[] {
   return [...DEFAULT_LOCAL_MODEL_PORTS]
 }
 
+export function getProviderAllowedEndpoints(): ProviderEndpoint[] {
+  hydrateProviderAllowedEndpointsFromStorage()
+  return providerAllowedEndpoints.map((endpoint) => ({
+    ...endpoint,
+    protocols: [...endpoint.protocols]
+  }))
+}
+
+export function setProviderAllowedEndpoints(endpoints: ProviderEndpoint[]): void {
+  providerAllowedEndpoints = endpoints.map((endpoint) => ({
+    ...endpoint,
+    protocols: [...endpoint.protocols]
+  }))
+  persistProviderAllowedEndpoints()
+}
+
 export function getOfflineNetworkRuntimeConfig(): OfflineNetworkRuntimeConfig {
   hydrateOfflineNetworkRuntimeConfigFromStorage()
   return { ...offlineNetworkRuntimeConfig }
@@ -105,9 +136,32 @@ function hydrateOfflineNetworkRuntimeConfigFromStorage(): void {
   }
 }
 
+function hydrateProviderAllowedEndpointsFromStorage(): void {
+  try {
+    const raw = globalThis.localStorage?.getItem(PROVIDER_ENDPOINTS_STORAGE_KEY)
+    if (!raw) {
+      return
+    }
+    providerAllowedEndpoints = deserializeProviderEndpoints(JSON.parse(raw))
+  } catch {
+    // Ignore malformed persisted config.
+  }
+}
+
 function persistOfflineNetworkRuntimeConfig(): void {
   try {
     globalThis.localStorage?.setItem(OFFLINE_NETWORK_CONFIG_STORAGE_KEY, JSON.stringify(offlineNetworkRuntimeConfig))
+  } catch {
+    // Ignore storage failures (private browsing, etc.).
+  }
+}
+
+function persistProviderAllowedEndpoints(): void {
+  try {
+    globalThis.localStorage?.setItem(
+      PROVIDER_ENDPOINTS_STORAGE_KEY,
+      serializeProviderEndpoints(providerAllowedEndpoints)
+    )
   } catch {
     // Ignore storage failures (private browsing, etc.).
   }
@@ -132,7 +186,7 @@ export function parseAllowedPortsFromEnv(): number[] {
   return normalizePortList(configured.split(/[\n,;]/).map((entry) => entry.trim()))
 }
 
-/** @deprecated Offline mode no longer uses host allowlists. */
+/** @deprecated Offline mode uses provider-configured endpoint allowlists. */
 export function getAllowedHosts(): string[] {
   return []
 }
@@ -153,81 +207,31 @@ function isAllowedProtocol(protocol: string): boolean {
   return normalized === 'http' || normalized === 'https' || normalized === 'ws' || normalized === 'wss'
 }
 
-function normalizeLoopbackHost(hostname: string): string {
-  return hostname.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
-}
-
-function isLoopbackHost(hostname: string): boolean {
-  return LOCAL_LOOPBACK_HOSTS.has(normalizeLoopbackHost(hostname))
-}
-
-function isPrivateOrPublicIp(hostname: string): boolean {
-  const host = normalizeLoopbackHost(hostname)
-  if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) {
-    return false
-  }
-
-  const octets = host.split('.').map(Number)
-  if (octets.some((octet) => octet > 255)) {
-    return false
-  }
-
-  const [a, b] = octets
-  if (a === 10) return true
-  if (a === 172 && b >= 16 && b <= 31) return true
-  if (a === 192 && b === 168) return true
-  if (a === 127) return true
-  if (a >= 1 && a <= 223) return true
-  return false
-}
-
 function hasCredentials(url: URL): boolean {
   return Boolean(url.username || url.password)
 }
 
-function resolveEffectiveAllowedPorts(config: OfflineNetworkRuntimeConfig): number[] {
-  const envPorts = parseAllowedPortsFromEnv()
-  if (config.allowedPorts.length > 0) {
-    return config.allowedPorts
-  }
-  if (envPorts.length > 0) {
-    return envPorts
-  }
-  return DEFAULT_LOCAL_MODEL_PORTS
-}
-
 export function validateLocalModelApiHost(
   rawUrl: string,
-  config: OfflineNetworkRuntimeConfig = getOfflineNetworkRuntimeConfig()
+  _config: OfflineNetworkRuntimeConfig = getOfflineNetworkRuntimeConfig()
 ): { ok: true; url: URL } | { ok: false; message: string } {
   let parsed: URL
   try {
     parsed = new URL(rawUrl.trim())
   } catch {
-    return { ok: false, message: OFFLINE_INVALID_LOCAL_HOST_MESSAGE }
+    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
   }
 
   if (!isAllowedProtocol(parsed.protocol)) {
-    return { ok: false, message: OFFLINE_INVALID_LOCAL_HOST_MESSAGE }
+    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
   }
 
   if (hasCredentials(parsed)) {
-    return { ok: false, message: OFFLINE_INVALID_LOCAL_HOST_MESSAGE }
+    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
   }
 
-  if (!parsed.port) {
-    return { ok: false, message: OFFLINE_INVALID_LOCAL_HOST_MESSAGE }
-  }
-
-  const hostname = normalizeLoopbackHost(parsed.hostname)
-  if (!isLoopbackHost(hostname)) {
-    return { ok: false, message: OFFLINE_INVALID_LOCAL_HOST_MESSAGE }
-  }
-
-  const port = Number(parsed.port)
-  const allowedPorts = resolveEffectiveAllowedPorts(config)
-  if (!allowedPorts.includes(port)) {
-    return { ok: false, message: OFFLINE_INVALID_PORT_MESSAGE }
+  if (!parsed.hostname.trim()) {
+    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
   }
 
   return { ok: true, url: parsed }
@@ -253,27 +257,13 @@ export function assertNetworkAllowed(url: string): void {
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
   }
 
-  const config = getOfflineNetworkRuntimeConfig()
-  if (!config.localModelServiceEnabled) {
-    throw new OfflineNetworkBlockedError(OFFLINE_LOCALHOST_BLOCKED_MESSAGE)
+  const endpoints = getProviderAllowedEndpoints()
+  if (endpoints.length === 0) {
+    throw new OfflineNetworkBlockedError(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
   }
 
-  if (!parsed.port) {
-    throw new OfflineNetworkBlockedError(OFFLINE_INVALID_LOCAL_HOST_MESSAGE)
-  }
-
-  const hostname = normalizeLoopbackHost(parsed.hostname)
-  if (!isLoopbackHost(hostname)) {
-    if (hostname.includes('.') || isPrivateOrPublicIp(hostname)) {
-      throw new OfflineNetworkBlockedError(OFFLINE_INVALID_LOCAL_HOST_MESSAGE)
-    }
+  if (!urlMatchesProviderEndpoints(parsed, endpoints)) {
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
-  }
-
-  const port = Number(parsed.port)
-  const allowedPorts = resolveEffectiveAllowedPorts(config)
-  if (!allowedPorts.includes(port)) {
-    throw new OfflineNetworkBlockedError(OFFLINE_INVALID_PORT_MESSAGE)
   }
 }
 
@@ -292,3 +282,5 @@ export function sanitizeExternalUrl(url: string): string | null {
     return null
   }
 }
+
+export type { ProviderEndpoint }

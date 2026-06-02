@@ -1,5 +1,6 @@
 import { loggerService } from '@logger'
 import { configManager } from '@main/services/ConfigManager'
+import { loadProviderNetworkAllowlistFromStore } from '@main/services/ProviderNetworkAllowlistService'
 import { getDefaultLocalModelPorts, normalizePortList, setOfflineNetworkRuntimeConfig } from '@shared/config/intranet'
 
 const logger = loggerService.withContext('OfflineNetworkConfigService')
@@ -25,6 +26,7 @@ export function loadOfflineNetworkConfigFromStore(): void {
     localModelServiceEnabled: enabled,
     allowedPorts: allowedPorts.length > 0 ? allowedPorts : getDefaultLocalModelPorts()
   })
+  loadProviderNetworkAllowlistFromStore()
   logger.info('Offline network guard config loaded from main store', {
     enabled,
     allowedPorts: allowedPorts.length > 0 ? allowedPorts : getDefaultLocalModelPorts()
@@ -43,4 +45,5 @@ export function saveOfflineNetworkConfigToStore(config: {
     localModelServiceEnabled: config.localModelServiceEnabled,
     allowedPorts: normalizePortList(config.allowedPorts)
   })
+  loadProviderNetworkAllowlistFromStore()
 }

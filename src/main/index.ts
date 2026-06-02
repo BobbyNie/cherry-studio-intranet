@@ -46,8 +46,9 @@ import { initWebviewHotkeys } from './services/WebviewService'
 import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
-import { loadOfflineNetworkConfigFromStore } from './services/OfflineNetworkConfigService'
 import { installMainIntranetNetworkGuard, installSessionIntranetNetworkGuard } from './network/intranetNetworkGuard'
+import { loadOfflineNetworkConfigFromStore } from './services/OfflineNetworkConfigService'
+import { syncProviderNetworkAllowlistFromRedux } from './services/ProviderNetworkAllowlistService'
 
 const logger = loggerService.withContext('MainEntry')
 
@@ -197,6 +198,7 @@ if (!app.requestSingleInstanceLock()) {
     registerShortcuts(mainWindow)
 
     await registerIpc(mainWindow, app)
+    void syncProviderNetworkAllowlistFromRedux()
     localTransferService.startDiscovery({ resetList: true })
 
     replaceDevtoolsFont(mainWindow)

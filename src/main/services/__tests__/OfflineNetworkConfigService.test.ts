@@ -22,6 +22,10 @@ vi.mock('@main/services/ConfigManager', () => ({
   configManager: mockConfigManager
 }))
 
+vi.mock('@main/services/ProviderNetworkAllowlistService', () => ({
+  loadProviderNetworkAllowlistFromStore: vi.fn()
+}))
+
 import {
   getDefaultLocalModelPorts,
   getOfflineNetworkRuntimeConfig,

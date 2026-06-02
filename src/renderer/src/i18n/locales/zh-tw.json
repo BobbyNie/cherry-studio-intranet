@@ -2905,19 +2905,19 @@
     "chat": {
       "configure_local_model": "前往離線設定",
       "configure_provider": "設定模型 Provider",
-      "empty_description": "完全離線版預設禁止一切網路存取。請先在設定中啟用本機模型服務，並設定 localhost API 位址與允許連接埠。",
-      "empty_title": "尚未設定本機模型服務"
+      "empty_description": "完全離線版預設禁止一切網路存取。請先在設定中啟用模型服務，並在模型 Provider 中設定 API 位址（支援本機 localhost 與企業內網域名）。",
+      "empty_title": "尚未設定模型服務"
     },
     "settings": {
       "allowed_ports": "允許連接埠列表",
       "api_host": "API Base URL",
-      "api_host_placeholder": "http://127.0.0.1:11434/v1",
-      "audit": "目前為企業完全離線版：預設禁止一切網路存取；啟用本機模型服務後，僅允許設定的 localhost 連接埠。",
+      "api_host_placeholder": "http://llm-gateway.intranet.local/v1",
+      "audit": "目前為企業完全離線版：預設禁止一切網路存取；僅允許模型 Provider 中已設定的 API 位址（含內網域名）。",
       "check_update": "檢查更新",
-      "description": "預設禁止一切網路存取。啟用本機模型服務後，僅允許設定的 localhost 連接埠。",
+      "description": "預設禁止一切網路存取。啟用模型服務後，僅放行已在模型 Provider 中設定的 API 位址（含本機 localhost 與企業內網域名）。",
       "edition_label": "版本標識",
       "edition_tag": "企業完全離線版",
-      "enable_local_model": "啟用本機模型服務",
+      "enable_local_model": "啟用模型服務",
       "menu": "完全離線版",
       "save": "儲存離線網路設定",
       "saved": "離線網路設定已儲存",
@@ -2925,7 +2925,7 @@
       "update_notice": "目前為完全離線版本，請透過企業離線軟體分發流程更新。",
       "validation": {
         "api_host_required": "啟用本機模型服務前，請先填寫本地 API Base URL。",
-        "invalid_host": "僅允許 localhost、127.0.0.1 或 ::1，且必須包含明確連接埠。",
+        "invalid_host": "請輸入有效的 HTTP(S) API Base URL（支援 localhost 與企業內網域名）。",
         "invalid_port": "連接埠不在允許列表中。"
       }
     }

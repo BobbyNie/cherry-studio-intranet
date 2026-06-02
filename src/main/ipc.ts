@@ -65,7 +65,6 @@ import NotificationService from './services/NotificationService'
 import * as NutstoreService from './services/NutstoreService'
 import ObsidianVaultService from './services/ObsidianVaultService'
 import { ocrService } from './services/ocr/OcrService'
-import { isOfflineNetworkConfigKey, loadOfflineNetworkConfigFromStore } from './services/OfflineNetworkConfigService'
 import { openClawService } from './services/OpenClawService'
 import { isOvmsSupported } from './services/OvmsManager'
 import powerMonitorService from './services/PowerMonitorService'
@@ -310,9 +309,6 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
 
   ipcMain.handle(IpcChannel.Config_Set, (_, key: string, value: any, isNotify: boolean = false) => {
     configManager.set(key, value, isNotify)
-    if (isOfflineNetworkConfigKey(key)) {
-      loadOfflineNetworkConfigFromStore()
-    }
   })
 
   ipcMain.handle(IpcChannel.Config_Get, (_, key: string) => {
