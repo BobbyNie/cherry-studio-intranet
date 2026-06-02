@@ -1,5 +1,6 @@
 import { loggerService } from '@logger'
 import { CHERRYIN_CONFIG } from '@shared/config/constant'
+import { isCherryINEnabled } from '@shared/config/oauth'
 import { createHash, randomBytes } from 'crypto'
 import { net } from 'electron'
 import * as z from 'zod'
@@ -87,6 +88,15 @@ function cleanupExpiredFlows(): void {
 
 class CherryINOAuthService {
   /**
+   * Check if CherryIN is enabled (intranet mode disables it)
+   */
+  private ensureCherryINEnabled = (): void => {
+    if (!isCherryINEnabled()) {
+      throw new CherryINOAuthServiceError('CherryIN OAuth integration is disabled in intranet mode')
+    }
+  }
+
+  /**
    * Validate API host against allowlist to prevent SSRF attacks
    */
   private validateApiHost(apiHost: string): void {
@@ -130,6 +140,7 @@ class CherryINOAuthService {
     oauthServer: string,
     apiHost?: string
   ): Promise<OAuthFlowParams> => {
+    this.ensureCherryINEnabled()
     cleanupExpiredFlows()
     this.validateApiHost(oauthServer)
 
@@ -180,6 +191,7 @@ class CherryINOAuthService {
     code: string,
     state: string
   ): Promise<TokenExchangeResult> => {
+    this.ensureCherryINEnabled()
     // Retrieve stored code_verifier and config
     const flowData = pendingOAuthFlows.get(state)
     if (!flowData) {
@@ -418,6 +430,7 @@ class CherryINOAuthService {
    * Get user balance from CherryIN API
    */
   public getBalance = async (_: Electron.IpcMainInvokeEvent, apiHost: string): Promise<BalanceResponse> => {
+    this.ensureCherryINEnabled()
     this.validateApiHost(apiHost)
 
     try {
@@ -457,6 +470,7 @@ class CherryINOAuthService {
    * Revoke OAuth token and clear from Redux store
    */
   public logout = async (_: Electron.IpcMainInvokeEvent, apiHost: string): Promise<void> => {
+    this.ensureCherryINEnabled()
     this.validateApiHost(apiHost)
 
     try {

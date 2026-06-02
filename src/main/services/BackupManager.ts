@@ -17,6 +17,7 @@
 import type { Stats } from 'node:fs'
 
 import { loggerService } from '@logger'
+import { isExternalBackupEnabled } from '@shared/config/backup'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { WebDavConfig } from '@types'
 import type { S3Config } from '@types'
@@ -76,6 +77,15 @@ class BackupManager {
     webdavPass?: string
     webdavPath?: string
   } | null = null
+
+  /**
+   * Check if external backup services are enabled (intranet mode disables them)
+   */
+  private ensureExternalBackupEnabled = (): void => {
+    if (!isExternalBackupEnabled()) {
+      throw new Error('External backup services are disabled in intranet mode')
+    }
+  }
 
   /**
    * Handle backup restoration on app startup
@@ -455,6 +465,7 @@ class BackupManager {
    * @returns Result from WebDAV upload operation
    */
   async backupToWebdav(_: Electron.IpcMainInvokeEvent, webdavConfig: WebDavConfig) {
+    this.ensureExternalBackupEnabled()
     const filename = webdavConfig.fileName || 'cherry-studio.backup.zip'
     const backupedFilePath = await this.backup(_, filename, undefined, webdavConfig.skipBackupFile)
     const webdavClient = this.getWebDavInstance(webdavConfig)
@@ -486,6 +497,7 @@ class BackupManager {
    * @returns Result from S3 upload operation
    */
   async backupToS3(_: Electron.IpcMainInvokeEvent, s3Config: S3Config) {
+    this.ensureExternalBackupEnabled()
     const os = require('os')
     const deviceName = os.hostname ? os.hostname() : 'device'
     const timestamp = new Date()
@@ -746,6 +758,7 @@ class BackupManager {
    * @returns Result from restore operation
    */
   async restoreFromWebdav(_: Electron.IpcMainInvokeEvent, webdavConfig: WebDavConfig) {
+    this.ensureExternalBackupEnabled()
     const filename = webdavConfig.fileName || 'cherry-studio.backup.zip'
     const webdavClient = this.getWebDavInstance(webdavConfig)
     try {
@@ -781,6 +794,7 @@ class BackupManager {
    * @returns Result from restore operation
    */
   async restoreFromS3(_: Electron.IpcMainInvokeEvent, s3Config: S3Config) {
+    this.ensureExternalBackupEnabled()
     const filename = s3Config.fileName || 'cherry-studio.backup.zip'
 
     logger.debug(`Starting restore from S3: ${filename}`)
@@ -972,6 +986,7 @@ class BackupManager {
    * @returns Array of backup file info (name, modified time, size), sorted by newest first
    */
   listWebdavFiles = async (_: Electron.IpcMainInvokeEvent, config: WebDavConfig) => {
+    this.ensureExternalBackupEnabled()
     try {
       const client = this.getWebDavInstance(config)
       const files = await client.getDirectoryContents()
@@ -1122,6 +1137,7 @@ class BackupManager {
    * @returns True if connection is successful
    */
   async checkConnection(_: Electron.IpcMainInvokeEvent, webdavConfig: WebDavConfig) {
+    this.ensureExternalBackupEnabled()
     const webdavClient = this.getWebDavInstance(webdavConfig)
     return await webdavClient.checkConnection()
   }
@@ -1140,6 +1156,7 @@ class BackupManager {
     path: string,
     options?: CreateDirectoryOptions
   ) {
+    this.ensureExternalBackupEnabled()
     const webdavClient = this.getWebDavInstance(webdavConfig)
     return await webdavClient.createDirectory(path, options)
   }
@@ -1152,6 +1169,7 @@ class BackupManager {
    * @returns Result from WebDAV operation
    */
   async deleteWebdavFile(_: Electron.IpcMainInvokeEvent, fileName: string, webdavConfig: WebDavConfig) {
+    this.ensureExternalBackupEnabled()
     try {
       const webdavClient = this.getWebDavInstance(webdavConfig)
       return await webdavClient.deleteFile(fileName)
@@ -1341,6 +1359,7 @@ class BackupManager {
    * @returns True if connection is successful
    */
   async checkS3Connection(_: Electron.IpcMainInvokeEvent, s3Config: S3Config) {
+    this.ensureExternalBackupEnabled()
     const s3Client = this.getS3Storage(s3Config)
     return await s3Client.checkConnection()
   }
@@ -1352,6 +1371,7 @@ class BackupManager {
    * @returns Array of backup file info (name, modified time, size), sorted by newest first
    */
   listS3Files = async (_: Electron.IpcMainInvokeEvent, s3Config: S3Config) => {
+    this.ensureExternalBackupEnabled()
     try {
       const s3Client = this.getS3Storage(s3Config)
 
@@ -1383,6 +1403,7 @@ class BackupManager {
    * @returns Result from S3 operation
    */
   async deleteS3File(_: Electron.IpcMainInvokeEvent, fileName: string, s3Config: S3Config) {
+    this.ensureExternalBackupEnabled()
     try {
       const s3Client = this.getS3Storage(s3Config)
       return await s3Client.deleteFile(fileName)

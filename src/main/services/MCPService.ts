@@ -36,6 +36,7 @@ import {
 import { nanoid } from '@reduxjs/toolkit'
 import { HOME_CHERRY_DIR } from '@shared/config/constant'
 import { assertNetworkAllowed, isIntranetMode } from '@shared/config/intranet'
+import { isRemoteMcpTransportEnabled } from '@shared/config/mcp'
 import type { MCPProgressEvent } from '@shared/config/types'
 import type { MCPServerLogEntry } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
@@ -137,6 +138,12 @@ function ensureIntranetMcpCommandAllowed(server: MCPServer): void {
   }
 
   assertNetworkAllowed(server.registryUrl)
+}
+
+function ensureRemoteMcpTransportEnabled(): void {
+  if (!isRemoteMcpTransportEnabled()) {
+    throw new Error('Remote MCP transports (SSE, StreamableHTTP) are disabled in intranet mode')
+  }
 }
 
 /**
@@ -354,6 +361,9 @@ class McpService {
               [BuiltinMCPServerNames.flomo]: 'https://flomoapp.com/mcp'
             }
             const httpUrl = httpUrlMap[server.name]
+            if (server.name === BuiltinMCPServerNames.flomo) {
+              ensureRemoteMcpTransportEnabled()
+            }
             const options: StreamableHTTPClientTransportOptions = {
               fetch: async (url, init) => {
                 return net.fetch(typeof url === 'string' ? url : url.toString(), init)
@@ -385,6 +395,7 @@ class McpService {
             // set the client transport to the client
             return clientTransport
           } else if (server.baseUrl) {
+            ensureRemoteMcpTransportEnabled()
             if (server.type === 'streamableHttp') {
               const options: StreamableHTTPClientTransportOptions = {
                 fetch: async (url, init) => {
