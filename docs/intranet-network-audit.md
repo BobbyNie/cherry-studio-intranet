@@ -8,9 +8,9 @@
 
 | 文件路径 | 外联目的 | 请求 URL 或域名 | 是否保留 | 内网版处理方式 |
 |---|---|---|---|---|
-| `packages/shared/config/intranet.ts` | 内网模式和历史 allowlist 兼容 | `CHERRY_NETWORK_ALLOWLIST` | 保留 | `assertNetworkAllowed()` 作为兼容 seam 保留，但默认不做域名/IP 阻断，公网不可达交给企业网络边界 |
-| `packages/shared/network/safeRequest.ts` | 统一安全请求入口 | 任意业务 URL | 保留 | 继续作为统一请求入口，内网版不再执行 App 级 host allowlist 阻断 |
-| `src/main/network/intranetNetworkGuard.ts` | 主进程运行时兼容兜底 | `fetch`, `electron.net.fetch`, session HTTP/HTTPS/WS/WSS | 保留 | 兼容原 guard 安装流程，但底层 `assertNetworkAllowed()` 不再取消请求 |
+| `packages/shared/config/intranet.ts` | 内网模式和 Provider endpoint allowlist | enabled model provider `apiHost` / `anthropicApiHost` | 保留 | `assertNetworkAllowed()` 默认阻断网络；仅放行已启用模型 Provider 中配置且 protocol/host/port/path prefix 精确匹配的 endpoint |
+| `packages/shared/network/safeRequest.ts` | 统一安全请求入口 | 任意业务 URL | 保留 | 继续作为统一请求入口，内网版执行 Provider endpoint allowlist，未配置或不匹配的目标会阻断 |
+| `src/main/network/intranetNetworkGuard.ts` | 主进程运行时兼容兜底 | `fetch`, `electron.net.fetch`, session HTTP/HTTPS/WS/WSS | 保留 | 兼容原 guard 安装流程，底层 `assertNetworkAllowed()` 按 Provider endpoint allowlist 取消未授权请求 |
 | `src/renderer/src/network/intranetNetworkGuard.ts` | 渲染进程运行时兜底 | `window.fetch`, `WebSocket`, `EventSource` | 保留 | 内网模式下 monkey patch 浏览器网络 API |
 
 ## 启动、更新、统计、外链
@@ -36,7 +36,7 @@
 | `src/renderer/src/config/models/default.ts` | 默认模型列表 | 预置模型元数据 | 保留 | 新增 `qwen-coder`, `deepseek-coder`, `glm-coder`, `embedding-model`, `rerank-model` |
 | `src/renderer/src/store/llm.ts` | LLM 初始 state | 系统 provider 列表 | 保留 | 通过 `SYSTEM_PROVIDERS` 和 `SYSTEM_MODELS.defaultModel` 切到内网默认 |
 | `src/renderer/src/pages/settings/ProviderSettings/ProviderList.tsx` | 设置页 provider 列表 | 系统 provider UI | 部分保留 | 内网模式隐藏公网系统 provider，保留自定义 provider |
-| `src/renderer/src/aiCore/services/listModels.ts` | 拉取模型列表 | `/models`, GitHub catalog, OpenRouter, Gemini, Vertex 等 | 部分保留 | 内网版默认隐藏公网 provider；用户显式配置的模型 API 不再由 App 级 allowlist 阻断 |
+| `src/renderer/src/aiCore/services/listModels.ts` | 拉取模型列表 | `/models`, GitHub catalog, OpenRouter, Gemini, Vertex 等 | 部分保留 | 内网版默认隐藏公网 provider；已启用模型 Provider 中显式配置的 API endpoint 会进入 App 级 Provider allowlist |
 | `src/main/aiCore/provider/providerConfig.ts` | 主进程 provider host 格式化 | provider `apiHost` | 保留 | 保留 provider 抽象和用户配置的 API host |
 | `src/main/services/OpenClawService.ts` | 网关健康检查和 provider 同步 | `127.0.0.1`, provider host, Google/Anthropic/OpenAI 兼容地址 | 部分保留 | 本地健康检查保留；内网版默认 provider 配置避免主动使用公网 provider |
 
@@ -47,7 +47,7 @@
 | `src/renderer/src/config/webSearchProviders.ts` | Web Search provider 默认配置 | Tavily、Exa、Bocha、Google、Bing、Baidu、Zhipu | 否 | 内网模式只保留 `内网 SearXNG`，默认 `http://searxng.intranet.local` |
 | `src/renderer/src/store/websearch.ts` | Web Search 初始 state | provider 列表 | 保留 | 内网模式默认 provider 改为 `searxng` |
 | `src/renderer/src/providers/WebSearchProvider/WebSearchProviderFactory.ts` | Web Search provider 创建 | 各搜索 provider | 部分保留 | 内网模式非 SearXNG 直接抛出“联网搜索仅支持内网 SearXNG。” |
-| `src/renderer/src/providers/WebSearchProvider/SearxngProvider.ts` | SearXNG 配置和搜索 | `/config`, search endpoint | 保留 | 仅保留内网 SearXNG 产品入口；baseURL 不再由 App 级 allowlist 阻断 |
+| `src/renderer/src/providers/WebSearchProvider/SearxngProvider.ts` | SearXNG 配置和搜索 | `/config`, search endpoint | 保留 | 仅保留内网 SearXNG 产品入口；请求仍经过 `safeAxios()` / `assertNetworkAllowed()`，默认不会因是内网域名而自动放行 |
 
 ## MCP
 
@@ -72,7 +72,7 @@
 
 | 文件路径 | 外联目的 | 请求 URL 或域名 | 是否保留 | 内网版处理方式 |
 |---|---|---|---|---|
-| `src/main/services/NutstoreService.ts` | WebDAV/坚果云备份 | 用户配置 WebDAV URL | 部分保留 | 保留用户配置的内网 WebDAV/文件服务器备份，不再做 App 级 host allowlist 阻断 |
+| `src/main/services/NutstoreService.ts` | WebDAV/坚果云备份 | 用户配置 WebDAV URL | 部分保留 | 保留配置入口；完全离线版默认不自动放行任意 WebDAV URL，启用前需在企业部署验收中确认其网络策略 |
 | `src/renderer/src/pages/settings/DataSettings/WebDavSettings.tsx` | WebDAV 设置 | 用户输入 URL | 保留 | 管理员需配置内网 WebDAV 或文件服务器 |
 | `src/main/services/CodeToolsService.ts` | CLI 版本检查/安装 | `registry.npmjs.org`, `registry.npmmirror.com` | 否 | MCP UI 隐藏依赖在线安装入口；需要时由管理员配置企业镜像 |
 | `scripts/download-rtk-binaries.js` | 构建期下载 RTK | GitHub releases | 否 | 内网构建需预置资源或使用内网镜像，不在应用运行时执行 |
@@ -81,4 +81,5 @@
 
 1. 使用抓包工具启动 5 分钟，确认无公网 DNS/HTTP/HTTPS。
 2. 在完全断网 Windows 环境启动安装包。
-3. 管理员配置内网 OpenAI-compatible、SearXNG、WebDAV、MCP registry 后验证默认路径不会主动访问官方公网服务。
+3. 管理员配置内网 OpenAI-compatible 模型 Provider 后，验证对应 API endpoint 被放行且未配置目标被阻断。
+4. 如启用 SearXNG、WebDAV、MCP registry，需单独验收其内网地址不会触发公网访问或被离线网络策略误放行。

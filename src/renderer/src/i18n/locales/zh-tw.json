@@ -2909,7 +2909,7 @@
       "empty_title": "尚未設定模型 Provider"
     },
     "settings": {
-      "allowed_ports": "允許連接埠列表",
+      "allowed_ports": "Provider endpoint 範圍",
       "api_host": "API Base URL",
       "api_host_placeholder": "http://llm-gateway.intranet.local/v1",
       "audit": "目前為企業完全離線版：預設禁止一切網路存取；僅允許模型 Provider 中已設定的 API 位址（含內網域名）。",
@@ -2926,7 +2926,7 @@
       "validation": {
         "api_host_required": "啟用內網 Provider 前，請先填寫模型 Provider API Base URL。",
         "invalid_host": "請輸入有效的 HTTP(S) API Base URL（支援 localhost 與企業內網域名）。",
-        "invalid_port": "連接埠不在允許列表中。"
+        "invalid_port": "API Base URL 不在已啟用 Provider endpoint 策略範圍內。"
       }
     }
   },

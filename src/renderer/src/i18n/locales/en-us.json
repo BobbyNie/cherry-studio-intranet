@@ -2909,7 +2909,7 @@
       "empty_title": "Model provider is not configured"
     },
     "settings": {
-      "allowed_ports": "Allowed ports",
+      "allowed_ports": "Provider endpoints",
       "api_host": "API Base URL",
       "api_host_placeholder": "http://llm-gateway.intranet.local/v1",
       "audit": "Enterprise fully offline edition: network access is blocked by default; only API addresses configured on model providers are allowed (including internal domains).",
@@ -2926,7 +2926,7 @@
       "validation": {
         "api_host_required": "Please enter a provider API Base URL before enabling the intranet provider.",
         "invalid_host": "Enter a valid HTTP(S) API Base URL (localhost and internal domains are supported).",
-        "invalid_port": "The port is not in the allowed port list."
+        "invalid_port": "The API Base URL is outside the enabled provider endpoint policy."
       }
     }
   },

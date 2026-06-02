@@ -2905,28 +2905,28 @@
     "chat": {
       "configure_local_model": "[to be translated]:Open offline settings",
       "configure_provider": "[to be translated]:Configure model provider",
-      "empty_description": "[to be translated]:The fully offline edition blocks all network access by default. Enable the local model service and configure a localhost API base URL and allowed ports in Settings first.",
-      "empty_title": "[to be translated]:Local model service is not configured"
+      "empty_description": "[to be translated]:The fully offline edition blocks network access by default. Configure and enable a model provider API address; localhost and internal domains are supported.",
+      "empty_title": "[to be translated]:Model provider is not configured"
     },
     "settings": {
-      "allowed_ports": "[to be translated]:Allowed ports",
+      "allowed_ports": "[to be translated]:Provider endpoints",
       "api_host": "[to be translated]:API Base URL",
-      "api_host_placeholder": "[to be translated]:http://127.0.0.1:11434/v1",
-      "audit": "[to be translated]:Fully offline edition: all network access is denied by default. After enabling local model service, only configured localhost ports are allowed.",
+      "api_host_placeholder": "[to be translated]:http://llm-gateway.intranet.local/v1",
+      "audit": "[to be translated]:Enterprise fully offline edition: network access is blocked by default; only API addresses configured on model providers are allowed (including internal domains).",
       "check_update": "[to be translated]:Check for updates",
-      "description": "[to be translated]:Network access is denied by default. Enable local model service to allow localhost endpoints only.",
+      "description": "[to be translated]:All network access is blocked by default. Only API addresses configured on enabled model providers are allowed, including localhost and internal domains.",
       "edition_label": "[to be translated]:Edition",
       "edition_tag": "[to be translated]:Fully Offline Edition",
-      "enable_local_model": "[to be translated]:Enable local model service",
+      "enable_local_model": "[to be translated]:Enable intranet provider",
       "menu": "[to be translated]:Offline Edition",
       "save": "[to be translated]:Save offline network settings",
       "saved": "[to be translated]:Offline network settings saved",
       "title": "[to be translated]:Fully Offline Edition",
       "update_notice": "[to be translated]:This is a fully offline edition. Please update through your enterprise offline software distribution process.",
       "validation": {
-        "api_host_required": "[to be translated]:Please enter a local API Base URL before enabling local model service.",
-        "invalid_host": "[to be translated]:Only localhost, 127.0.0.1, or ::1 with an explicit port are allowed.",
-        "invalid_port": "[to be translated]:The port is not in the allowed port list."
+        "api_host_required": "[to be translated]:Please enter a provider API Base URL before enabling the intranet provider.",
+        "invalid_host": "[to be translated]:Enter a valid HTTP(S) API Base URL (localhost and internal domains are supported).",
+        "invalid_port": "[to be translated]:The API Base URL is outside the enabled provider endpoint policy."
       }
     }
   },
