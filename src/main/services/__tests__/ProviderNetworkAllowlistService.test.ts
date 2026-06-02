@@ -53,12 +53,14 @@ describe('ProviderNetworkAllowlistService', () => {
   })
 
   it('loads persisted provider endpoints into runtime allowlist', () => {
-    mockConfigManager.get.mockReturnValue([{ hostname: 'llm-gateway.intranet.local', port: null, protocols: ['http'] }])
+    mockConfigManager.get.mockReturnValue([
+      { basePath: '/v1', hostname: 'llm-gateway.intranet.local', port: 80, protocols: ['http'] }
+    ])
 
     loadProviderNetworkAllowlistFromStore()
 
     expect(getProviderAllowedEndpoints()).toEqual([
-      { hostname: 'llm-gateway.intranet.local', port: null, protocols: ['http'] }
+      { basePath: '/v1', hostname: 'llm-gateway.intranet.local', port: 80, protocols: ['http'] }
     ])
   })
 
@@ -69,10 +71,10 @@ describe('ProviderNetworkAllowlistService', () => {
     ])
 
     expect(getProviderAllowedEndpoints()).toEqual([
-      { hostname: 'llm-gateway.intranet.local', port: null, protocols: ['http'] }
+      { basePath: '/v1', hostname: 'llm-gateway.intranet.local', port: 80, protocols: ['http'] }
     ])
     expect(mockConfigManager.set).toHaveBeenCalledWith(OFFLINE_PROVIDER_ENDPOINTS_KEY, [
-      { hostname: 'llm-gateway.intranet.local', port: null, protocols: ['http'] }
+      { basePath: '/v1', hostname: 'llm-gateway.intranet.local', port: 80, protocols: ['http'] }
     ])
   })
 })

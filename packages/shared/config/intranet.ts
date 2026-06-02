@@ -213,8 +213,10 @@ function hasCredentials(url: URL): boolean {
 
 export function validateLocalModelApiHost(
   rawUrl: string,
-  _config: OfflineNetworkRuntimeConfig = getOfflineNetworkRuntimeConfig()
+  config: OfflineNetworkRuntimeConfig = getOfflineNetworkRuntimeConfig()
 ): { ok: true; url: URL } | { ok: false; message: string } {
+  void config
+
   let parsed: URL
   try {
     parsed = new URL(rawUrl.trim())

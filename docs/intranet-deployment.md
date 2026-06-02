@@ -28,7 +28,7 @@ CHERRY_NETWORK_ALLOWLIST=
 **完全离线版网络策略**（`CHERRY_OFFLINE_MODE` / `CHERRY_INTRANET_MODE`）：
 
 - 默认 **deny-all**：拦截一切未明确放行的 HTTP(S)/WS(S) 请求。
-- **放行范围**：已在模型 Provider 中配置且启用的 `apiHost` / `anthropicApiHost`（含 `localhost`、私有 IP、企业内网域名）。
+- **放行范围**：已在模型 Provider 中配置且启用的 `apiHost` / `anthropicApiHost`，按协议、主机、端口和路径前缀放行（含 `localhost`、私有 IP、企业内网域名）。
 - **不是 localhost-only**：内网模式不等于只能访问本机模型；模型实际访问地址以 Provider 配置为准。
 - 未在 Provider 中配置的公网地址仍会被 App 层拦截；公网物理不可达由企业 DNS/防火墙保证。
 
@@ -104,7 +104,7 @@ corepack pnpm package:win:intranet
 1. 启动应用，确认未配置模型时应用不崩溃，并提示配置内网模型。
 2. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
 3. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文。
-4. 配置企业内网 OpenAI-compatible 域名，确认不需要额外 App 白名单即可访问。
+4. 配置企业内网 OpenAI-compatible 域名，确认只需模型 Provider API Base URL 即可访问。
 5. 验证 Web Search 只显示内网 SearXNG。
 6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
 7. 验证点击关于页外链不会打开浏览器。
@@ -115,8 +115,8 @@ corepack pnpm package:win:intranet
 
 本次提交的自动化测试覆盖：
 
-- 内网模式默认不在 App 内做域名/IP 白名单阻断
-- `safeFetch`、`safeWebSocket` 对用户配置域名透传
+- 内网模式默认 deny-all，仅放行已启用模型 Provider 配置的协议、主机、端口和路径前缀
+- `safeFetch`、`safeWebSocket` 阻断未配置目标，并透传已配置的 Provider API Base URL
 - 内网 provider/Web Search/MCP 默认面
 - autoUpdater 内网模式 no-op
 

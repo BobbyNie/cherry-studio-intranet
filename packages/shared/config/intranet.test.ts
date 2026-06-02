@@ -57,13 +57,25 @@ describe('offline network config', () => {
     setProviderAllowedEndpoints(
       extractProviderEndpoints([
         { enabled: true, apiHost: 'http://llm-gateway.intranet.local/v1' },
-        { enabled: true, apiHost: 'http://127.0.0.1:11434/v1' }
+        { enabled: true, apiHost: 'http://127.0.0.1:11434' }
       ])
     )
 
     expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/chat/completions')).not.toThrow()
+    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/oauth/token')).toThrow(
+      OfflineNetworkBlockedError
+    )
     expect(() => assertNetworkAllowed('http://127.0.0.1:11434/api/tags')).not.toThrow()
-    expect(() => assertNetworkAllowed('ws://127.0.0.1:11434/ws')).not.toThrow()
+    expect(() => assertNetworkAllowed('ws://127.0.0.1:11434/ws')).toThrow(OfflineNetworkBlockedError)
+  })
+
+  it('allows websocket requests only when websocket endpoints are explicitly configured', () => {
+    setProviderAllowedEndpoints(
+      extractProviderEndpoints([{ enabled: true, apiHost: 'wss://realtime.intranet.local/v1' }])
+    )
+
+    expect(() => assertNetworkAllowed('wss://realtime.intranet.local/v1/chat')).not.toThrow()
+    expect(() => assertNetworkAllowed('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
   })
 
   it('rejects unconfigured targets even when local model service is enabled', () => {

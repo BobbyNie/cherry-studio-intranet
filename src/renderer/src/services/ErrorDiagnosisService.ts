@@ -26,18 +26,18 @@ export interface DiagnosisContext {
   modelId?: string
 }
 
-function getConfiguredLocalModelProvider(): Provider | undefined {
+function getConfiguredIntranetProvider(): Provider | undefined {
   if (!isIntranetMode()) {
     return undefined
   }
 
-  const localProviderId = SYSTEM_PROVIDERS_CONFIG.intranet.id
-  const localProvider = store.getState().llm.providers?.find((provider) => provider.id === localProviderId)
-  if (!localProvider || localProvider.enabled === false || !localProvider.apiHost?.trim()) {
+  const intranetProviderId = SYSTEM_PROVIDERS_CONFIG.intranet.id
+  const intranetProvider = store.getState().llm.providers?.find((provider) => provider.id === intranetProviderId)
+  if (!intranetProvider || intranetProvider.enabled === false || !intranetProvider.apiHost?.trim()) {
     return undefined
   }
 
-  return localProvider
+  return intranetProvider
 }
 
 function isDiagnosisCapableModel(model: Model): boolean {
@@ -45,22 +45,22 @@ function isDiagnosisCapableModel(model: Model): boolean {
   return capabilityTypes.length === 0 || capabilityTypes.some((type) => type !== 'embedding' && type !== 'rerank')
 }
 
-async function getLocalModelForDiagnosis(): Promise<Model | undefined> {
-  const localProvider = getConfiguredLocalModelProvider()
-  if (!localProvider) {
+async function getIntranetModelForDiagnosis(): Promise<Model | undefined> {
+  const intranetProvider = getConfiguredIntranetProvider()
+  if (!intranetProvider) {
     return undefined
   }
 
-  const configuredModel = localProvider.models.find(isDiagnosisCapableModel)
+  const configuredModel = intranetProvider.models.find(isDiagnosisCapableModel)
   if (configuredModel) {
     return configuredModel
   }
 
   try {
-    const models = await fetchModels(localProvider)
+    const models = await fetchModels(intranetProvider)
     return models.find(isDiagnosisCapableModel)
   } catch {
-    logger.warn('Failed to fetch local model list')
+    logger.warn('Failed to fetch intranet provider model list')
     return undefined
   }
 }
@@ -69,9 +69,9 @@ async function buildModelsToTry(context?: DiagnosisContext): Promise<Model[]> {
   const defaultModel = store.getState().llm.defaultModel
   const models: Model[] = []
 
-  const localModel = await getLocalModelForDiagnosis()
-  if (localModel) {
-    models.push(localModel)
+  const intranetModel = await getIntranetModelForDiagnosis()
+  if (intranetModel) {
+    models.push(intranetModel)
   }
 
   // User's default model as fallback (skip if same as failing model)
