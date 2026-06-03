@@ -9,6 +9,7 @@ This file provides guidance to AI coding assistants when working with code in th
 - **Search smart**: Prefer `ast-grep` for semantic queries; fall back to `rg`/`grep` when needed.
 - **Log centrally**: Route all logging through `loggerService` with the right context—no `console.log`.
 - **Research via subagent**: Lean on `subagent` for external docs, APIs, news, and references.
+- **Plan-mode subagent orchestration**: When plan/planning mode is enabled for a request, decompose the requirement into sub-tasks and delegate sub-requirements to sub-agents. The main agent should track progress, consolidate results, and adjust requirements instead of directly executing the sub-tasks.
 - **Always propose before executing**: Before making any changes, clearly explain your planned approach and wait for explicit user approval to ensure alignment and prevent unwanted modifications.
 - **Lint, test, and format before completion**: Coding tasks are only complete after running `pnpm lint`, `pnpm test`, and `pnpm format` successfully.
 - **Write conventional commits**: Commit small, focused changes using Conventional Commit messages (e.g., `feat:`, `fix:`, `refactor:`, `docs:`).
