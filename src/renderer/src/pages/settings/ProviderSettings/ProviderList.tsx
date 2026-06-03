@@ -456,17 +456,15 @@ const ProviderList: FC<ProviderListProps> = ({ isOnboarding = false }) => {
             </Dropdown>
           )}
         </DraggableVirtualList>
-        {!intranetMode && (
-          <AddButtonWrapper>
-            <Button
-              style={{ width: '100%', borderRadius: 'var(--list-item-border-radius)' }}
-              icon={<PlusIcon size={16} />}
-              onClick={onAddProvider}
-              disabled={dragging}>
-              {t('button.add')}
-            </Button>
-          </AddButtonWrapper>
-        )}
+        <AddButtonWrapper>
+          <Button
+            style={{ width: '100%', borderRadius: 'var(--list-item-border-radius)' }}
+            icon={<PlusIcon size={16} />}
+            onClick={onAddProvider}
+            disabled={dragging}>
+            {t('button.add')}
+          </Button>
+        </AddButtonWrapper>
       </ProviderListContainer>
       <ProviderSetting providerId={selectedProvider.id} key={selectedProvider.id} isOnboarding={isOnboarding} />
     </Container>

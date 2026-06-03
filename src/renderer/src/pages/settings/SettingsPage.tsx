@@ -19,7 +19,6 @@ import {
   Search,
   Server,
   Settings2,
-  ShieldOff,
   Sparkles,
   TextCursorInput,
   Zap
@@ -37,7 +36,6 @@ import DocProcessSettings from './DocProcessSettings'
 import GeneralSettings from './GeneralSettings'
 import MCPSettings from './MCPSettings'
 import MemorySettings from './MemorySettings'
-import OfflineSettings from './OfflineSettings'
 import { ProviderList } from './ProviderSettings'
 import QuickAssistantSettings from './QuickAssistantSettings'
 import QuickPhraseSettings from './QuickPhraseSettings'
@@ -75,14 +73,6 @@ const SettingsPage: FC = () => {
             </MenuItem>
           </MenuItemLink>
           <Divider />
-          {offlineMode && (
-            <MenuItemLink to="/settings/offline">
-              <MenuItem className={isRoute('/settings/offline')}>
-                <ShieldOff size={18} />
-                {t('offline.settings.menu')}
-              </MenuItem>
-            </MenuItemLink>
-          )}
           <MenuItemLink to="/settings/general">
             <MenuItem className={isRoute('/settings/general')}>
               <Settings2 size={18} />
@@ -191,7 +181,6 @@ const SettingsPage: FC = () => {
           <Routes>
             <Route path="provider" element={<ProviderList />} />
             <Route path="model" element={<ModelSettings />} />
-            <Route path="offline" element={<OfflineSettings />} />
             <Route path="websearch/*" element={<WebSearchSettings />} />
             <Route path="api-server" element={<ApiServerSettings />} />
             <Route path="channels" element={<ChannelsSettings />} />
