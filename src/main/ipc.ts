@@ -68,6 +68,7 @@ import { ocrService } from './services/ocr/OcrService'
 import { openClawService } from './services/OpenClawService'
 import { isOvmsSupported } from './services/OvmsManager'
 import powerMonitorService from './services/PowerMonitorService'
+import { syncProviderNetworkAllowlistConfigSet } from './services/ProviderNetworkAllowlistService'
 import { proxyManager } from './services/ProxyManager'
 import { pythonService } from './services/PythonService'
 import { FileServiceManager } from './services/remotefile/FileServiceManager'
@@ -307,7 +308,11 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
     return getIpCountry()
   })
 
-  ipcMain.handle(IpcChannel.Config_Set, (_, key: string, value: any, isNotify: boolean = false) => {
+  ipcMain.handle(IpcChannel.Config_Set, async (_, key: string, value: any, isNotify: boolean = false) => {
+    if (await syncProviderNetworkAllowlistConfigSet(key)) {
+      return
+    }
+
     configManager.set(key, value, isNotify)
   })
 

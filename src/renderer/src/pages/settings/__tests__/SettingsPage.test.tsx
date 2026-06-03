@@ -2,6 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
+import enUS from '../../../i18n/locales/en-us.json'
+import zhCN from '../../../i18n/locales/zh-cn.json'
+import zhTW from '../../../i18n/locales/zh-tw.json'
 import SettingsPage from '../SettingsPage'
 
 vi.mock('@shared/config/intranet', async () => {
@@ -24,10 +27,6 @@ vi.mock('../ProviderSettings', () => ({
 
 vi.mock('../ModelSettings/ModelSettings', () => ({
   default: () => null
-}))
-
-vi.mock('../OfflineSettings', () => ({
-  default: () => <div data-testid="offline-settings" />
 }))
 
 vi.mock('../AboutSettings', () => ({
@@ -113,7 +112,15 @@ describe('SettingsPage', () => {
     )
 
     expect(screen.queryByText('offline.settings.menu')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('offline-settings')).not.toBeInTheDocument()
     expect(screen.getByText('settings.provider.title')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['en-us', enUS],
+    ['zh-cn', zhCN],
+    ['zh-tw', zhTW]
+  ])('keeps only about-screen offline settings translations in %s', (_, locale) => {
+    expect(locale.offline.chat).not.toHaveProperty('configure_local_model')
+    expect(Object.keys(locale.offline.settings).sort()).toEqual(['audit', 'check_update', 'edition_tag'])
   })
 })

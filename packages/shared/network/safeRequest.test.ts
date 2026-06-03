@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  OfflineNetworkBlockedError,
-  setOfflineNetworkRuntimeConfig,
-  setProviderAllowedEndpoints
-} from '../config/intranet'
+import { OfflineNetworkBlockedError, setProviderAllowedEndpoints } from '../config/intranet'
 import { extractProviderEndpoints } from '../config/providerEndpoints'
 import { safeFetch, safeWebSocket } from './safeRequest'
 
@@ -17,7 +13,6 @@ describe('safeRequest', () => {
     process.env = { ...originalEnv }
     process.env.CHERRY_OFFLINE_MODE = 'true'
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
     setProviderAllowedEndpoints([])
   })
 
@@ -25,7 +20,6 @@ describe('safeRequest', () => {
     process.env = { ...originalEnv }
     globalThis.fetch = originalFetch
     globalThis.WebSocket = originalWebSocket
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
     setProviderAllowedEndpoints([])
   })
 

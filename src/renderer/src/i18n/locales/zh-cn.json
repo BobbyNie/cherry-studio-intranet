@@ -2903,31 +2903,14 @@
   },
   "offline": {
     "chat": {
-      "configure_local_model": "前往离线设置",
       "configure_provider": "配置模型 Provider",
       "empty_description": "完全离线版默认禁止网络访问。请配置并启用模型 Provider 的 API 地址，支持 localhost 与企业内网域名。",
       "empty_title": "尚未配置模型 Provider"
     },
     "settings": {
-      "allowed_ports": "Provider endpoint 范围",
-      "api_host": "API Base URL",
-      "api_host_placeholder": "http://llm-gateway.intranet.local/v1",
       "audit": "当前为企业完全离线版：默认禁止一切网络访问；仅允许模型 Provider 中已配置的 API 地址（含内网域名）。",
       "check_update": "检查更新",
-      "description": "默认禁止一切网络访问。仅放行已启用模型 Provider 中配置的 API 地址，支持 localhost 与企业内网域名。",
-      "edition_label": "版本标识",
-      "edition_tag": "企业完全离线版",
-      "enable_local_model": "启用内网 Provider",
-      "menu": "完全离线版",
-      "save": "保存离线网络设置",
-      "saved": "离线网络设置已保存",
-      "title": "企业完全离线版",
-      "update_notice": "当前为完全离线版本，请通过企业离线软件分发流程更新。",
-      "validation": {
-        "api_host_required": "启用内网 Provider 前，请先填写模型 Provider API Base URL。",
-        "invalid_host": "请输入有效的 HTTP(S) API Base URL（支持 localhost 与企业内网域名）。",
-        "invalid_port": "API Base URL 不在已启用 Provider endpoint 策略范围内。"
-      }
+      "edition_tag": "企业完全离线版"
     }
   },
   "ollama": {

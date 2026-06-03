@@ -25,18 +25,31 @@ export function loadProviderNetworkAllowlistFromStore(): void {
   logger.info('Provider network allowlist loaded from main store', { count: endpoints.length })
 }
 
-export async function syncProviderNetworkAllowlistFromRedux(): Promise<void> {
+export async function syncProviderNetworkAllowlistFromRedux(): Promise<boolean> {
   try {
     const providers = await reduxService.select<ProviderEndpointSource[]>('state.llm.providers')
     const endpoints = extractProviderEndpoints(providers)
     setProviderAllowedEndpoints(endpoints)
     configManager.set(OFFLINE_PROVIDER_ENDPOINTS_KEY, endpoints)
     logger.info('Provider network allowlist synced from Redux', { count: endpoints.length })
+    return true
   } catch (error) {
+    setProviderAllowedEndpoints([])
+    configManager.set(OFFLINE_PROVIDER_ENDPOINTS_KEY, [])
     logger.warn('Failed to sync provider network allowlist from Redux', {
       error: error instanceof Error ? error.message : String(error)
     })
+    return false
   }
+}
+
+export async function syncProviderNetworkAllowlistConfigSet(key: string): Promise<boolean> {
+  if (!isProviderNetworkAllowlistKey(key)) {
+    return false
+  }
+
+  await syncProviderNetworkAllowlistFromRedux()
+  return true
 }
 
 export function syncProviderNetworkAllowlistFromProviders(providers: ProviderEndpointSource[]): void {

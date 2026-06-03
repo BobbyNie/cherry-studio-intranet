@@ -101,6 +101,9 @@ export class ReduxService {
       await webContents.executeJavaScript(`window.store.dispatch(${JSON.stringify(action)})`)
       if (action?.type && typeof action.type === 'string') {
         invalidateApiServerProvidersCacheForAction(action.type)
+        if (PROVIDER_CACHE_INVALIDATION_ACTIONS.has(action.type)) {
+          await syncProviderNetworkAllowlistFromRedux()
+        }
       }
     } catch (error) {
       logger.error('Failed to dispatch action:', error as Error)
