@@ -1,4 +1,5 @@
 import { loggerService } from '@logger'
+import { isPublicNetworkDisabled } from '@shared/config/intranet'
 import { net } from 'electron'
 
 const logger = loggerService.withContext('IpService')
@@ -8,6 +9,11 @@ const logger = loggerService.withContext('IpService')
  * @returns 返回国家代码，默认为'CN'
  */
 export async function getIpCountry(): Promise<string> {
+  if (isPublicNetworkDisabled()) {
+    logger.info('Public network disabled; skipping external IP country lookup')
+    return 'CN'
+  }
+
   try {
     // 添加超时控制
     const controller = new AbortController()

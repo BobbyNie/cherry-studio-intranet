@@ -8,6 +8,7 @@ import { directoryExists } from '@main/utils/file'
 import { deleteDirectoryRecursive } from '@main/utils/fileOperations'
 import { findAllSkillDirectories, findSkillMdPath, parseSkillMetadata } from '@main/utils/markdownParser'
 import { executeCommand, findExecutableInEnv } from '@main/utils/process'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import type {
   InstalledSkill,
   SkillFileNode,
@@ -29,6 +30,8 @@ const logger = loggerService.withContext('SkillService')
 
 // API base URLs for the 3 search sources
 const CLAUDE_PLUGINS_API = 'https://api.claude-plugins.dev'
+const SKILLS_MARKETPLACE_DISABLED_MESSAGE =
+  'Skills marketplace is disabled in intranet mode. Use local ZIP/directory install instead.'
 
 // ZIP extraction limits
 const MAX_EXTRACTED_SIZE = 100 * 1024 * 1024 // 100MB
@@ -327,10 +330,19 @@ export class SkillService {
 
     switch (source) {
       case 'claude-plugins':
+        if (isMarketplaceDisabled()) {
+          throw new Error(SKILLS_MARKETPLACE_DISABLED_MESSAGE)
+        }
         return this.installFromClaudePlugins(identifier)
       case 'skills.sh':
+        if (isMarketplaceDisabled()) {
+          throw new Error(SKILLS_MARKETPLACE_DISABLED_MESSAGE)
+        }
         return this.installFromSkillsSh(identifier)
       case 'clawhub':
+        if (isMarketplaceDisabled()) {
+          throw new Error(SKILLS_MARKETPLACE_DISABLED_MESSAGE)
+        }
         return this.installFromClawhub(identifier)
       default:
         throw new Error(`Unknown install source: ${source}`)

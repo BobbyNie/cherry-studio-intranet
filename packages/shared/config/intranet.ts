@@ -9,6 +9,7 @@ const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 export const OFFLINE_NETWORK_BLOCKED_MESSAGE = '完全离线版已禁用网络访问'
+export const OFFLINE_ENDPOINT_NOT_CONFIGURED_MESSAGE = '请先配置模型 Provider 或内网服务地址'
 export const OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE = '请先在模型 Provider 中配置 API 地址'
 export const OFFLINE_INVALID_MODEL_API_HOST_MESSAGE = '请输入有效的 HTTP(S) API Base URL'
 
@@ -32,9 +33,11 @@ let offlineNetworkRuntimeConfig: OfflineNetworkRuntimeConfig = {
 }
 
 let providerAllowedEndpoints: ProviderEndpoint[] = []
+let serviceAllowedEndpoints: ProviderEndpoint[] = []
 
 const OFFLINE_NETWORK_CONFIG_STORAGE_KEY = 'cherry.offlineNetworkConfig'
 const PROVIDER_ENDPOINTS_STORAGE_KEY = 'cherry.providerAllowedEndpoints'
+const SERVICE_ENDPOINTS_STORAGE_KEY = 'cherry.serviceAllowedEndpoints'
 
 function getProcessEnv(): Record<string, string | undefined> {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
@@ -57,6 +60,10 @@ function isFlagEnabled(name: string): boolean {
 
 export function isOfflineMode(): boolean {
   return isFlagEnabled('CHERRY_OFFLINE_MODE') || isFlagEnabled('CHERRY_INTRANET_MODE')
+}
+
+export function isFullyOfflineMode(): boolean {
+  return isFlagEnabled('CHERRY_OFFLINE_MODE')
 }
 
 /** @deprecated Use isOfflineMode() */
@@ -107,6 +114,22 @@ export function setProviderAllowedEndpoints(endpoints: ProviderEndpoint[]): void
   persistProviderAllowedEndpoints()
 }
 
+export function getServiceAllowedEndpoints(): ProviderEndpoint[] {
+  hydrateServiceAllowedEndpointsFromStorage()
+  return serviceAllowedEndpoints.map((endpoint) => ({
+    ...endpoint,
+    protocols: [...endpoint.protocols]
+  }))
+}
+
+export function setServiceAllowedEndpoints(endpoints: ProviderEndpoint[]): void {
+  serviceAllowedEndpoints = endpoints.map((endpoint) => ({
+    ...endpoint,
+    protocols: [...endpoint.protocols]
+  }))
+  persistServiceAllowedEndpoints()
+}
+
 export function getOfflineNetworkRuntimeConfig(): OfflineNetworkRuntimeConfig {
   hydrateOfflineNetworkRuntimeConfigFromStorage()
   return { ...offlineNetworkRuntimeConfig }
@@ -148,6 +171,18 @@ function hydrateProviderAllowedEndpointsFromStorage(): void {
   }
 }
 
+function hydrateServiceAllowedEndpointsFromStorage(): void {
+  try {
+    const raw = globalThis.localStorage?.getItem(SERVICE_ENDPOINTS_STORAGE_KEY)
+    if (!raw) {
+      return
+    }
+    serviceAllowedEndpoints = deserializeProviderEndpoints(JSON.parse(raw))
+  } catch {
+    // Ignore malformed persisted config.
+  }
+}
+
 function persistOfflineNetworkRuntimeConfig(): void {
   try {
     globalThis.localStorage?.setItem(OFFLINE_NETWORK_CONFIG_STORAGE_KEY, JSON.stringify(offlineNetworkRuntimeConfig))
@@ -162,6 +197,14 @@ function persistProviderAllowedEndpoints(): void {
       PROVIDER_ENDPOINTS_STORAGE_KEY,
       serializeProviderEndpoints(providerAllowedEndpoints)
     )
+  } catch {
+    // Ignore storage failures (private browsing, etc.).
+  }
+}
+
+function persistServiceAllowedEndpoints(): void {
+  try {
+    globalThis.localStorage?.setItem(SERVICE_ENDPOINTS_STORAGE_KEY, serializeProviderEndpoints(serviceAllowedEndpoints))
   } catch {
     // Ignore storage failures (private browsing, etc.).
   }
@@ -259,9 +302,9 @@ export function assertNetworkAllowed(url: string): void {
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
   }
 
-  const endpoints = getProviderAllowedEndpoints()
+  const endpoints = [...getProviderAllowedEndpoints(), ...getServiceAllowedEndpoints()]
   if (endpoints.length === 0) {
-    throw new OfflineNetworkBlockedError(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
+    throw new OfflineNetworkBlockedError(OFFLINE_ENDPOINT_NOT_CONFIGURED_MESSAGE)
   }
 
   if (!urlMatchesProviderEndpoints(parsed, endpoints)) {

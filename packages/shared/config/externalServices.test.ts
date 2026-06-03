@@ -39,7 +39,9 @@ describe('external service feature gates', () => {
 
     expect(isExternalBackupEnabled()).toBe(false)
     expect(isRemoteLoaderEnabled()).toBe(false)
-    expect(isRemoteMcpTransportEnabled()).toBe(false)
+    expect(isSseTransportEnabled()).toBe(true)
+    expect(isStreamableHttpTransportEnabled()).toBe(true)
+    expect(isRemoteMcpTransportEnabled()).toBe(true)
     expect(isOAuthEnabled()).toBe(false)
   })
 
@@ -48,6 +50,8 @@ describe('external service feature gates', () => {
 
     expect(isExternalBackupEnabled()).toBe(false)
     expect(isRemoteLoaderEnabled()).toBe(false)
+    expect(isSseTransportEnabled()).toBe(false)
+    expect(isStreamableHttpTransportEnabled()).toBe(false)
     expect(isRemoteMcpTransportEnabled()).toBe(false)
     expect(isOAuthEnabled()).toBe(false)
   })

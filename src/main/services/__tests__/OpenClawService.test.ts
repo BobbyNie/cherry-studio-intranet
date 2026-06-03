@@ -55,6 +55,7 @@ async function createService() {
 }
 
 describe('OpenClawService gateway status state machine', () => {
+  const originalEnv = { ...process.env }
   let service: Awaited<ReturnType<typeof createService>>
   let checkHealthSpy: ReturnType<typeof vi.spyOn>
   let findBinarySpy: ReturnType<typeof vi.spyOn>
@@ -62,6 +63,7 @@ describe('OpenClawService gateway status state machine', () => {
   let startAndWaitSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(async () => {
+    process.env = { ...originalEnv }
     vi.clearAllMocks()
     service = await createService()
 
@@ -81,6 +83,7 @@ describe('OpenClawService gateway status state machine', () => {
   })
 
   afterEach(() => {
+    process.env = { ...originalEnv }
     vi.restoreAllMocks()
   })
 
@@ -409,6 +412,44 @@ describe('OpenClawService gateway status state machine', () => {
       checkHealthSpy.mockResolvedValue({ status: 'healthy', gatewayPort: 18790 })
       const status = await service.getStatus()
       expect(status.status).toBe('running')
+    })
+  })
+
+  describe('intranet mode public update guards', () => {
+    it('does not run the public install script', async () => {
+      process.env.CHERRY_INTRANET_MODE = 'true'
+      const { runInstallScript } = await import('@main/utils/process')
+
+      const result = await service.install()
+
+      expect(result.success).toBe(false)
+      expect('message' in result ? result.message : '').toContain('disabled in intranet mode')
+      expect(runInstallScript).not.toHaveBeenCalled()
+    })
+
+    it('does not check public OpenClaw updates', async () => {
+      process.env.CHERRY_INTRANET_MODE = 'true'
+
+      const result = await service.checkUpdate()
+
+      expect(result).toMatchObject({
+        hasUpdate: false,
+        currentVersion: null,
+        latestVersion: null
+      })
+      expect('message' in result ? result.message : '').toContain('disabled in intranet mode')
+      expect(findBinarySpy).not.toHaveBeenCalled()
+    })
+
+    it('does not run public OpenClaw update command', async () => {
+      process.env.CHERRY_INTRANET_MODE = 'true'
+      const execSpy = vi.spyOn(service as any, 'execOpenClawCommandWithResult')
+
+      const result = await service.performUpdate()
+
+      expect(result.success).toBe(false)
+      expect('message' in result ? result.message : '').toContain('disabled in intranet mode')
+      expect(execSpy).not.toHaveBeenCalled()
     })
   })
 })

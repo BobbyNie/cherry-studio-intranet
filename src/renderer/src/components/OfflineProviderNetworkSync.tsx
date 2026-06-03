@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 
 export function OfflineProviderNetworkSync(): null {
   const providers = useAppSelector((state) => state.llm.providers)
+  const mcpServers = useAppSelector((state) => state.mcp.servers)
   const offlineMode = isOfflineMode()
 
   useEffect(() => {
@@ -12,8 +13,8 @@ export function OfflineProviderNetworkSync(): null {
       return
     }
 
-    syncProviderNetworkAllowlist(providers)
-  }, [offlineMode, providers])
+    syncProviderNetworkAllowlist(providers, mcpServers)
+  }, [mcpServers, offlineMode, providers])
 
   return null
 }

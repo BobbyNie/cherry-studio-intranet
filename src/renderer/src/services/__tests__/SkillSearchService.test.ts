@@ -4,12 +4,34 @@ import {
   ClawhubSkillDetailSchema,
   SkillsShSearchResponseSchema
 } from '@types'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { searchSkills } from '../SkillSearchService'
 import claudePluginsFixture from './fixtures/claude-plugins-search.json'
 import clawhubDetailFixture from './fixtures/clawhub-detail.json'
 import clawhubSearchFixture from './fixtures/clawhub-search.json'
 import skillsShFixture from './fixtures/skills-sh-search.json'
+
+describe('SkillSearchService intranet guard', () => {
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  afterEach(() => {
+    process.env = { ...originalEnv }
+    vi.unstubAllGlobals()
+  })
+
+  it('does not query public skill marketplaces in intranet mode', async () => {
+    process.env.CHERRY_INTRANET_MODE = 'true'
+
+    await expect(searchSkills('github pr')).resolves.toEqual([])
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})
 
 // =============================================================================
 // Schema validation against fixtures

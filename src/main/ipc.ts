@@ -65,9 +65,14 @@ import NotificationService from './services/NotificationService'
 import * as NutstoreService from './services/NutstoreService'
 import ObsidianVaultService from './services/ObsidianVaultService'
 import { ocrService } from './services/ocr/OcrService'
+import { isOfflineNetworkConfigKey, loadOfflineNetworkConfigFromStore } from './services/OfflineNetworkConfigService'
 import { openClawService } from './services/OpenClawService'
 import { isOvmsSupported } from './services/OvmsManager'
 import powerMonitorService from './services/PowerMonitorService'
+import {
+  isProviderNetworkAllowlistKey,
+  loadProviderNetworkAllowlistFromStore
+} from './services/ProviderNetworkAllowlistService'
 import { proxyManager } from './services/ProxyManager'
 import { pythonService } from './services/PythonService'
 import { FileServiceManager } from './services/remotefile/FileServiceManager'
@@ -309,6 +314,11 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
 
   ipcMain.handle(IpcChannel.Config_Set, (_, key: string, value: any, isNotify: boolean = false) => {
     configManager.set(key, value, isNotify)
+    if (isOfflineNetworkConfigKey(key)) {
+      loadOfflineNetworkConfigFromStore()
+    } else if (isProviderNetworkAllowlistKey(key)) {
+      loadProviderNetworkAllowlistFromStore()
+    }
   })
 
   ipcMain.handle(IpcChannel.Config_Get, (_, key: string) => {

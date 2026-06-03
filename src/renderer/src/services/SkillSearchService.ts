@@ -1,4 +1,5 @@
 import { loggerService } from '@logger'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import {
   ClaudePluginsSearchResponseSchema,
   ClawhubSearchResponseSchema,
@@ -133,6 +134,7 @@ async function searchClawhub(query: string): Promise<SkillSearchResult[]> {
  */
 export async function searchSkills(query: string): Promise<SkillSearchResult[]> {
   if (!query.trim()) return []
+  if (isMarketplaceDisabled()) return []
 
   const sources = [
     searchSkillsSh(query).catch((err) => {

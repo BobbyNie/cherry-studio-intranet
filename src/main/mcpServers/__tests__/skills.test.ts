@@ -59,7 +59,10 @@ async function listTools(server: SkillsServerInstance) {
 }
 
 describe('SkillsServer', () => {
+  const originalEnv = { ...process.env }
+
   beforeEach(() => {
+    process.env = { ...originalEnv }
     vi.clearAllMocks()
     mockSkillToggle.mockResolvedValue({ id: 'skill-1', isEnabled: true })
   })
@@ -119,6 +122,17 @@ describe('SkillsServer', () => {
       expect(result.isError).toBe(true)
       expect(result.content[0].text).toContain("'query' is required")
     })
+
+    it('should not search public marketplaces in intranet mode', async () => {
+      process.env.CHERRY_INTRANET_MODE = 'true'
+
+      const server = createServer()
+      const result = await callTool(server, { action: 'search', query: 'github pr' })
+
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('Skills marketplace is disabled')
+      expect(mockNetFetch).not.toHaveBeenCalled()
+    })
   })
 
   describe('install action', () => {
@@ -169,6 +183,17 @@ describe('SkillsServer', () => {
 
       expect(result.isError).toBe(true)
       expect(result.content[0].text).toContain("'identifier' is required")
+    })
+
+    it('should not install marketplace skills in intranet mode', async () => {
+      process.env.CHERRY_INTRANET_MODE = 'true'
+
+      const server = createServer()
+      const result = await callTool(server, { action: 'install', identifier: 'owner/repo/gh-create-pr' })
+
+      expect(result.isError).toBe(true)
+      expect(result.content[0].text).toContain('Skills marketplace is disabled')
+      expect(mockSkillInstall).not.toHaveBeenCalled()
     })
   })
 

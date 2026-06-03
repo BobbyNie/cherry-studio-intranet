@@ -2,6 +2,7 @@ import { loggerService } from '@logger'
 import { getIpCountry } from '@main/utils/ipService'
 import { loadOcrImage } from '@main/utils/ocr'
 import { MB } from '@shared/config/constant'
+import { isPublicNetworkDisabled } from '@shared/config/intranet'
 import type { ImageFileMetadata, OcrResult, OcrTesseractConfig, SupportedOcrFile } from '@types'
 import { isImageFileMetadata } from '@types'
 import { app } from 'electron'
@@ -19,9 +20,8 @@ const logger = loggerService.withContext('TesseractService')
 // config
 const MB_SIZE_THRESHOLD = 50
 const defaultLangs = ['chi_sim', 'chi_tra', 'eng'] satisfies LanguageCode[]
-enum TesseractLangsDownloadUrl {
-  CN = 'https://gitcode.com/beyondkmp/tessdata-best/releases/download/1.0.0/'
-}
+const DEFAULT_TESSERACT_LANG_PATH = 'https://gitcode.com/beyondkmp/tessdata-best/releases/download/1.0.0/'
+const TESSERACT_LANG_PATH_ENV_KEYS = ['CHERRY_TESSERACT_LANG_PATH', 'TESSERACT_LANG_PATH'] as const
 
 export class TesseractService extends OcrBaseService {
   private worker: Tesseract.Worker | null = null
@@ -89,8 +89,29 @@ export class TesseractService extends OcrBaseService {
   }
 
   private async _getLangPath(): Promise<string> {
+    const configuredLangPath = this.getConfiguredLangPath()
+    if (configuredLangPath) {
+      return configuredLangPath
+    }
+
+    if (isPublicNetworkDisabled()) {
+      throw new Error(
+        'Tesseract language data is not configured for intranet mode. Set CHERRY_TESSERACT_LANG_PATH or TESSERACT_LANG_PATH to an internal tessdata mirror.'
+      )
+    }
+
     const country = await getIpCountry()
-    return country.toLowerCase() === 'cn' ? TesseractLangsDownloadUrl.CN : ''
+    return country.toLowerCase() === 'cn' ? DEFAULT_TESSERACT_LANG_PATH : ''
+  }
+
+  private getConfiguredLangPath(): string | null {
+    for (const key of TESSERACT_LANG_PATH_ENV_KEYS) {
+      const value = process.env[key]?.trim()
+      if (value) {
+        return value
+      }
+    }
+    return null
   }
 
   private async _getCacheDir(): Promise<string> {

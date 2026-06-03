@@ -142,7 +142,7 @@ function ensureIntranetMcpCommandAllowed(server: MCPServer): void {
 
 function ensureRemoteMcpTransportEnabled(): void {
   if (!isRemoteMcpTransportEnabled()) {
-    throw new Error('Remote MCP transports (SSE, StreamableHTTP) are disabled in intranet mode')
+    throw new Error('Remote MCP transports (SSE, StreamableHTTP) are disabled in fully offline mode')
   }
 }
 

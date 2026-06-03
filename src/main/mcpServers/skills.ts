@@ -5,11 +5,14 @@ import { skillService } from '@main/services/agents/skills'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import { net } from 'electron'
 
 const logger = loggerService.withContext('MCPServer:Skills')
 
 const MARKETPLACE_BASE_URL = 'https://claude-plugins.dev'
+const SKILLS_MARKETPLACE_DISABLED_MESSAGE =
+  'Skills marketplace is disabled in intranet mode. Use local ZIP/directory install, or use init/register to author skills.'
 
 type SkillSearchResult = {
   name: string
@@ -147,6 +150,10 @@ class SkillsServer {
   }
 
   private async searchSkills(args: Record<string, string | undefined>) {
+    if (isMarketplaceDisabled()) {
+      throw new McpError(ErrorCode.InvalidRequest, SKILLS_MARKETPLACE_DISABLED_MESSAGE)
+    }
+
     const query = args.query
     if (!query) throw new McpError(ErrorCode.InvalidParams, "'query' is required for search")
 
@@ -187,6 +194,10 @@ class SkillsServer {
   }
 
   private async installSkill(args: Record<string, string | undefined>) {
+    if (isMarketplaceDisabled()) {
+      throw new McpError(ErrorCode.InvalidRequest, SKILLS_MARKETPLACE_DISABLED_MESSAGE)
+    }
+
     const identifier = args.identifier
     if (!identifier) {
       throw new McpError(

@@ -4,6 +4,7 @@ import {
   dedupeProviderEndpoints,
   deserializeProviderEndpoints,
   extractProviderEndpoints,
+  extractServiceEndpoints,
   parseProviderEndpointUrl,
   urlMatchesProviderEndpoints
 } from './providerEndpoints'
@@ -40,6 +41,24 @@ describe('providerEndpoints', () => {
       'llm-gateway.intranet.local',
       'anthropic.internal',
       '127.0.0.1'
+    ])
+  })
+
+  it('extracts endpoints from explicitly configured active intranet services', () => {
+    const endpoints = extractServiceEndpoints([
+      {
+        isActive: true,
+        baseUrl: 'http://mcp.internal.local:8787/sse',
+        registryUrl: 'http://npm.registry.internal/'
+      },
+      { isActive: false, baseUrl: 'http://inactive.internal/mcp' },
+      { baseUrl: 'http://repo.internal/api' }
+    ])
+
+    expect(endpoints).toEqual([
+      { basePath: '/sse', hostname: 'mcp.internal.local', port: 8787, protocols: ['http'] },
+      { basePath: '/', hostname: 'npm.registry.internal', port: 80, protocols: ['http'] },
+      { basePath: '/api', hostname: 'repo.internal', port: 80, protocols: ['http'] }
     ])
   })
 

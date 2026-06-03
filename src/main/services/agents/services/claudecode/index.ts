@@ -41,6 +41,7 @@ import {
   GLOBALLY_DISALLOWED_TOOLS,
   SOUL_MODE_DISALLOWED_TOOLS
 } from '@shared/agents/claudecode/constants'
+import { isPublicNetworkDisabled } from '@shared/config/intranet'
 import { languageEnglishNameMap } from '@shared/config/languages'
 import { withoutTrailingApiVersion } from '@shared/utils'
 import { app } from 'electron'
@@ -580,11 +581,13 @@ class ClaudeCodeService implements AgentServiceInterface {
 
     if (!options.mcpServers) options.mcpServers = {}
 
-    // Inject Exa MCP for structured web search (free tier, no API key required).
-    // Replaces the SDK built-in WebSearch/WebFetch tools disabled via GLOBALLY_DISALLOWED_TOOLS.
-    options.mcpServers.exa = {
-      type: 'http',
-      url: 'https://mcp.exa.ai/mcp'
+    if (!isPublicNetworkDisabled()) {
+      // Inject Exa MCP for structured web search (free tier, no API key required).
+      // Replaces the SDK built-in WebSearch/WebFetch tools disabled via GLOBALLY_DISALLOWED_TOOLS.
+      options.mcpServers.exa = {
+        type: 'http',
+        url: 'https://mcp.exa.ai/mcp'
+      }
     }
 
     // Inject skills MCP for all agents — managing Claude skills (search / install
@@ -1093,16 +1096,14 @@ async function buildAssistantContext(): Promise<string> {
   const mcpServers = configManager.get<Record<string, unknown>[]>('mcpServers', [])
   const activeMcp = mcpServers.filter((s) => s.isActive)
 
-  // Network probe (parallel, 2s timeout each)
-  const probeResults = await Promise.allSettled([
-    probeHost('github.com'),
-    probeHost('google.com'),
-    probeHost('docs.cherry-ai.com')
-  ])
-  const networkLines = probeResults.map((r) => {
-    const v = r.status === 'fulfilled' ? r.value : { host: '?', ok: false, ms: 0 }
-    return `- ${v.host}: ${v.ok ? `reachable (${v.ms}ms)` : 'unreachable'}`
-  })
+  const networkLines = isPublicNetworkDisabled()
+    ? ['- Public network probe disabled in intranet mode']
+    : (
+        await Promise.allSettled([probeHost('github.com'), probeHost('google.com'), probeHost('docs.cherry-ai.com')])
+      ).map((r) => {
+        const v = r.status === 'fulfilled' ? r.value : { host: '?', ok: false, ms: 0 }
+        return `- ${v.host}: ${v.ok ? `reachable (${v.ms}ms)` : 'unreachable'}`
+      })
 
   return [
     '## Current Environment',

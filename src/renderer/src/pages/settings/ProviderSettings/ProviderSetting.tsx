@@ -35,6 +35,7 @@ import {
   isSupportAnthropicPromptCacheProvider,
   isVertexProvider
 } from '@renderer/utils/provider'
+import { isCherryINEnabled, isCopilotEnabled, isOAuthEnabled } from '@shared/config/oauth'
 import { Button, Divider, Flex, Input, Select, Space, Switch, Tooltip } from 'antd'
 import Link from 'antd/es/typography/Link'
 import { debounce, isEmpty } from 'lodash'
@@ -117,6 +118,9 @@ const ProviderSetting: FC<Props> = ({ providerId, isOnboarding = false }) => {
   const isAzureOpenAI = isAzureOpenAIProvider(provider)
   const isDmxapi = provider.id === 'dmxapi'
   const isCherryIN = provider.id === 'cherryin'
+  const oauthEnabled = isOAuthEnabled()
+  const cherryINEnabled = isCherryINEnabled()
+  const copilotEnabled = isCopilotEnabled()
   const isChineseUser = i18n.language.startsWith('zh')
   const noAPIInputProviders = ['aws-bedrock'] as const satisfies SystemProviderId[]
   const hideApiInput = noAPIInputProviders.some((id) => id === provider.id)
@@ -442,7 +446,7 @@ const ProviderSetting: FC<Props> = ({ providerId, isOnboarding = false }) => {
       ? t('settings.provider.anthropic_api_host_tooltip')
       : t('settings.provider.api_host_tooltip')
 
-  const isAnthropicOAuth = () => provider.id === 'anthropic' && provider.authType === 'oauth'
+  const isAnthropicOAuth = () => oauthEnabled && provider.id === 'anthropic' && provider.authType === 'oauth'
 
   return (
     <SettingContainer theme={theme} style={{ background: 'var(--color-background)' }}>
@@ -477,12 +481,12 @@ const ProviderSetting: FC<Props> = ({ providerId, isOnboarding = false }) => {
         />
       </SettingTitle>
       <Divider style={{ width: '100%', margin: '10px 0' }} />
-      {isProviderSupportAuth(provider) && <ProviderOAuth providerId={provider.id} />}
-      {isCherryIN && <CherryINOAuth providerId={provider.id} />}
+      {oauthEnabled && isProviderSupportAuth(provider) && <ProviderOAuth providerId={provider.id} />}
+      {cherryINEnabled && isCherryIN && <CherryINOAuth providerId={provider.id} />}
       {provider.id === 'openai' && <OpenAIAlert />}
       {provider.id === 'ovms' && <OVMSSettings />}
       {isDmxapi && <DMXAPISettings providerId={provider.id} />}
-      {provider.id === 'anthropic' && (
+      {oauthEnabled && provider.id === 'anthropic' && (
         <>
           <SettingSubtitle style={{ marginTop: 5 }}>{t('settings.provider.anthropic.auth_method')}</SettingSubtitle>
           <Select
@@ -579,7 +583,7 @@ const ProviderSetting: FC<Props> = ({ providerId, isOnboarding = false }) => {
               </SettingSubtitle>
               {activeHostField === 'apiHost' && (
                 <>
-                  {isCherryIN && isChineseUser ? (
+                  {cherryINEnabled && isCherryIN && isChineseUser ? (
                     <CherryINSettings providerId={provider.id} apiHost={apiHost} setApiHost={setApiHost} />
                   ) : (
                     <Space.Compact style={{ width: '100%', marginTop: 5 }}>
@@ -659,7 +663,7 @@ const ProviderSetting: FC<Props> = ({ providerId, isOnboarding = false }) => {
       )}
       {provider.id === 'lmstudio' && <LMStudioSettings />}
       {provider.id === 'gpustack' && <GPUStackSettings />}
-      {provider.id === 'copilot' && <GithubCopilotSettings providerId={provider.id} />}
+      {copilotEnabled && provider.id === 'copilot' && <GithubCopilotSettings providerId={provider.id} />}
       {provider.id === 'aws-bedrock' && <AwsBedrockSettings />}
       {provider.id === 'vertexai' && <VertexAISettings />}
       <ModelList providerId={provider.id} />

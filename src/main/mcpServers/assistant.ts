@@ -6,7 +6,7 @@ import { loggerService } from '@logger'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from '@modelcontextprotocol/sdk/types.js'
-import { isIntranetMode } from '@shared/config/intranet'
+import { isIntranetMode, isPublicNetworkDisabled } from '@shared/config/intranet'
 import { app } from 'electron'
 
 const logger = loggerService.withContext('MCPServer:Assistant')
@@ -587,6 +587,25 @@ class AssistantServer {
 
   private async checkUpdate() {
     try {
+      if (isPublicNetworkDisabled()) {
+        const currentVersion = app.getVersion()
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  currentVersion,
+                  message: 'Update check is disabled in intranet mode'
+                },
+                null,
+                2
+              )
+            }
+          ]
+        }
+      }
+
       const currentVersion = app.getVersion()
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 5000)

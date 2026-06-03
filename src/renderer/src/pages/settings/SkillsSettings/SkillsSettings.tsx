@@ -5,6 +5,7 @@ import RichEditor from '@renderer/components/RichEditor'
 import Scrollbar from '@renderer/components/Scrollbar'
 import { useInstalledSkills, useSkillInstall, useSkillSearch } from '@renderer/hooks/useSkills'
 import { getFileIconName } from '@renderer/utils/fileIconName'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import type { InstalledSkill, SkillFileNode, SkillSearchResult, SkillSearchSource } from '@types'
 import {
   Button,
@@ -216,6 +217,7 @@ const SkillsSettings: FC = () => {
   const { skills, loading, uninstall, refresh } = useInstalledSkills()
   const { results, searching, search, clear } = useSkillSearch()
   const { isInstalling, install, installFromZip, installFromDirectory } = useSkillInstall()
+  const marketplaceDisabled = isMarketplaceDisabled()
 
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill | null>(null)
 
@@ -292,6 +294,12 @@ const SkillsSettings: FC = () => {
 
   // Close search dropdown on outside click (but not when clicking inside a modal)
   useEffect(() => {
+    if (marketplaceDisabled) {
+      clear()
+      setSearchQuery('')
+      return
+    }
+
     const handler = (e: MouseEvent) => {
       const target = e.target as Node
       if (searchContainerRef.current && !searchContainerRef.current.contains(target)) {
@@ -303,7 +311,7 @@ const SkillsSettings: FC = () => {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [clear])
+  }, [clear, marketplaceDisabled])
 
   // Filtered skills list
   const filteredSkills = useMemo(() => {
@@ -332,6 +340,10 @@ const SkillsSettings: FC = () => {
 
   const handleSearch = useCallback(
     (value: string) => {
+      if (marketplaceDisabled) {
+        return
+      }
+
       setSearchQuery(value)
       if (value.trim()) {
         void search(value)
@@ -339,7 +351,7 @@ const SkillsSettings: FC = () => {
         clear()
       }
     },
-    [search, clear]
+    [clear, marketplaceDisabled, search]
   )
 
   const handleInstall = useCallback(
@@ -655,51 +667,55 @@ const SkillsSettings: FC = () => {
                   ) : null}
                 </DetailMeta>
               ) : null}
-              <SearchInputWrapper>
-                <Input
-                  ref={searchInputRef as React.Ref<any>}
-                  placeholder={t('settings.skills.searchPlaceholder')}
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  suffix={searchQuery ? <X size={12} style={CLOSE_ICON_STYLE} onClick={handleCloseSearch} /> : <span />}
-                  prefix={<Search size={12} />}
-                />
-                {searching || results.length > 0 || (searchQuery && !searching) ? (
-                  <SearchDropdown>
-                    <SearchTabs>
-                      {SEARCH_SOURCES.map((source) => {
-                        const count = tabCounts.get(source) ?? 0
-                        return (
-                          <SearchTab key={source} $active={searchTab === source} onClick={() => setSearchTab(source)}>
-                            {source.replace('.dev', '').replace('.ai', '')}
-                            {count > 0 ? <TabCount>{count}</TabCount> : null}
-                          </SearchTab>
-                        )
-                      })}
-                    </SearchTabs>
-                    <SearchResultsScroll>
-                      {searching ? (
-                        <DropdownLoading>
-                          <Spin size="small" />
-                        </DropdownLoading>
-                      ) : null}
-                      {!searching && searchQuery && filteredResults.length === 0 ? (
-                        <DropdownEmpty>{t('settings.skills.noResults')}</DropdownEmpty>
-                      ) : null}
-                      {filteredResults.map((result) => (
-                        <SearchResultRow
-                          key={`${result.sourceRegistry}:${result.slug}`}
-                          result={result}
-                          isInstalling={isInstalling}
-                          onInstall={handleInstall}
-                          onPreview={setPreviewResult}
-                          installLabel={t('settings.skills.install')}
-                        />
-                      ))}
-                    </SearchResultsScroll>
-                  </SearchDropdown>
-                ) : null}
-              </SearchInputWrapper>
+              {!marketplaceDisabled && (
+                <SearchInputWrapper>
+                  <Input
+                    ref={searchInputRef as React.Ref<any>}
+                    placeholder={t('settings.skills.searchPlaceholder')}
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    suffix={
+                      searchQuery ? <X size={12} style={CLOSE_ICON_STYLE} onClick={handleCloseSearch} /> : <span />
+                    }
+                    prefix={<Search size={12} />}
+                  />
+                  {searching || results.length > 0 || (searchQuery && !searching) ? (
+                    <SearchDropdown>
+                      <SearchTabs>
+                        {SEARCH_SOURCES.map((source) => {
+                          const count = tabCounts.get(source) ?? 0
+                          return (
+                            <SearchTab key={source} $active={searchTab === source} onClick={() => setSearchTab(source)}>
+                              {source.replace('.dev', '').replace('.ai', '')}
+                              {count > 0 ? <TabCount>{count}</TabCount> : null}
+                            </SearchTab>
+                          )
+                        })}
+                      </SearchTabs>
+                      <SearchResultsScroll>
+                        {searching ? (
+                          <DropdownLoading>
+                            <Spin size="small" />
+                          </DropdownLoading>
+                        ) : null}
+                        {!searching && searchQuery && filteredResults.length === 0 ? (
+                          <DropdownEmpty>{t('settings.skills.noResults')}</DropdownEmpty>
+                        ) : null}
+                        {filteredResults.map((result) => (
+                          <SearchResultRow
+                            key={`${result.sourceRegistry}:${result.slug}`}
+                            result={result}
+                            isInstalling={isInstalling}
+                            onInstall={handleInstall}
+                            onPreview={setPreviewResult}
+                            installLabel={t('settings.skills.install')}
+                          />
+                        ))}
+                      </SearchResultsScroll>
+                    </SearchDropdown>
+                  ) : null}
+                </SearchInputWrapper>
+              )}
             </TopBarRight>
           </TopBar>
 

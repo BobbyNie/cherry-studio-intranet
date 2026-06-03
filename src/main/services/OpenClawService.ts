@@ -10,6 +10,7 @@ import { isWin } from '@main/constant'
 import { isUserInChina } from '@main/utils/ipService'
 import { crossPlatformSpawn, findExecutableInEnv, getBinaryPath, runInstallScript } from '@main/utils/process'
 import getShellEnv, { refreshShellEnv } from '@main/utils/shell-env'
+import { isPublicNetworkDisabled } from '@shared/config/intranet'
 import type { OperationResult } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
 import { formatApiHost, hasAPIVersion, withoutTrailingSlash } from '@shared/utils'
@@ -27,6 +28,7 @@ const OPENCLAW_CONFIG_BAK_PATH = path.join(OPENCLAW_CONFIG_DIR, 'openclaw.json.b
 const OPENCLAW_LEGACY_CONFIG_PATH = path.join(OPENCLAW_CONFIG_DIR, 'openclaw.cherry.json')
 const SYMLINK_PATH = '/usr/local/bin/openclaw'
 const DEFAULT_GATEWAY_PORT = 18790
+const OPENCLAW_NETWORK_DISABLED_MESSAGE = 'OpenClaw installation and update are disabled in intranet mode'
 
 export type GatewayStatus = 'stopped' | 'starting' | 'running' | 'error'
 
@@ -259,6 +261,12 @@ class OpenClawService {
    * Uses gitcode.com mirror for China users, GitHub releases for others.
    */
   public async install(): Promise<OperationResult> {
+    if (isPublicNetworkDisabled()) {
+      logger.info('Skipping OpenClaw install in intranet mode')
+      this.sendInstallProgress(OPENCLAW_NETWORK_DISABLED_MESSAGE, 'error')
+      return { success: false, message: OPENCLAW_NETWORK_DISABLED_MESSAGE }
+    }
+
     try {
       this.sendInstallProgress('Checking download source...')
       const useMirror = await isUserInChina()
@@ -867,6 +875,15 @@ class OpenClawService {
     message?: string
   }> {
     try {
+      if (isPublicNetworkDisabled()) {
+        return {
+          hasUpdate: false,
+          currentVersion: null,
+          latestVersion: null,
+          message: OPENCLAW_NETWORK_DISABLED_MESSAGE
+        }
+      }
+
       const openclawPath = await this.findOpenClawBinary()
       if (!openclawPath) {
         return { hasUpdate: false, currentVersion: null, latestVersion: null, message: 'OpenClaw binary not found' }
@@ -910,6 +927,11 @@ class OpenClawService {
    */
   public async performUpdate(): Promise<OperationResult> {
     try {
+      if (isPublicNetworkDisabled()) {
+        this.sendInstallProgress(OPENCLAW_NETWORK_DISABLED_MESSAGE, 'error')
+        return { success: false, message: OPENCLAW_NETWORK_DISABLED_MESSAGE }
+      }
+
       const openclawPath = await this.findOpenClawBinary()
       if (!openclawPath) {
         return { success: false, message: 'OpenClaw binary not found' }

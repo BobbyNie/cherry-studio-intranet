@@ -11,6 +11,14 @@ export interface ProviderEndpointSource {
   anthropicApiHost?: string
 }
 
+export interface ServiceEndpointSource {
+  enabled?: boolean
+  isActive?: boolean
+  baseUrl?: string
+  registryUrl?: string
+  url?: string
+}
+
 const ALLOWED_PROTOCOLS = new Set(['http', 'https', 'ws', 'wss'])
 
 function normalizeProtocol(protocol: string): string {
@@ -95,6 +103,25 @@ export function extractProviderEndpoints(providers: ProviderEndpointSource[]): P
     }
 
     for (const rawUrl of [provider.apiHost, provider.anthropicApiHost]) {
+      const endpoint = parseProviderEndpointUrl(rawUrl ?? '')
+      if (endpoint) {
+        endpoints.push(endpoint)
+      }
+    }
+  }
+
+  return dedupeProviderEndpoints(endpoints)
+}
+
+export function extractServiceEndpoints(services: ServiceEndpointSource[]): ProviderEndpoint[] {
+  const endpoints: ProviderEndpoint[] = []
+
+  for (const service of services) {
+    if (service.enabled === false || service.isActive === false) {
+      continue
+    }
+
+    for (const rawUrl of [service.baseUrl, service.registryUrl, service.url]) {
       const endpoint = parseProviderEndpointUrl(rawUrl ?? '')
       if (endpoint) {
         endpoints.push(endpoint)

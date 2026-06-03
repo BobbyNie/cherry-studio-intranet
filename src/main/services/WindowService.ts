@@ -7,6 +7,7 @@ import { isDev, isLinux, isMac, isWin } from '@main/constant'
 import { getFilesDir } from '@main/utils/file'
 import { getWindowsBackgroundMaterial } from '@main/utils/windowUtil'
 import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '@shared/config/constant'
+import { areExternalLinksDisabled } from '@shared/config/intranet'
 import { IpcChannel } from '@shared/IpcChannel'
 import { app, BrowserWindow, nativeImage, nativeTheme, screen, shell } from 'electron'
 import windowStateKeeper from 'electron-window-state'
@@ -302,7 +303,7 @@ export class WindowService {
         'https://maas.aiionly.com/login'
       ]
 
-      if (oauthProviderUrls.some((link) => url.startsWith(link))) {
+      if (!areExternalLinksDisabled() && oauthProviderUrls.some((link) => url.startsWith(link))) {
         return {
           action: 'allow',
           overrideBrowserWindowOptions: {

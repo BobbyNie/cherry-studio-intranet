@@ -7,6 +7,7 @@ import { PROVIDER_LOGO_MAP } from '@renderer/config/providers'
 import ImageStorage from '@renderer/services/ImageStorage'
 import type { Provider, ProviderType } from '@renderer/types'
 import { compressImage, generateColorFromChar, getForegroundColor } from '@renderer/utils'
+import { isCherryINEnabled } from '@shared/config/oauth'
 import { Divider, Dropdown, Form, Input, Modal, Popover, Select, Upload } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import React, { useEffect, useRef, useState } from 'react'
@@ -14,6 +15,25 @@ import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
 
 const logger = loggerService.withContext('AddProviderPopup')
+
+const ADD_PROVIDER_TYPE_OPTIONS = [
+  { label: 'OpenAI', value: 'openai' },
+  { label: 'OpenAI-Response', value: 'openai-response' },
+  { label: 'Gemini', value: 'gemini' },
+  { label: 'Anthropic', value: 'anthropic' },
+  { label: 'Azure OpenAI', value: 'azure-openai' },
+  { label: 'New API', value: 'new-api' },
+  { label: 'CherryIN', value: 'cherryin-type' },
+  { label: 'Ollama', value: 'ollama' }
+]
+
+export function getAddProviderTypeOptions(): typeof ADD_PROVIDER_TYPE_OPTIONS {
+  if (isCherryINEnabled()) {
+    return ADD_PROVIDER_TYPE_OPTIONS
+  }
+
+  return ADD_PROVIDER_TYPE_OPTIONS.filter((option) => option.value !== 'cherryin-type')
+}
 
 interface Props {
   provider?: Provider
@@ -252,16 +272,7 @@ const PopupContainer: React.FC<Props> = ({ provider, resolve }) => {
               // special case for cherryin-type, map to new-api internally
               setType(value === 'cherryin-type' ? 'new-api' : (value as ProviderType))
             }}
-            options={[
-              { label: 'OpenAI', value: 'openai' },
-              { label: 'OpenAI-Response', value: 'openai-response' },
-              { label: 'Gemini', value: 'gemini' },
-              { label: 'Anthropic', value: 'anthropic' },
-              { label: 'Azure OpenAI', value: 'azure-openai' },
-              { label: 'New API', value: 'new-api' },
-              { label: 'CherryIN', value: 'cherryin-type' },
-              { label: 'Ollama', value: 'ollama' }
-            ]}
+            options={getAddProviderTypeOptions()}
           />
         </Form.Item>
       </Form>

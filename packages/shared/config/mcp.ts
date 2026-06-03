@@ -1,27 +1,27 @@
-import { isIntranetMode } from './intranet'
+import { isFullyOfflineMode } from './intranet'
 
 /**
- * Remote MCP transports are disabled in intranet mode since they require
- * access to external network resources (SSE, StreamableHTTP).
+ * Remote MCP transports are disabled only in fully offline mode.
+ * In intranet mode they are guarded by the configured service endpoint allowlist.
  */
 
 /**
  * SSE transport status
  */
 export function isSseTransportEnabled(): boolean {
-  return !isIntranetMode()
+  return !isFullyOfflineMode()
 }
 
 /**
  * StreamableHTTP transport status
  */
 export function isStreamableHttpTransportEnabled(): boolean {
-  return !isIntranetMode()
+  return !isFullyOfflineMode()
 }
 
 /**
  * Generic check: all remote MCP transports disabled in intranet mode
  */
 export function isRemoteMcpTransportEnabled(): boolean {
-  return !isIntranetMode()
+  return !isFullyOfflineMode()
 }

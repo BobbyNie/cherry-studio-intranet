@@ -5,7 +5,6 @@ import path from 'node:path'
 import { loggerService } from '@logger'
 import { isMac, isWin } from '@main/constant'
 import { removeEnvProxy } from '@main/utils'
-import { isUserInChina } from '@main/utils/ipService'
 import { findCommandInShellEnv, getBinaryName, getBinaryPath, isBinaryExists } from '@main/utils/process'
 import getShellEnv from '@main/utils/shell-env'
 import type { TerminalConfig, TerminalConfigWithCommand } from '@shared/config/constant'
@@ -18,6 +17,7 @@ import {
   WINDOWS_TERMINALS,
   WINDOWS_TERMINALS_WITH_COMMANDS
 } from '@shared/config/constant'
+import { isPublicNetworkDisabled } from '@shared/config/intranet'
 import type { CodeToolsRunResult } from '@shared/config/types'
 import { getFunctionalKeys, parseJSONC, sanitizeEnvForLogging } from '@shared/utils'
 import { spawn } from 'child_process'
@@ -26,6 +26,8 @@ import { promisify } from 'util'
 
 const execAsync = promisify(require('child_process').exec)
 const logger = loggerService.withContext('CodeToolsService')
+const NPM_REGISTRY_NOT_CONFIGURED_MESSAGE =
+  'No intranet npm registry configured. Set NPM_CONFIG_REGISTRY or CHERRY_NPM_REGISTRY to a reachable registry.'
 
 interface VersionInfo {
   installed: string | null
@@ -740,6 +742,16 @@ class CodeToolsService {
       logger.info(`${cliTool} is not installed`)
     }
 
+    const registryUrl = await this.getNpmRegistryUrl()
+    if (!registryUrl) {
+      logger.info(`Skipping latest version check for ${packageName}: no intranet npm registry configured`)
+      return {
+        installed: installedVersion,
+        latest: null,
+        needsUpdate: false
+      }
+    }
+
     // Get latest version from npm (with cache)
     const cacheKey = `${packageName}-latest`
     const cached = this.versionCache.get(cacheKey)
@@ -751,9 +763,6 @@ class CodeToolsService {
     } else {
       logger.info(`Fetching latest version for ${packageName} from npm`)
       try {
-        // Get registry URL
-        const registryUrl = await this.getNpmRegistryUrl()
-
         // Fetch package info directly from npm registry API
         const packageUrl = `${registryUrl}/${packageName}/latest`
         const response = await fetch(packageUrl, {
@@ -797,22 +806,29 @@ class CodeToolsService {
   }
 
   /**
-   * Get npm registry URL based on user location
+   * Resolve npm registry URL from intranet configuration or environment.
    */
-  private async getNpmRegistryUrl(): Promise<string> {
-    try {
-      const inChina = await isUserInChina()
-      if (inChina) {
-        logger.info('User in China, using Taobao npm mirror')
-        return 'https://registry.npmmirror.com'
-      } else {
-        logger.info('User not in China, using default npm mirror')
-        return 'https://registry.npmjs.org'
-      }
-    } catch (error) {
-      logger.warn('Failed to detect user location, using default npm mirror')
-      return 'https://registry.npmjs.org'
+  private async getNpmRegistryUrl(): Promise<string | null> {
+    const configuredRegistryUrl = this.getConfiguredNpmRegistryUrl()
+    if (configuredRegistryUrl) {
+      logger.info('Using configured npm registry')
+      return configuredRegistryUrl
     }
+
+    if (isPublicNetworkDisabled()) {
+      logger.info('No configured intranet npm registry found')
+      return null
+    }
+
+    logger.info('Using default npm registry')
+    return 'https://registry.npmjs.org'
+  }
+
+  private getConfiguredNpmRegistryUrl(): string | null {
+    const envRegistryUrl =
+      process.env.CHERRY_NPM_REGISTRY || process.env.NPM_CONFIG_REGISTRY || process.env.npm_config_registry
+    const trimmed = envRegistryUrl?.trim()
+    return trimmed ? trimmed : null
   }
 
   /**
@@ -836,6 +852,12 @@ class CodeToolsService {
       const bunPath = await this.getBunPath()
       const bunInstallPath = path.join(os.homedir(), HOME_CHERRY_DIR)
       const registryUrl = await this.getNpmRegistryUrl()
+      if (!registryUrl) {
+        return {
+          success: false,
+          message: NPM_REGISTRY_NOT_CONFIGURED_MESSAGE
+        }
+      }
 
       // Get logs directory for update output redirection
       const logsDir = loggerService.getLogsDir()
@@ -1101,6 +1123,13 @@ class CodeToolsService {
     } else {
       // If not installed, install first then run
       const registryUrl = await this.getNpmRegistryUrl()
+      if (!registryUrl) {
+        return {
+          success: false,
+          message: NPM_REGISTRY_NOT_CONFIGURED_MESSAGE,
+          command: ''
+        }
+      }
       const installEnvPrefix =
         platform === 'win32'
           ? `set "BUN_INSTALL=${bunInstallPath}" && set "NPM_CONFIG_REGISTRY=${registryUrl}" &&`

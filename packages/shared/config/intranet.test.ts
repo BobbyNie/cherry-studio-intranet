@@ -7,14 +7,15 @@ import {
   isIntranetMode,
   isOfflineMode,
   isPublicNetworkDisabled,
-  OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE,
+  OFFLINE_ENDPOINT_NOT_CONFIGURED_MESSAGE,
   OfflineNetworkBlockedError,
   sanitizeExternalUrl,
   setOfflineNetworkRuntimeConfig,
   setProviderAllowedEndpoints,
+  setServiceAllowedEndpoints,
   validateLocalModelApiHost
 } from './intranet'
-import { extractProviderEndpoints } from './providerEndpoints'
+import { extractProviderEndpoints, extractServiceEndpoints } from './providerEndpoints'
 
 describe('offline network config', () => {
   const originalEnv = { ...process.env }
@@ -29,12 +30,14 @@ describe('offline network config', () => {
     delete process.env.CHERRY_LOCAL_MODEL_ALLOWED_PORTS
     setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
     setProviderAllowedEndpoints([])
+    setServiceAllowedEndpoints([])
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
     setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
     setProviderAllowedEndpoints([])
+    setServiceAllowedEndpoints([])
   })
 
   it('detects offline mode and disabled update flags', () => {
@@ -78,6 +81,20 @@ describe('offline network config', () => {
     expect(() => assertNetworkAllowed('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
   })
 
+  it('allows configured intranet service endpoints without requiring a model provider endpoint', () => {
+    setServiceAllowedEndpoints(
+      extractServiceEndpoints([
+        { isActive: true, baseUrl: 'http://mcp.internal.local:8787/sse' },
+        { isActive: true, registryUrl: 'http://npm.registry.internal/' }
+      ])
+    )
+
+    expect(() => assertNetworkAllowed('http://mcp.internal.local:8787/sse')).not.toThrow()
+    expect(() => assertNetworkAllowed('http://mcp.internal.local:8787/sse/messages')).not.toThrow()
+    expect(() => assertNetworkAllowed('http://npm.registry.internal/@scope/pkg')).not.toThrow()
+    expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
+  })
+
   it('rejects unconfigured targets even when local model service is enabled', () => {
     setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [11434] })
     setProviderAllowedEndpoints(extractProviderEndpoints([{ enabled: true, apiHost: 'http://127.0.0.1:11434/v1' }]))
@@ -97,7 +114,7 @@ describe('offline network config', () => {
       throw new Error('expected blocked error')
     } catch (error) {
       expect(error).toBeInstanceOf(OfflineNetworkBlockedError)
-      expect((error as Error).message).toBe(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
+      expect((error as Error).message).toBe(OFFLINE_ENDPOINT_NOT_CONFIGURED_MESSAGE)
     }
   })
 
