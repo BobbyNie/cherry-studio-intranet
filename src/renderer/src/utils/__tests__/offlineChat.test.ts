@@ -1,5 +1,4 @@
 import type { Provider } from '@renderer/types'
-import { setOfflineNetworkRuntimeConfig } from '@shared/config/intranet'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { isOfflineChatConfigured } from '../offlineChat'
@@ -14,19 +13,17 @@ describe('isOfflineChatConfigured', () => {
     apiKey: '',
     apiHost: 'http://llm-gateway.intranet.local/v1',
     enabled: true,
-    models: [{ id: 'local-model', provider: 'intranet', name: 'local-model', group: 'local' }]
+    models: [{ id: 'intranet-chat', provider: 'intranet', name: 'intranet-chat', group: 'chat' }]
   }
 
   beforeEach(() => {
     process.env = { ...originalEnv }
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_OFFLINE_MODE
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
   })
 
   it('returns true outside offline mode', () => {
@@ -35,14 +32,12 @@ describe('isOfflineChatConfigured', () => {
 
   it('returns true when an enabled provider has chat models and an api host', () => {
     process.env.CHERRY_OFFLINE_MODE = 'true'
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [11434] })
     expect(isOfflineChatConfigured([baseProvider])).toBe(true)
   })
 
-  it('returns true when local model service is enabled for the intranet provider', () => {
+  it('returns false when the intranet provider has no configured endpoint', () => {
     process.env.CHERRY_OFFLINE_MODE = 'true'
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [11434] })
-    expect(isOfflineChatConfigured([baseProvider])).toBe(true)
+    expect(isOfflineChatConfigured([{ ...baseProvider, apiHost: '' }])).toBe(false)
   })
 
   it('supports providers configured with anthropic api hosts only', () => {
@@ -61,7 +56,6 @@ describe('isOfflineChatConfigured', () => {
 
   it('supports internal domain api hosts configured on providers', () => {
     process.env.CHERRY_OFFLINE_MODE = 'true'
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [] })
     expect(
       isOfflineChatConfigured([
         {

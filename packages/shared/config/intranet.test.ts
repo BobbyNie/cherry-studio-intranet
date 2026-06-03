@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   assertNetworkAllowed,
-  getAllowedHosts,
   isAutoUpdateDisabled,
   isIntranetMode,
   isOfflineMode,
@@ -10,10 +9,9 @@ import {
   OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE,
   OfflineNetworkBlockedError,
   sanitizeExternalUrl,
-  setOfflineNetworkRuntimeConfig,
-  setProviderAllowedEndpoints,
-  validateLocalModelApiHost
+  setProviderAllowedEndpoints
 } from './intranet'
+import * as intranetConfig from './intranet'
 import { extractProviderEndpoints } from './providerEndpoints'
 
 describe('offline network config', () => {
@@ -27,13 +25,11 @@ describe('offline network config', () => {
     process.env.CHERRY_DISABLE_EXTERNAL_LINKS = 'true'
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_LOCAL_MODEL_ALLOWED_PORTS
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
     setProviderAllowedEndpoints([])
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: false, allowedPorts: [] })
     setProviderAllowedEndpoints([])
   })
 
@@ -42,7 +38,13 @@ describe('offline network config', () => {
     expect(isIntranetMode()).toBe(true)
     expect(isAutoUpdateDisabled()).toBe(true)
     expect(isPublicNetworkDisabled()).toBe(true)
-    expect(getAllowedHosts()).toEqual([])
+  })
+
+  it('does not expose legacy local-model offline network settings APIs', () => {
+    expect('getDefaultLocalModelPorts' in intranetConfig).toBe(false)
+    expect('getOfflineNetworkRuntimeConfig' in intranetConfig).toBe(false)
+    expect('setOfflineNetworkRuntimeConfig' in intranetConfig).toBe(false)
+    expect('validateLocalModelApiHost' in intranetConfig).toBe(false)
   })
 
   it('rejects all network access when no provider endpoints are configured', () => {
@@ -78,8 +80,7 @@ describe('offline network config', () => {
     expect(() => assertNetworkAllowed('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
   })
 
-  it('rejects unconfigured targets even when local model service is enabled', () => {
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [11434] })
+  it('rejects unconfigured targets even when another localhost provider endpoint is configured', () => {
     setProviderAllowedEndpoints(extractProviderEndpoints([{ enabled: true, apiHost: 'http://127.0.0.1:11434/v1' }]))
 
     expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
@@ -90,8 +91,6 @@ describe('offline network config', () => {
   })
 
   it('requires provider configuration before allowing network access', () => {
-    setOfflineNetworkRuntimeConfig({ localModelServiceEnabled: true, allowedPorts: [11434] })
-
     try {
       assertNetworkAllowed('http://127.0.0.1:11434/api/tags')
       throw new Error('expected blocked error')
@@ -99,14 +98,6 @@ describe('offline network config', () => {
       expect(error).toBeInstanceOf(OfflineNetworkBlockedError)
       expect((error as Error).message).toBe(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
     }
-  })
-
-  it('validates model api host for internal domains and localhost', () => {
-    expect(validateLocalModelApiHost('http://127.0.0.1:11434/v1').ok).toBe(true)
-    expect(validateLocalModelApiHost('http://llm-gateway.intranet.local/v1').ok).toBe(true)
-    expect(validateLocalModelApiHost('http://10.0.0.8:8000/v1').ok).toBe(true)
-    expect(validateLocalModelApiHost('not-a-url').ok).toBe(false)
-    expect(validateLocalModelApiHost('http://user:pass@127.0.0.1:11434/v1').ok).toBe(false)
   })
 
   it('sanitizes external links when external links are disabled', () => {

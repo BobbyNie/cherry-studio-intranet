@@ -10,30 +10,9 @@ const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 export const OFFLINE_NETWORK_BLOCKED_MESSAGE = '完全离线版已禁用网络访问'
 export const OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE = '请先在模型 Provider 中配置 API 地址'
-export const OFFLINE_INVALID_MODEL_API_HOST_MESSAGE = '请输入有效的 HTTP(S) API Base URL'
-
-const DEFAULT_LOCAL_MODEL_PORTS = [11434, 1234, 8080, 8000, 5000, 3000]
-
-/** @deprecated Use OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE */
-export const OFFLINE_LOCALHOST_BLOCKED_MESSAGE = OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE
-/** @deprecated Use OFFLINE_INVALID_MODEL_API_HOST_MESSAGE */
-export const OFFLINE_INVALID_LOCAL_HOST_MESSAGE = OFFLINE_INVALID_MODEL_API_HOST_MESSAGE
-/** @deprecated Port whitelist is no longer enforced by the offline network guard */
-export const OFFLINE_INVALID_PORT_MESSAGE = '端口不在允许列表中'
-
-export interface OfflineNetworkRuntimeConfig {
-  localModelServiceEnabled: boolean
-  allowedPorts: number[]
-}
-
-let offlineNetworkRuntimeConfig: OfflineNetworkRuntimeConfig = {
-  localModelServiceEnabled: false,
-  allowedPorts: []
-}
 
 let providerAllowedEndpoints: ProviderEndpoint[] = []
 
-const OFFLINE_NETWORK_CONFIG_STORAGE_KEY = 'cherry.offlineNetworkConfig'
 const PROVIDER_ENDPOINTS_STORAGE_KEY = 'cherry.providerAllowedEndpoints'
 
 function getProcessEnv(): Record<string, string | undefined> {
@@ -87,10 +66,6 @@ export function areExternalLinksDisabled(): boolean {
   return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
 }
 
-export function getDefaultLocalModelPorts(): number[] {
-  return [...DEFAULT_LOCAL_MODEL_PORTS]
-}
-
 export function getProviderAllowedEndpoints(): ProviderEndpoint[] {
   hydrateProviderAllowedEndpointsFromStorage()
   return providerAllowedEndpoints.map((endpoint) => ({
@@ -107,35 +82,6 @@ export function setProviderAllowedEndpoints(endpoints: ProviderEndpoint[]): void
   persistProviderAllowedEndpoints()
 }
 
-export function getOfflineNetworkRuntimeConfig(): OfflineNetworkRuntimeConfig {
-  hydrateOfflineNetworkRuntimeConfigFromStorage()
-  return { ...offlineNetworkRuntimeConfig }
-}
-
-export function setOfflineNetworkRuntimeConfig(config: Partial<OfflineNetworkRuntimeConfig>): void {
-  offlineNetworkRuntimeConfig = {
-    localModelServiceEnabled: config.localModelServiceEnabled ?? offlineNetworkRuntimeConfig.localModelServiceEnabled,
-    allowedPorts: config.allowedPorts ?? offlineNetworkRuntimeConfig.allowedPorts
-  }
-  persistOfflineNetworkRuntimeConfig()
-}
-
-function hydrateOfflineNetworkRuntimeConfigFromStorage(): void {
-  try {
-    const raw = globalThis.localStorage?.getItem(OFFLINE_NETWORK_CONFIG_STORAGE_KEY)
-    if (!raw) {
-      return
-    }
-    const parsed = JSON.parse(raw) as Partial<OfflineNetworkRuntimeConfig>
-    offlineNetworkRuntimeConfig = {
-      localModelServiceEnabled: Boolean(parsed.localModelServiceEnabled),
-      allowedPorts: normalizePortList(parsed.allowedPorts)
-    }
-  } catch {
-    // Ignore malformed persisted config.
-  }
-}
-
 function hydrateProviderAllowedEndpointsFromStorage(): void {
   try {
     const raw = globalThis.localStorage?.getItem(PROVIDER_ENDPOINTS_STORAGE_KEY)
@@ -148,14 +94,6 @@ function hydrateProviderAllowedEndpointsFromStorage(): void {
   }
 }
 
-function persistOfflineNetworkRuntimeConfig(): void {
-  try {
-    globalThis.localStorage?.setItem(OFFLINE_NETWORK_CONFIG_STORAGE_KEY, JSON.stringify(offlineNetworkRuntimeConfig))
-  } catch {
-    // Ignore storage failures (private browsing, etc.).
-  }
-}
-
 function persistProviderAllowedEndpoints(): void {
   try {
     globalThis.localStorage?.setItem(
@@ -165,30 +103,6 @@ function persistProviderAllowedEndpoints(): void {
   } catch {
     // Ignore storage failures (private browsing, etc.).
   }
-}
-
-export function normalizePortList(ports: unknown): number[] {
-  if (!Array.isArray(ports)) {
-    return []
-  }
-
-  return Array.from(
-    new Set(ports.map((port) => Number(port)).filter((port) => Number.isInteger(port) && port >= 1 && port <= 65535))
-  )
-}
-
-export function parseAllowedPortsFromEnv(): number[] {
-  const configured = readEnv('CHERRY_LOCAL_MODEL_ALLOWED_PORTS')
-  if (!configured) {
-    return []
-  }
-
-  return normalizePortList(configured.split(/[\n,;]/).map((entry) => entry.trim()))
-}
-
-/** @deprecated Offline mode uses provider-configured endpoint allowlists. */
-export function getAllowedHosts(): string[] {
-  return []
 }
 
 export class OfflineNetworkBlockedError extends Error {
@@ -209,34 +123,6 @@ function isAllowedProtocol(protocol: string): boolean {
 
 function hasCredentials(url: URL): boolean {
   return Boolean(url.username || url.password)
-}
-
-export function validateLocalModelApiHost(
-  rawUrl: string,
-  config: OfflineNetworkRuntimeConfig = getOfflineNetworkRuntimeConfig()
-): { ok: true; url: URL } | { ok: false; message: string } {
-  void config
-
-  let parsed: URL
-  try {
-    parsed = new URL(rawUrl.trim())
-  } catch {
-    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
-  }
-
-  if (!isAllowedProtocol(parsed.protocol)) {
-    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
-  }
-
-  if (hasCredentials(parsed)) {
-    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
-  }
-
-  if (!parsed.hostname.trim()) {
-    return { ok: false, message: OFFLINE_INVALID_MODEL_API_HOST_MESSAGE }
-  }
-
-  return { ok: true, url: parsed }
 }
 
 export function assertNetworkAllowed(url: string): void {

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const { mockSyncProviderAllowlistFromRedux } = vi.hoisted(() => ({
+  mockSyncProviderAllowlistFromRedux: vi.fn()
+}))
+
 const mockCacheRemove = vi.fn()
 const mockExecuteJavaScript = vi.fn().mockResolvedValue(undefined)
 const mockGetMainWindow = vi.fn(() => ({
@@ -39,6 +43,10 @@ vi.mock('../WindowService', () => ({
   }
 }))
 
+vi.mock('../ProviderNetworkAllowlistService', () => ({
+  syncProviderNetworkAllowlistFromRedux: (...args: unknown[]) => mockSyncProviderAllowlistFromRedux(...args)
+}))
+
 import { invalidateApiServerProvidersCacheForAction, reduxService } from '../ReduxService'
 
 describe('ReduxService provider cache invalidation', () => {
@@ -51,6 +59,7 @@ describe('ReduxService provider cache invalidation', () => {
 
     expect(mockExecuteJavaScript).toHaveBeenCalled()
     expect(mockCacheRemove).toHaveBeenCalledWith('api-server:providers')
+    expect(mockSyncProviderAllowlistFromRedux).toHaveBeenCalled()
   })
 
   it('does not clear the API server provider cache for unrelated actions', () => {
