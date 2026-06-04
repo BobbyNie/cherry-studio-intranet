@@ -68,7 +68,8 @@ export default defineConfig([
       'src/main/integration/nutstore/sso/lib/**',
       'src/renderer/src/ui/**',
       'packages/**/dist',
-      'resources/**/vendor/**'
+      'resources/**/vendor/**',
+      'src/renderer/public/pyodide/**'
     ]
   },
   // turn off oxlint supported rules.

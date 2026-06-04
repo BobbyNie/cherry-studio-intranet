@@ -78,7 +78,7 @@ export function parseNetworkAllowlistFromEnv(raw = readEnv('CHERRY_NETWORK_ALLOW
 }
 
 function getActiveNetworkAllowlistRules(): string[] {
-  return normalizeNetworkAllowlistRules([...parseNetworkAllowlistFromEnv(), ...getNetworkAllowlistRules()])
+  return getNetworkAllowlistRules()
 }
 
 export { getNetworkAllowlistRules, setNetworkAllowlistRules } from '../network/networkAllowlist'

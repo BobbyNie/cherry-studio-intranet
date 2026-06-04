@@ -64,12 +64,8 @@ describe('networkAllowlist', () => {
     it('ignores port and path when matching hostnames', () => {
       const rules = ['llm-gateway.intranet.local']
 
-      expect(
-        urlMatchesNetworkAllowlist(new URL('http://llm-gateway.intranet.local:8080/v1/chat'), rules)
-      ).toBe(true)
-      expect(
-        urlMatchesNetworkAllowlist(new URL('http://llm-gateway.intranet.local/oauth/token'), rules)
-      ).toBe(true)
+      expect(urlMatchesNetworkAllowlist(new URL('http://llm-gateway.intranet.local:8080/v1/chat'), rules)).toBe(true)
+      expect(urlMatchesNetworkAllowlist(new URL('http://llm-gateway.intranet.local/oauth/token'), rules)).toBe(true)
     })
 
     it('applies the same hostname rules across http, https, ws, and wss', () => {

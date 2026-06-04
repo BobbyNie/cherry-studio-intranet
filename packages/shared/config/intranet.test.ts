@@ -97,11 +97,9 @@ describe('offline network config', () => {
   it('parses CHERRY_NETWORK_ALLOWLIST from comma or newline separated env values', () => {
     process.env.CHERRY_NETWORK_ALLOWLIST = 'llm-gateway.intranet.local, *.searxng.intranet.local\n127.0.0.1'
 
-    expect(parseNetworkAllowlistFromEnv()).toEqual([
-      'llm-gateway.intranet.local',
-      '*.searxng.intranet.local',
-      '127.0.0.1'
-    ])
+    const rules = parseNetworkAllowlistFromEnv()
+    expect(rules).toEqual(['llm-gateway.intranet.local', '*.searxng.intranet.local', '127.0.0.1'])
+    setNetworkAllowlistRules(rules)
     expect(() => assertNetworkAllowed('http://search.searxng.intranet.local/search')).not.toThrow()
   })
 
