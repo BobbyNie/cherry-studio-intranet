@@ -1,5 +1,4 @@
 import type { WebSearchProvider, WebSearchProviderId } from '@renderer/types'
-import { isIntranetMode } from '@shared/config/intranet'
 
 type WebSearchProviderConfig = {
   websites: {
@@ -126,6 +125,4 @@ export const PUBLIC_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
   }
 ]
 
-export const INTRANET_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = []
-
-export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = isIntranetMode() ? [] : PUBLIC_WEB_SEARCH_PROVIDERS
+export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = PUBLIC_WEB_SEARCH_PROVIDERS

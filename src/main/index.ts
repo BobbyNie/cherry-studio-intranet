@@ -8,7 +8,6 @@ import '@main/config'
 import { loggerService } from '@logger'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { replaceDevtoolsFont } from '@main/utils/windowUtil'
-import { isIntranetMode } from '@shared/config/intranet'
 import { app, crashReporter } from 'electron'
 import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from 'electron-devtools-installer'
 import { isDev, isLinux, isWin } from './constant'
@@ -247,12 +246,7 @@ if (!app.requestSingleInstanceLock()) {
         // Register IPC handlers for session stream before starting channels
         registerSessionStreamIpc()
 
-        // Start CherryClaw channel adapters only in public-network builds.
-        if (!isIntranetMode()) {
-          await channelManager.start()
-        } else {
-          logger.info('CherryClaw public channel adapters disabled in intranet mode')
-        }
+        await channelManager.start()
       } catch (error: any) {
         logger.error('Failed to check/start API server:', error)
       }

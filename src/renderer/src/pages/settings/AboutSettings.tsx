@@ -13,7 +13,7 @@ import { setUpdateState } from '@renderer/store/runtime'
 import { ThemeMode } from '@renderer/types'
 import { runAsyncFunction } from '@renderer/utils'
 import { UpgradeChannel } from '@shared/config/constant'
-import { isIntranetMode } from '@shared/config/intranet'
+import { areExternalLinksDisabled, isAutoUpdateDisabled, isIntranetMode } from '@shared/config/intranet'
 import { Avatar, Button, Progress, Radio, Row, Switch, Tag, Tooltip } from 'antd'
 import { debounce } from 'lodash'
 import { Briefcase, Bug, Building2, Github, Globe, Mail, Rss } from 'lucide-react'
@@ -22,7 +22,6 @@ import type { FC } from 'react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Markdown from 'react-markdown'
-import { Link } from 'react-router-dom'
 import styled from 'styled-components'
 
 import { SettingContainer, SettingDivider, SettingGroup, SettingRow, SettingTitle } from '.'
@@ -37,6 +36,8 @@ const AboutSettings: FC = () => {
   const { update } = useRuntime()
   const { openSmartMinapp } = useMinappPopup()
   const intranetMode = isIntranetMode()
+  const autoUpdateDisabled = isAutoUpdateDisabled()
+  const externalLinksDisabled = areExternalLinksDisabled()
 
   const onCheckUpdate = debounce(
     async () => {
@@ -66,7 +67,7 @@ const AboutSettings: FC = () => {
   )
 
   const onOpenWebsite = (url: string) => {
-    if (intranetMode) {
+    if (externalLinksDisabled) {
       window.toast.info(t('intranet.external_links_disabled', '内网版已禁用外部链接'))
       return
     }
@@ -91,11 +92,6 @@ const AboutSettings: FC = () => {
   }
 
   const showReleases = async () => {
-    if (intranetMode) {
-      window.toast.info(t('intranet.external_links_disabled', '内网版已禁用外部链接'))
-      return
-    }
-
     const { appPath } = await window.api.getAppInfo()
     openSmartMinapp({
       id: 'cherrystudio-releases',
@@ -181,7 +177,7 @@ const AboutSettings: FC = () => {
 
   const onOpenDocs = () => {
     const isChinese = i18n.language.startsWith('zh')
-    void window.api.openWebsite(isChinese ? 'https://docs.cherry-ai.com/' : 'https://docs.cherry-ai.com/docs/en-us')
+    onOpenWebsite(isChinese ? 'https://docs.cherry-ai.com/' : 'https://docs.cherry-ai.com/docs/en-us')
   }
 
   return (
@@ -190,17 +186,19 @@ const AboutSettings: FC = () => {
         <SettingTitle>
           {t('settings.about.title')}
           <HStack alignItems="center">
-            {!intranetMode && (
-              <Link to="https://github.com/CherryHQ/cherry-studio">
-                <GithubOutlined style={{ marginRight: 4, color: 'var(--color-text)', fontSize: 20 }} />
-              </Link>
+            {!externalLinksDisabled && (
+              <GithubOutlined
+                onClick={() => onOpenWebsite('https://github.com/CherryHQ/cherry-studio')}
+                style={{ marginRight: 4, color: 'var(--color-text)', fontSize: 20, cursor: 'pointer' }}
+              />
             )}
           </HStack>
         </SettingTitle>
         <SettingDivider />
         <AboutHeader>
           <Row align="middle">
-            <AvatarWrapper onClick={() => !intranetMode && onOpenWebsite('https://github.com/CherryHQ/cherry-studio')}>
+            <AvatarWrapper
+              onClick={() => !externalLinksDisabled && onOpenWebsite('https://github.com/CherryHQ/cherry-studio')}>
               {update.downloadProgress > 0 && (
                 <ProgressCircle
                   type="circle"
@@ -217,18 +215,17 @@ const AboutSettings: FC = () => {
               <Title>{APP_NAME}</Title>
               <Description>{t('settings.about.description')}</Description>
               <Tag
-                onClick={() => !intranetMode && onOpenWebsite('https://github.com/CherryHQ/cherry-studio/releases')}
+                onClick={() =>
+                  !externalLinksDisabled && onOpenWebsite('https://github.com/CherryHQ/cherry-studio/releases')
+                }
                 color="cyan"
-                style={{ marginTop: 8, cursor: intranetMode ? 'default' : 'pointer' }}>
+                style={{ marginTop: 8, cursor: externalLinksDisabled ? 'default' : 'pointer' }}>
                 v{version}
               </Tag>
               {intranetMode ? <Tag color="blue">{t('offline.settings.edition_tag', '企业完全离线版')}</Tag> : null}
             </VersionWrapper>
           </Row>
-          {!isPortable && intranetMode ? (
-            <CheckUpdateButton onClick={onCheckUpdate}>{t('offline.settings.check_update')}</CheckUpdateButton>
-          ) : null}
-          {!isPortable && !intranetMode && (
+          {!isPortable && !autoUpdateDisabled && (
             <CheckUpdateButton
               onClick={onCheckUpdate}
               loading={update.checking}
@@ -241,7 +238,7 @@ const AboutSettings: FC = () => {
             </CheckUpdateButton>
           )}
         </AboutHeader>
-        {!isPortable && !intranetMode && (
+        {!isPortable && !autoUpdateDisabled && (
           <>
             <SettingDivider />
             <SettingRow>
@@ -277,7 +274,7 @@ const AboutSettings: FC = () => {
           </>
         )}
       </SettingGroup>
-      {!intranetMode && update.info && update.available && (
+      {!autoUpdateDisabled && update.info && update.available && (
         <SettingGroup theme={theme}>
           <SettingRow>
             <SettingRowTitle>
@@ -295,79 +292,68 @@ const AboutSettings: FC = () => {
         </SettingGroup>
       )}
       <SettingGroup theme={theme}>
-        {intranetMode ? (
+        <>
+          <SettingRow>
+            <SettingRowTitle>
+              <BadgeQuestionMark size={18} />
+              {t('docs.title')}
+            </SettingRowTitle>
+            <Button onClick={onOpenDocs}>{t('settings.about.website.button')}</Button>
+          </SettingRow>
+          <SettingDivider />
+          <SettingRow>
+            <SettingRowTitle>
+              <Rss size={18} />
+              {t('settings.about.releases.title')}
+            </SettingRowTitle>
+            <Button onClick={showReleases}>{t('settings.about.releases.button')}</Button>
+          </SettingRow>
+          <SettingDivider />
+          <SettingRow>
+            <SettingRowTitle>
+              <Globe size={18} />
+              {t('settings.about.website.title')}
+            </SettingRowTitle>
+            <Button onClick={() => onOpenWebsite('https://cherry-ai.com')}>{t('settings.about.website.button')}</Button>
+          </SettingRow>
+          <SettingDivider />
+          <SettingRow>
+            <SettingRowTitle>
+              <Github size={18} />
+              {t('settings.about.feedback.title')}
+            </SettingRowTitle>
+            <Button onClick={() => onOpenWebsite('https://github.com/CherryHQ/cherry-studio/issues/new/choose')}>
+              {t('settings.about.feedback.button')}
+            </Button>
+          </SettingRow>
+          <SettingDivider />
           <SettingRow>
             <SettingRowTitle>
               <Building2 size={18} />
-              {t('offline.settings.audit')}
+              {t('settings.about.enterprise.title')}
             </SettingRowTitle>
+            <Button onClick={showEnterprise}>{t('settings.about.website.button')}</Button>
           </SettingRow>
-        ) : (
-          <>
-            <SettingRow>
-              <SettingRowTitle>
-                <BadgeQuestionMark size={18} />
-                {t('docs.title')}
-              </SettingRowTitle>
-              <Button onClick={onOpenDocs}>{t('settings.about.website.button')}</Button>
-            </SettingRow>
-            <SettingDivider />
-            <SettingRow>
-              <SettingRowTitle>
-                <Rss size={18} />
-                {t('settings.about.releases.title')}
-              </SettingRowTitle>
-              <Button onClick={showReleases}>{t('settings.about.releases.button')}</Button>
-            </SettingRow>
-            <SettingDivider />
-            <SettingRow>
-              <SettingRowTitle>
-                <Globe size={18} />
-                {t('settings.about.website.title')}
-              </SettingRowTitle>
-              <Button onClick={() => onOpenWebsite('https://cherry-ai.com')}>
-                {t('settings.about.website.button')}
-              </Button>
-            </SettingRow>
-            <SettingDivider />
-            <SettingRow>
-              <SettingRowTitle>
-                <Github size={18} />
-                {t('settings.about.feedback.title')}
-              </SettingRowTitle>
-              <Button onClick={() => onOpenWebsite('https://github.com/CherryHQ/cherry-studio/issues/new/choose')}>
-                {t('settings.about.feedback.button')}
-              </Button>
-            </SettingRow>
-            <SettingDivider />
-            <SettingRow>
-              <SettingRowTitle>
-                <Building2 size={18} />
-                {t('settings.about.enterprise.title')}
-              </SettingRowTitle>
-              <Button onClick={showEnterprise}>{t('settings.about.website.button')}</Button>
-            </SettingRow>
-            <SettingDivider />
-            <SettingRow>
-              <SettingRowTitle>
-                <Mail size={18} />
-                {t('settings.about.contact.title')}
-              </SettingRowTitle>
-              <Button onClick={mailto}>{t('settings.about.contact.button')}</Button>
-            </SettingRow>
-            <SettingDivider />
-            <SettingRow>
-              <SettingRowTitle>
-                <Briefcase size={18} />
-                {t('settings.about.careers.title')}
-              </SettingRowTitle>
-              <Button onClick={() => onOpenWebsite('https://www.cherry-ai.com/careers')}>
-                {t('settings.about.careers.button')}
-              </Button>
-            </SettingRow>
-            <SettingDivider />
-          </>
-        )}
+          <SettingDivider />
+          <SettingRow>
+            <SettingRowTitle>
+              <Mail size={18} />
+              {t('settings.about.contact.title')}
+            </SettingRowTitle>
+            <Button onClick={mailto}>{t('settings.about.contact.button')}</Button>
+          </SettingRow>
+          <SettingDivider />
+          <SettingRow>
+            <SettingRowTitle>
+              <Briefcase size={18} />
+              {t('settings.about.careers.title')}
+            </SettingRowTitle>
+            <Button onClick={() => onOpenWebsite('https://www.cherry-ai.com/careers')}>
+              {t('settings.about.careers.button')}
+            </Button>
+          </SettingRow>
+          <SettingDivider />
+        </>
         <SettingRow>
           <SettingRowTitle>
             <Bug size={18} />

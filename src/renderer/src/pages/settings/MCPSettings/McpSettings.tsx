@@ -9,7 +9,7 @@ import MCPDescription from '@renderer/pages/settings/MCPSettings/McpDescription'
 import type { MCPPrompt, MCPResource, MCPServer, MCPTool } from '@renderer/types'
 import { parseKeyValueString } from '@renderer/utils/env'
 import { formatMcpError } from '@renderer/utils/error'
-import { isIntranetMode } from '@shared/config/intranet'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import type { MCPServerLogEntry } from '@shared/config/types'
 import type { TabsProps } from 'antd'
 import { Badge, Button, Flex, Form, Input, Modal, Radio, Select, Switch, Tabs, Tag, Typography } from 'antd'
@@ -95,7 +95,7 @@ const McpSettings: React.FC = () => {
   const [registry, setRegistry] = useState<Registry[]>()
   const [customRegistryUrl, setCustomRegistryUrl] = useState('')
   const [selectedRegistryType, setSelectedRegistryType] = useState<string>('')
-  const intranetMode = isIntranetMode()
+  const marketplaceDisabled = isMarketplaceDisabled()
 
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [serverVersion, setServerVersion] = useState<string | null>(null)
@@ -626,7 +626,7 @@ const McpSettings: React.FC = () => {
                   tooltip={t('settings.mcp.registryTooltip')}>
                   <Radio.Group
                     value={selectedRegistryType === 'custom' ? 'custom' : form.getFieldValue('registryUrl') || ''}>
-                    {!intranetMode && (
+                    {!marketplaceDisabled && (
                       <Radio
                         key="no-proxy"
                         value=""

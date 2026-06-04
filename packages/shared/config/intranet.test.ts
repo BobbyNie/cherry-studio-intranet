@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  areExternalLinksDisabled,
   assertNetworkAllowed,
   isAutoUpdateDisabled,
   isIntranetMode,
+  isMarketplaceDisabled,
   isOfflineMode,
   isPublicNetworkDisabled,
+  isTelemetryDisabled,
   OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE,
   OfflineNetworkBlockedError,
   parseNetworkAllowlistFromEnv,
@@ -39,6 +42,35 @@ describe('offline network config', () => {
     expect(isIntranetMode()).toBe(true)
     expect(isAutoUpdateDisabled()).toBe(true)
     expect(isPublicNetworkDisabled()).toBe(true)
+  })
+
+  it('keeps feature disable switches explicit when intranet mode enables the central network guard', () => {
+    delete process.env.CHERRY_OFFLINE_MODE
+    delete process.env.CHERRY_DISABLE_AUTO_UPDATE
+    delete process.env.CHERRY_DISABLE_EXTERNAL_LINKS
+    delete process.env.CHERRY_DISABLE_MARKETPLACE
+    delete process.env.CHERRY_DISABLE_TELEMETRY
+    process.env.CHERRY_INTRANET_MODE = 'true'
+
+    expect(isPublicNetworkDisabled()).toBe(true)
+    expect(isAutoUpdateDisabled()).toBe(false)
+    expect(isMarketplaceDisabled()).toBe(false)
+    expect(areExternalLinksDisabled()).toBe(false)
+    expect(isTelemetryDisabled()).toBe(false)
+    expect(sanitizeExternalUrl('https://github.com/CherryHQ/cherry-studio')).toBe(
+      'https://github.com/CherryHQ/cherry-studio'
+    )
+
+    process.env.CHERRY_DISABLE_AUTO_UPDATE = 'true'
+    process.env.CHERRY_DISABLE_EXTERNAL_LINKS = 'true'
+    process.env.CHERRY_DISABLE_MARKETPLACE = 'true'
+    process.env.CHERRY_DISABLE_TELEMETRY = 'true'
+
+    expect(isAutoUpdateDisabled()).toBe(true)
+    expect(isMarketplaceDisabled()).toBe(true)
+    expect(areExternalLinksDisabled()).toBe(true)
+    expect(isTelemetryDisabled()).toBe(true)
+    expect(sanitizeExternalUrl('https://github.com/CherryHQ/cherry-studio')).toBeNull()
   })
 
   it('does not expose legacy local-model offline network settings APIs', () => {

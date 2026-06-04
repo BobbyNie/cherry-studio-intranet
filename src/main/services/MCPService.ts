@@ -35,7 +35,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import { nanoid } from '@reduxjs/toolkit'
 import { HOME_CHERRY_DIR } from '@shared/config/constant'
-import { assertNetworkAllowed, isIntranetMode } from '@shared/config/intranet'
+import { assertNetworkAllowed, isMarketplaceDisabled } from '@shared/config/intranet'
 import type { MCPProgressEvent } from '@shared/config/types'
 import type { MCPServerLogEntry } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
@@ -116,8 +116,16 @@ function getServerLogger(server: MCPServer, extra?: Record<string, any>) {
   return loggerService.withContext('MCPService', { ...base, ...extra })
 }
 
-function ensureIntranetMcpCommandAllowed(server: MCPServer): void {
-  if (!isIntranetMode() || !server.command) {
+function ensureMcpCommandAllowed(server: MCPServer): void {
+  if (!server.command) {
+    return
+  }
+
+  if (server.registryUrl) {
+    assertNetworkAllowed(server.registryUrl)
+  }
+
+  if (!isMarketplaceDisabled()) {
     return
   }
 
@@ -135,8 +143,6 @@ function ensureIntranetMcpCommandAllowed(server: MCPServer): void {
   if (!server.registryUrl) {
     throw new Error('企业内网版禁止使用默认公网包仓库启动 MCP。请配置企业内网 npm/pip registry。')
   }
-
-  assertNetworkAllowed(server.registryUrl)
 }
 
 /**
@@ -443,7 +449,7 @@ class McpService {
               }
             }
 
-            ensureIntranetMcpCommandAllowed(server)
+            ensureMcpCommandAllowed(server)
 
             if (server.command === 'npx') {
               // First, check if npx is available in user's shell environment
