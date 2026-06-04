@@ -25,14 +25,23 @@ import type { NotificationSource } from '@renderer/types/notification'
 import { isValidProxyUrl } from '@renderer/utils'
 import { formatErrorMessage } from '@renderer/utils/error'
 import { defaultByPassRules, defaultLanguage } from '@shared/config/constant'
-import { isOfflineMode } from '@shared/config/intranet'
-import { Flex, Input, Switch, Tooltip } from 'antd'
+import { isIntranetMode, isOfflineMode } from '@shared/config/intranet'
+import { normalizeNetworkAllowlistRules } from '@shared/network/networkAllowlist'
+import { Alert, Button, Flex, Input, Switch, Tooltip } from 'antd'
 import type { FC } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 
-import { SettingContainer, SettingDivider, SettingGroup, SettingRow, SettingRowTitle, SettingTitle } from '.'
+import {
+  SettingContainer,
+  SettingDescription,
+  SettingDivider,
+  SettingGroup,
+  SettingRow,
+  SettingRowTitle,
+  SettingTitle
+} from '.'
 
 type SpellCheckOption = { readonly value: string; readonly label: string; readonly flag: string }
 
@@ -75,6 +84,11 @@ const GeneralSettings: FC = () => {
   const [proxyBypassRules, setProxyBypassRules] = useState<string | undefined>(storeProxyBypassRules)
   const { theme } = useTheme()
   const offlineMode = isOfflineMode()
+  const intranetMode = isIntranetMode()
+  const showIntranetAllowlist = offlineMode || intranetMode
+  const [intranetAllowlistText, setIntranetAllowlistText] = useState('')
+  const [intranetAllowlistInvalidRules, setIntranetAllowlistInvalidRules] = useState<string[]>([])
+  const [intranetAllowlistSaving, setIntranetAllowlistSaving] = useState(false)
   const { enableDeveloperMode, setEnableDeveloperMode } = useEnableDeveloperMode()
   const { setTimeoutTimer } = useTimer()
 
@@ -180,6 +194,44 @@ const GeneralSettings: FC = () => {
   const handleSpellCheckLanguagesChange = (selectedLanguages: string[]) => {
     dispatch(setSpellCheckLanguages(selectedLanguages))
     void window.api.setSpellCheckLanguages(selectedLanguages)
+  }
+
+  useEffect(() => {
+    if (!showIntranetAllowlist) {
+      return
+    }
+
+    void window.api.config.get('intranetNetworkAllowlist').then((stored) => {
+      const rules = Array.isArray(stored) ? stored.filter((item): item is string => typeof item === 'string') : []
+      setIntranetAllowlistText(rules.join('\n'))
+      setIntranetAllowlistInvalidRules([])
+    })
+  }, [showIntranetAllowlist])
+
+  const handleSaveIntranetAllowlist = async () => {
+    const lines = intranetAllowlistText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    const invalidRules = lines.filter((line) => normalizeNetworkAllowlistRules([line]).length === 0)
+    if (invalidRules.length > 0) {
+      setIntranetAllowlistInvalidRules(invalidRules)
+      return
+    }
+
+    const normalizedRules = normalizeNetworkAllowlistRules(lines)
+    setIntranetAllowlistSaving(true)
+    try {
+      await window.api.config.set('intranetNetworkAllowlist', normalizedRules)
+      setIntranetAllowlistText(normalizedRules.join('\n'))
+      setIntranetAllowlistInvalidRules([])
+      window.toast.success(t('settings.intranet.allowlist.save'))
+    } catch (error) {
+      window.toast.error(formatErrorMessage(error))
+    } finally {
+      setIntranetAllowlistSaving(false)
+    }
   }
 
   const handleHardwareAccelerationChange = (checked: boolean) => {
@@ -313,6 +365,46 @@ const GeneralSettings: FC = () => {
           <Switch checked={disableHardwareAcceleration} onChange={handleHardwareAccelerationChange} />
         </SettingRow>
       </SettingGroup>
+      {showIntranetAllowlist ? (
+        <SettingGroup theme={theme}>
+          <SettingTitle>{t('settings.intranet.allowlist.title')}</SettingTitle>
+          <SettingDescription>{t('settings.intranet.allowlist.description')}</SettingDescription>
+          <SettingDivider />
+          <Input.TextArea
+            spellCheck={false}
+            value={intranetAllowlistText}
+            onChange={(e) => {
+              setIntranetAllowlistText(e.target.value)
+              if (intranetAllowlistInvalidRules.length > 0) {
+                setIntranetAllowlistInvalidRules([])
+              }
+            }}
+            placeholder={t('settings.intranet.allowlist.placeholder')}
+            autoSize={{ minRows: 4, maxRows: 12 }}
+            style={{ fontFamily: 'monospace' }}
+          />
+          <Button
+            type="primary"
+            onClick={() => void handleSaveIntranetAllowlist()}
+            loading={intranetAllowlistSaving}
+            style={{ marginTop: 10 }}>
+            {t('settings.intranet.allowlist.save')}
+          </Button>
+          {intranetAllowlistInvalidRules.length > 0 ? (
+            <Alert
+              style={{ marginTop: 10 }}
+              type="error"
+              message={
+                <div>
+                  {intranetAllowlistInvalidRules.map((rule) => (
+                    <div key={rule}>{t('settings.intranet.allowlist.invalidRule', { rule })}</div>
+                  ))}
+                </div>
+              }
+            />
+          ) : null}
+        </SettingGroup>
+      ) : null}
       <SettingGroup theme={theme}>
         <SettingTitle>{t('settings.notification.title')}</SettingTitle>
         <SettingDivider />

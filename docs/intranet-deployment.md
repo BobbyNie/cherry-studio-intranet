@@ -23,14 +23,23 @@ CHERRY_DISABLE_EXTERNAL_LINKS=true
 CHERRY_NETWORK_ALLOWLIST=
 ```
 
-`CHERRY_NETWORK_ALLOWLIST` 仅为历史兼容变量。
+`CHERRY_NETWORK_ALLOWLIST` 用于首次启动时种子化白名单（逗号或换行分隔主机名），运行期策略以 **设置 → 通用 → 内网网络白名单** 为准。
 
-**完全离线版网络策略**（`CHERRY_OFFLINE_MODE` / `CHERRY_INTRANET_MODE`）：
+**内网版网络策略**（`CHERRY_INTRANET_MODE`，或兼容的 `CHERRY_OFFLINE_MODE`）：
 
 - 默认 **deny-all**：拦截一切未明确放行的 HTTP(S)/WS(S) 请求。
-- **放行范围**：已在模型 Provider 中配置且启用的 `apiHost` / `anthropicApiHost`，按协议、主机、端口和路径前缀放行（含 `localhost`、私有 IP、企业内网域名）。
-- **不是 localhost-only**：内网模式不等于只能访问本机模型；模型实际访问地址以 Provider 配置为准。
-- 未在 Provider 中配置的公网地址仍会被 App 层拦截；公网物理不可达由企业 DNS/防火墙保证。
+- **放行范围**：设置 → 通用 中配置的内网网络白名单（主机名或 URL，每行一条；支持 `*.corp.example.com` 等通配符）。
+- **不是 localhost-only**：内网模式不等于只能访问本机；允许访问白名单中的企业网关、SearXNG、WebDAV 等内网服务。
+- 未列入白名单的地址会被 App 层拦截；公网物理不可达由企业 DNS/防火墙保证。
+
+白名单规则示例：
+
+```text
+llm-gateway.intranet.local
+*.corp.example.com
+127.0.0.1
+searxng.intranet.local
+```
 
 ## 默认内网服务
 
@@ -101,11 +110,11 @@ corepack pnpm package:win:intranet
 
 ## 验收步骤
 
-1. 启动应用，确认未配置模型时应用不崩溃，并提示配置内网模型。
-2. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
-3. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文。
-4. 配置企业内网 OpenAI-compatible 域名，确认只需模型 Provider API Base URL 即可访问。
-5. 验证 Web Search 只显示内网 SearXNG。
+1. 启动应用，确认未配置白名单时网络请求被拦截，并提示配置内网网络白名单。
+2. 在 **设置 → 通用 → 内网网络白名单** 添加企业 LLM Gateway、SearXNG 等主机名并保存。
+3. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
+4. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文（Gateway 主机名须在白名单中）。
+5. 验证 Web Search 只显示内网 SearXNG（SearXNG 主机名须在白名单中）。
 6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
 7. 验证点击关于页外链不会打开浏览器。
 8. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
@@ -115,8 +124,8 @@ corepack pnpm package:win:intranet
 
 本次提交的自动化测试覆盖：
 
-- 内网模式默认 deny-all，仅放行已启用模型 Provider 配置的协议、主机、端口和路径前缀
-- `safeFetch`、`safeWebSocket` 阻断未配置目标，并透传已配置的 Provider API Base URL
+- 内网模式默认 deny-all，仅放行内网网络白名单中的主机名（HTTP/HTTPS/WS/WSS）
+- `safeFetch`、`safeWebSocket` 阻断未列入白名单的目标
 - 内网 provider/Web Search/MCP 默认面
 - autoUpdater 内网模式 no-op
 
