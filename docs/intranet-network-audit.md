@@ -8,25 +8,25 @@
 
 | 文件路径 | 外联目的 | 请求 URL 或域名 | 是否保留 | 内网版处理方式 |
 |---|---|---|---|---|
-| `packages/shared/config/intranet.ts` | 内网模式和 Provider endpoint allowlist | enabled model provider `apiHost` / `anthropicApiHost` | 保留 | `assertNetworkAllowed()` 默认阻断网络；仅放行已启用模型 Provider 中配置且 protocol/host/port/path prefix 精确匹配的 endpoint |
-| `packages/shared/network/safeRequest.ts` | 统一安全请求入口 | 任意业务 URL | 保留 | 继续作为统一请求入口，内网版执行 Provider endpoint allowlist，未配置或不匹配的目标会阻断 |
-| `src/main/network/intranetNetworkGuard.ts` | 主进程运行时兼容兜底 | `fetch`, `electron.net.fetch`, session HTTP/HTTPS/WS/WSS | 保留 | 兼容原 guard 安装流程，底层 `assertNetworkAllowed()` 按 Provider endpoint allowlist 取消未授权请求 |
-| `src/renderer/src/network/intranetNetworkGuard.ts` | 渲染进程运行时兜底 | `window.fetch`, `WebSocket`, `EventSource` | 保留 | 内网模式下 monkey patch 浏览器网络 API |
+| `packages/shared/config/intranet.ts` | 内网模式和网络白名单入口 | HTTP(S)/WS(S) URL | 保留 | `CHERRY_INTRANET_MODE=true` 时启用中心 guard；空白名单拒绝全部；白名单只匹配 hostname/IP，不限制协议、端口、路径 |
+| `packages/shared/network/networkAllowlist.ts` | hostname/IP 白名单 matcher | host rule / URL input | 保留 | `comp.com` 精确匹配；`*.comp.com` 匹配根域和 DNS 边界子域；完整 URL 保存时只取 hostname |
+| `src/main/network/intranetNetworkGuard.ts` | 主进程中心 enforcement | `fetch`, `electron.net.fetch`, session HTTP/HTTPS/WS/WSS | 保留 | 所有 renderer/webview/main-process 请求统一调用 `assertNetworkAllowed()` |
+| `src/renderer/src/network/intranetNetworkGuard.ts` | 渲染进程 monkey patch | `window.fetch`, `WebSocket`, `EventSource` | 删除 | 渲染进程不再 monkey patch；统一交给 Electron session/main guard |
 
 ## 启动、更新、统计、外链
 
 | 文件路径 | 外联目的 | 请求 URL 或域名 | 是否保留 | 内网版处理方式 |
 |---|---|---|---|---|
-| `src/main/services/AppUpdater.ts` | 自动更新和更新配置拉取 | GitHub/GitCode/release feed | 否 | `CHERRY_DISABLE_AUTO_UPDATE=true` 时构造器、检查更新、安装更新均 no-op |
-| `src/renderer/src/hooks/useAppInit.ts` | 启动后自动检查更新 | update feed | 否 | 内网模式跳过初始和定时更新检查 |
-| `src/main/services/AnalyticsService.ts` | 启动、用量、更新统计 | Cherry Studio analytics endpoint | 否 | `CHERRY_DISABLE_TELEMETRY=true` 或内网模式下不初始化、不发送 |
+| `src/main/services/AppUpdater.ts` | 自动更新和更新配置拉取 | GitHub/GitCode/release feed | 保留 | 内网模式不直接 no-op；联网结果由中心白名单决定；仅 `CHERRY_DISABLE_AUTO_UPDATE=true` 时禁用 |
+| `src/renderer/src/hooks/useAppInit.ts` | 启动后自动检查更新 | update feed | 保留 | 内网模式不跳过；联网结果由中心白名单决定 |
+| `src/main/services/AnalyticsService.ts` | 启动、用量、更新统计 | Cherry Studio analytics endpoint | 保留 | 仅 `CHERRY_DISABLE_TELEMETRY=true` 时不初始化、不发送 |
 | `src/preload/index.ts` | 渲染进程打开外部链接 | http/https/mailto/obsidian | 否 | `sanitizeExternalUrl()` 返回 null 时拒绝，错误为“内网版已禁用外部链接” |
 | `src/main/services/security.ts` | 主进程外链安全判断 | http/https/mailto/editor deep link | 否 | 外链禁用时 `isSafeExternalUrl()` 直接返回 false |
 | `src/main/ipc.ts` | `Open_Website` IPC | 官网、文档、GitHub 等 | 否 | 复用 `isSafeExternalUrl()` 阻断 |
-| `src/main/services/AppMenuService.ts` | macOS 帮助菜单外链 | `cherry-ai.com`, docs, GitHub issues/releases | 否 | 内网模式显示禁用提示，不渲染外链菜单项 |
+| `src/main/services/AppMenuService.ts` | macOS 帮助菜单外链 | `cherry-ai.com`, docs, GitHub issues/releases | 保留 | 内网模式不直接隐藏；仅 `CHERRY_DISABLE_EXTERNAL_LINKS=true` 时隐藏 |
 | `src/main/services/WindowService.ts` | 窗口导航/新窗口外链 | OAuth、官网、任意 http(s) | 部分保留 | 复用 `isSafeExternalUrl()` 处理外部链接；OAuth 公网入口不再默认展示 |
 | `src/main/services/WebviewService.ts` | webview 外链 | 任意 http(s) | 部分保留 | 复用主进程外链安全判断 |
-| `src/renderer/src/pages/settings/AboutSettings.tsx` | 关于页、更新、反馈、官网、文档 | Cherry 官网、GitHub、mailto | 否 | 内网模式隐藏更新和外链区，显示企业内网版审计说明 |
+| `src/renderer/src/pages/settings/AboutSettings.tsx` | 关于页、更新、反馈、官网、文档 | Cherry 官网、GitHub、mailto | 保留 | 内网模式不直接隐藏；外链和更新分别由显式 disable 开关控制 |
 
 ## 模型服务
 
@@ -36,7 +36,7 @@
 | `src/renderer/src/config/models/default.ts` | 默认模型列表 | 预置模型元数据 | 保留 | 新增 `qwen-coder`, `deepseek-coder`, `glm-coder`, `embedding-model`, `rerank-model` |
 | `src/renderer/src/store/llm.ts` | LLM 初始 state | 系统 provider 列表 | 保留 | 通过 `SYSTEM_PROVIDERS` 和 `SYSTEM_MODELS.defaultModel` 切到内网默认 |
 | `src/renderer/src/pages/settings/ProviderSettings/ProviderList.tsx` | 设置页 provider 列表 | 系统 provider UI | 部分保留 | 内网模式隐藏公网系统 provider，保留自定义 provider |
-| `src/renderer/src/aiCore/services/listModels.ts` | 拉取模型列表 | `/models`, GitHub catalog, OpenRouter, Gemini, Vertex 等 | 部分保留 | 内网版默认隐藏公网 provider；已启用模型 Provider 中显式配置的 API endpoint 会进入 App 级 Provider allowlist |
+| `src/renderer/src/aiCore/services/listModels.ts` | 拉取模型列表 | `/models`, GitHub catalog, OpenRouter, Gemini, Vertex 等 | 保留 | renderer 不再预先检查白名单；请求由中心 guard 决定 |
 | `src/main/aiCore/provider/providerConfig.ts` | 主进程 provider host 格式化 | provider `apiHost` | 保留 | 保留 provider 抽象和用户配置的 API host |
 | `src/main/services/OpenClawService.ts` | 网关健康检查和 provider 同步 | `127.0.0.1`, provider host, Google/Anthropic/OpenAI 兼容地址 | 部分保留 | 本地健康检查保留；内网版默认 provider 配置避免主动使用公网 provider |
 
@@ -44,20 +44,20 @@
 
 | 文件路径 | 外联目的 | 请求 URL 或域名 | 是否保留 | 内网版处理方式 |
 |---|---|---|---|---|
-| `src/renderer/src/config/webSearchProviders.ts` | Web Search provider 默认配置 | Tavily、Exa、Bocha、Google、Bing、Baidu、Zhipu | 否 | 内网模式只保留 `内网 SearXNG`，默认 `http://searxng.intranet.local` |
-| `src/renderer/src/store/websearch.ts` | Web Search 初始 state | provider 列表 | 保留 | 内网模式默认 provider 改为 `searxng` |
-| `src/renderer/src/providers/WebSearchProvider/WebSearchProviderFactory.ts` | Web Search provider 创建 | 各搜索 provider | 部分保留 | 内网模式非 SearXNG 直接抛出“联网搜索仅支持内网 SearXNG。” |
-| `src/renderer/src/providers/WebSearchProvider/SearxngProvider.ts` | SearXNG 配置和搜索 | `/config`, search endpoint | 保留 | 仅保留内网 SearXNG 产品入口；请求仍经过 `safeAxios()` / `assertNetworkAllowed()`，默认不会因是内网域名而自动放行 |
+| `src/renderer/src/config/webSearchProviders.ts` | Web Search provider 默认配置 | Tavily、Exa、Bocha、Google、Bing、Baidu、Zhipu | 保留 | 内网模式保留 upstream provider 列表；请求由中心 guard 决定 |
+| `src/renderer/src/store/websearch.ts` | Web Search 初始 state | provider 列表 | 保留 | 默认 provider 保持 upstream `local-bing` |
+| `src/renderer/src/providers/WebSearchProvider/WebSearchProviderFactory.ts` | Web Search provider 创建 | 各搜索 provider | 保留 | 内网模式不再限制为 SearXNG |
+| `src/renderer/src/providers/WebSearchProvider/SearxngProvider.ts` | SearXNG 配置和搜索 | `/config`, search endpoint | 保留 | renderer 不再预先检查白名单；请求由中心 guard 决定 |
 
 ## MCP
 
 | 文件路径 | 外联目的 | 请求 URL 或域名 | 是否保留 | 内网版处理方式 |
 |---|---|---|---|---|
-| `src/renderer/src/store/mcp.ts` | 内置 MCP server 列表 | `@mcpmarket/mcp-auto-install`, modelcontextprotocol GitHub references | 部分保留 | 内网模式移除自动安装和公网型内置项；fetch/browser 默认 inactive |
-| `src/main/services/MCPService.ts` | MCP SSE/HTTP/stdio/npx/uvx 启动 | MCP baseUrl、npm/pip registry | 部分保留 | 保留手动 MCP；Marketplace/自动安装默认禁用，企业 registry 由管理员配置 |
-| `src/renderer/src/pages/settings/MCPSettings/index.tsx` | MCP Marketplace、provider 同步、npx 搜索入口 | ModelScope、302AI、Bailian、MCPRouter、TokenFlux、LanYun | 否 | 内网模式隐藏 Marketplace、provider 同步、npx 搜索和依赖安装入口 |
-| `src/renderer/src/pages/settings/MCPSettings/McpSettings.tsx` | MCP registry 选择 | npmmirror、各公网 PyPI 镜像 | 部分保留 | 内网模式只展示企业内网 NPM/PyPI 示例和自定义 registry |
-| `src/renderer/src/pages/settings/MCPSettings/providers/*.ts` | 从公网服务商同步 MCP | ModelScope、302AI、Bailian、TokenFlux、LanYun、MCPRouter | 否 | UI 入口隐藏，默认不触发公网服务商同步 |
+| `src/renderer/src/store/mcp.ts` | 内置 MCP server 列表 | `@mcpmarket/mcp-auto-install`, modelcontextprotocol GitHub references | 保留 | 内网模式不直接裁剪；仅 `CHERRY_DISABLE_MARKETPLACE=true` 时隐藏公网 marketplace 型入口 |
+| `src/main/services/MCPService.ts` | MCP SSE/HTTP/stdio/npx/uvx 启动 | MCP baseUrl、npm/pip registry | 保留 | `registryUrl` 走中心白名单；仅 marketplace 显式禁用时限制默认公网包仓库 |
+| `src/renderer/src/pages/settings/MCPSettings/index.tsx` | MCP Marketplace、provider 同步、npx 搜索入口 | ModelScope、302AI、Bailian、MCPRouter、TokenFlux、LanYun | 保留 | 内网模式不直接隐藏；请求由中心 guard 决定 |
+| `src/renderer/src/pages/settings/MCPSettings/McpSettings.tsx` | MCP registry 选择 | npmmirror、各公网 PyPI 镜像 | 保留 | 内网模式不直接隐藏默认 registry；请求由中心 guard 决定 |
+| `src/renderer/src/pages/settings/MCPSettings/providers/*.ts` | 从公网服务商同步 MCP | ModelScope、302AI、Bailian、TokenFlux、LanYun、MCPRouter | 保留 | UI 入口保留；请求由中心 guard 决定 |
 
 ## 知识库、文件、向量与重排
 
