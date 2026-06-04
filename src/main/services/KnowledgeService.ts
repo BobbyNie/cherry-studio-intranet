@@ -33,7 +33,6 @@ import { getDataPath } from '@main/utils'
 import { getAllFiles, sanitizeFilename } from '@main/utils/file'
 import { TraceMethod } from '@mcp-trace/trace-core'
 import { MB } from '@shared/config/constant'
-import { isRemoteLoaderEnabled } from '@shared/config/knowledge'
 import type { LoaderReturn } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { FileMetadata, KnowledgeBaseParams, KnowledgeItem, KnowledgeSearchResult } from '@types'
@@ -98,15 +97,6 @@ const loaderTaskIntoOfSet = (loaderTask: LoaderTask): LoaderTaskOfSet => {
 
 class KnowledgeService {
   private storageDir = path.join(getDataPath(), 'KnowledgeBase')
-
-  /**
-   * Check if remote loader is enabled (intranet mode disables it)
-   */
-  private ensureRemoteLoaderEnabled = (): void => {
-    if (!isRemoteLoaderEnabled()) {
-      throw new Error('Remote knowledge loaders (URL, Sitemap) are disabled in intranet mode')
-    }
-  }
 
   private pendingDeleteFile = path.join(this.storageDir, 'knowledge_pending_delete.json')
   // Byte based
@@ -420,7 +410,6 @@ class KnowledgeService {
     ragApplication: RAGApplication,
     options: KnowledgeBaseAddItemOptionsNonNullableAttribute
   ): LoaderTask {
-    this.ensureRemoteLoaderEnabled()
     const { base, item, forceReload } = options
     const content = item.content as string
 
@@ -470,7 +459,6 @@ class KnowledgeService {
     ragApplication: RAGApplication,
     options: KnowledgeBaseAddItemOptionsNonNullableAttribute
   ): LoaderTask {
-    this.ensureRemoteLoaderEnabled()
     const { base, item, forceReload } = options
     const content = item.content as string
 

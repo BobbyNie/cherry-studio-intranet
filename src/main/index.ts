@@ -47,10 +47,7 @@ import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
 import { installMainIntranetNetworkGuard, installSessionIntranetNetworkGuard } from './network/intranetNetworkGuard'
-import {
-  loadProviderNetworkAllowlistFromStore,
-  syncProviderNetworkAllowlistFromRedux
-} from './services/ProviderNetworkAllowlistService'
+import { loadIntranetNetworkAllowlistFromStore } from './services/IntranetNetworkAllowlistService'
 
 const logger = loggerService.withContext('MainEntry')
 
@@ -150,7 +147,7 @@ if (!app.requestSingleInstanceLock()) {
   // Some APIs can only be used after this event occurs.
 
   void app.whenReady().then(async () => {
-    loadProviderNetworkAllowlistFromStore()
+    loadIntranetNetworkAllowlistFromStore()
 
     // Record current version for tracking
     // A preparation for v2 data refactoring
@@ -200,7 +197,6 @@ if (!app.requestSingleInstanceLock()) {
     registerShortcuts(mainWindow)
 
     await registerIpc(mainWindow, app)
-    void syncProviderNetworkAllowlistFromRedux()
     localTransferService.startDiscovery({ resetList: true })
 
     replaceDevtoolsFont(mainWindow)

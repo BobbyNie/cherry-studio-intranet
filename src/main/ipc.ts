@@ -68,7 +68,7 @@ import { ocrService } from './services/ocr/OcrService'
 import { openClawService } from './services/OpenClawService'
 import { isOvmsSupported } from './services/OvmsManager'
 import powerMonitorService from './services/PowerMonitorService'
-import { syncProviderNetworkAllowlistConfigSet } from './services/ProviderNetworkAllowlistService'
+import { syncIntranetNetworkAllowlistConfigSet } from './services/IntranetNetworkAllowlistService'
 import { proxyManager } from './services/ProxyManager'
 import { pythonService } from './services/PythonService'
 import { FileServiceManager } from './services/remotefile/FileServiceManager'
@@ -309,7 +309,7 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
   })
 
   ipcMain.handle(IpcChannel.Config_Set, async (_, key: string, value: any, isNotify: boolean = false) => {
-    if (await syncProviderNetworkAllowlistConfigSet(key)) {
+    if (syncIntranetNetworkAllowlistConfigSet(key, value)) {
       return
     }
 

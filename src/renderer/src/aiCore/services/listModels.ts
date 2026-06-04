@@ -499,9 +499,8 @@ const openAICompatibleFetcher: ModelFetcher = {
 const intranetFetcher: ModelFetcher = {
   match: (p) => isIntranetMode() && p.id === SystemProviderIds.intranet,
   fetch: async (provider, signal) => {
-    const baseUrl = formatApiHost(provider.apiHost)
     try {
-      assertNetworkAllowed(`${baseUrl}/models`)
+      return await openAICompatibleFetcher.fetch(provider, signal)
     } catch (error) {
       logger.warn('Using bundled intranet model preset because model API host is not allowlisted', {
         providerId: provider.id,
@@ -509,7 +508,6 @@ const intranetFetcher: ModelFetcher = {
       })
       return intranetModels
     }
-    return openAICompatibleFetcher.fetch(provider, signal)
   }
 }
 

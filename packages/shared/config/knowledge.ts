@@ -1,27 +1,20 @@
-import { isIntranetMode } from './intranet'
-
-/**
- * Remote knowledge loaders are disabled in intranet mode since they require
- * access to external network resources (WebLoader for URLs, SitemapLoader).
- */
-
 /**
  * WebLoader (remote URL) status
  */
 export function isWebLoaderEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
  * SitemapLoader status
  */
 export function isSitemapLoaderEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
- * Generic check: all remote loaders disabled in intranet mode
+ * Generic check: remote loaders enabled
  */
 export function isRemoteLoaderEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
