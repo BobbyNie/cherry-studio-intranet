@@ -3,7 +3,6 @@ import { loggerService } from '@logger'
 import type { WebSearchState } from '@renderer/store/websearch'
 import type { WebSearchProvider, WebSearchProviderResponse } from '@renderer/types'
 import { fetchWebContent, noContent } from '@renderer/utils/fetch'
-import { assertNetworkAllowed } from '@shared/config/intranet'
 import axios from 'axios'
 import ky from 'ky'
 
@@ -33,7 +32,6 @@ export default class SearxngProvider extends BaseWebSearchProvider {
     }
 
     this.apiHost = provider.apiHost
-    assertNetworkAllowed(this.apiHost)
     this.basicAuthUsername = provider.basicAuthUsername
     this.basicAuthPassword = provider.basicAuthPassword ? provider.basicAuthPassword : ''
 
@@ -64,7 +62,6 @@ export default class SearxngProvider extends BaseWebSearchProvider {
             password: this.basicAuthPassword ? this.basicAuthPassword : ''
           }
         : undefined
-      assertNetworkAllowed(`${this.apiHost}/config`)
       const response = await axios.get<SearxngConfigResponse>(`${this.apiHost}/config`, {
         timeout: 5000,
         validateStatus: (status) => status === 200,

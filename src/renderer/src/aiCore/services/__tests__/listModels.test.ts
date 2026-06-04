@@ -3,7 +3,7 @@
  * Uses real API responses captured from providers to verify model conversion
  */
 import type { Provider } from '@renderer/types'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockGetFromApi = vi.fn()
 const mockCopilotGetToken = vi.fn()
@@ -63,7 +63,30 @@ vi.mock('@renderer/store', () => ({
 }))
 
 const { listModels } = await import('../listModels')
+const { setNetworkAllowlistRules } = await import('@shared/config/intranet')
 const { OllamaTagsResponseSchema } = await import('../schemas')
+
+const originalNetworkEnv = {
+  CHERRY_INTRANET_MODE: process.env.CHERRY_INTRANET_MODE,
+  CHERRY_OFFLINE_MODE: process.env.CHERRY_OFFLINE_MODE,
+  CHERRY_DISABLE_PUBLIC_NETWORK: process.env.CHERRY_DISABLE_PUBLIC_NETWORK
+}
+
+function clearNetworkEnv() {
+  for (const key of Object.keys(originalNetworkEnv)) {
+    delete process.env[key]
+  }
+}
+
+function restoreNetworkEnv() {
+  for (const [key, value] of Object.entries(originalNetworkEnv)) {
+    if (value === undefined) {
+      delete process.env[key]
+    } else {
+      process.env[key] = value
+    }
+  }
+}
 
 // === Real API response fixtures (captured 2026-03-19) ===
 
@@ -375,6 +398,8 @@ beforeEach(() => {
   mockCopilotGetToken.mockReset()
   mockVertexGetAuthHeaders.mockReset()
   mockToastError.mockReset()
+  clearNetworkEnv()
+  setNetworkAllowlistRules([])
   mockStoreState = createMockStoreState()
   mockCopilotGetToken.mockResolvedValue({ token: 'copilot-dynamic-token' })
   mockVertexGetAuthHeaders.mockResolvedValue({ Authorization: 'Bearer vertex-token' })
@@ -393,6 +418,11 @@ beforeEach(() => {
       }
     }
   })
+})
+
+afterEach(() => {
+  restoreNetworkEnv()
+  setNetworkAllowlistRules([])
 })
 
 describe('listModels', () => {
@@ -422,6 +452,25 @@ describe('listModels', () => {
       const models = await listModels(makeProvider({ id: 'deepseek' }))
       assertValidModels(models)
       expect(models).toMatchSnapshot()
+    })
+
+    it('should delegate configured intranet provider hosts to the API client when renderer allowlist is empty', async () => {
+      process.env.CHERRY_INTRANET_MODE = '1'
+      setNetworkAllowlistRules([])
+      mockGetFromApi.mockResolvedValue({ value: REAL_DEEPSEEK })
+
+      const models = await listModels(
+        makeProvider({
+          id: 'deepseek',
+          apiHost: 'http://llm-gateway.intranet.local/v1'
+        })
+      )
+
+      expect(mockGetFromApi).toHaveBeenCalledTimes(1)
+      expect(mockGetFromApi.mock.calls[0][0]).toMatchObject({
+        url: 'http://llm-gateway.intranet.local/v1/models'
+      })
+      expect(models.map((model) => model.id)).toEqual(['deepseek-chat', 'deepseek-reasoner'])
     })
   })
 

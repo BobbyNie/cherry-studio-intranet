@@ -17,7 +17,7 @@ import type { EndpointType, Model, Provider } from '@renderer/types'
 import { SystemProviderIds } from '@renderer/types'
 import { formatApiHost, withoutTrailingSlash } from '@renderer/utils'
 import { isGeminiProvider, isOllamaProvider, isVertexProvider } from '@renderer/utils/provider'
-import { assertNetworkAllowed, isIntranetMode } from '@shared/config/intranet'
+import { isIntranetMode } from '@shared/config/intranet'
 import { defaultAppHeaders } from '@shared/utils'
 import * as z from 'zod'
 
@@ -75,8 +75,6 @@ async function getFromApi<T>({
   responseSchema: z.ZodType<T>
   abortSignal?: AbortSignal
 }): Promise<T> {
-  assertNetworkAllowed(url)
-
   const { value } = await aiSdkGetFromApi({
     url,
     headers,
