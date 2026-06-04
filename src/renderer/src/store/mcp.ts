@@ -17,7 +17,7 @@
 import { loggerService } from '@logger'
 import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit'
 import { type BuiltinMCPServer, BuiltinMCPServerNames, type MCPConfig, type MCPServer } from '@renderer/types'
-import { isIntranetMode } from '@shared/config/intranet'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 
 const logger = loggerService.withContext('Store:MCP')
 const filesystemManualApprovalTools = ['write', 'edit', 'delete'] as const
@@ -256,7 +256,7 @@ const INTRANET_BUILTIN_MCP_NAMES = new Set<string>([
   BuiltinMCPServerNames.browser
 ])
 
-export const builtinMCPServers: BuiltinMCPServer[] = isIntranetMode()
+export const builtinMCPServers: BuiltinMCPServer[] = isMarketplaceDisabled()
   ? publicBuiltinMCPServers
       .filter((server) => INTRANET_BUILTIN_MCP_NAMES.has(server.name))
       .map((server) => ({

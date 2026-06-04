@@ -23,7 +23,7 @@ class AnalyticsService {
 
   public init(): void {
     if (isTelemetryDisabled()) {
-      logger.info('Analytics service disabled in intranet mode')
+      logger.info('Analytics service disabled by configuration')
       return
     }
 

@@ -1,6 +1,5 @@
 import { loggerService } from '@logger'
 import { isMac } from '@main/constant'
-import { isIntranetMode } from '@shared/config/intranet'
 
 import { windowService } from '../WindowService'
 
@@ -34,11 +33,8 @@ const BASE_ALLOWED_ROUTES = [
 export function handleNavigateProtocolUrl(url: URL) {
   const targetPath = url.pathname || '/'
   const normalizedPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`
-  const allowedRoutes = isIntranetMode()
-    ? BASE_ALLOWED_ROUTES.filter((route) => route !== '/openclaw')
-    : BASE_ALLOWED_ROUTES
 
-  if (!allowedRoutes.some((route) => normalizedPath === route || normalizedPath.startsWith(route))) {
+  if (!BASE_ALLOWED_ROUTES.some((route) => normalizedPath === route || normalizedPath.startsWith(route))) {
     logger.warn(`Blocked navigation to disallowed route: ${normalizedPath}`)
     return
   }

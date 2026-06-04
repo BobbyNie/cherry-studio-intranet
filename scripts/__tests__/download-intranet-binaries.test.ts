@@ -17,6 +17,21 @@ describe('download-intranet-binaries build script', () => {
     expect(source).toContain('CHERRY_INTRANET_MODE')
   })
 
+  it('bundles the same Windows Bun baseline archive used at runtime', () => {
+    const buildSource = readFileSync(scriptPath, 'utf8')
+    const runtimeSource = readFileSync(resolve(root, 'resources/scripts/install-bun.js'), 'utf8')
+
+    expect(runtimeSource).toContain("'win32-x64-baseline': 'bun-windows-x64-baseline.zip'")
+    expect(buildSource).toContain("'win32-x64': 'bun-windows-x64-baseline.zip'")
+    expect(buildSource).toContain("'win32-arm64': 'bun-windows-x64-baseline.zip'")
+  })
+
+  it('does not keep unused Node imports in the build script', () => {
+    const source = readFileSync(scriptPath, 'utf8')
+
+    expect(source).not.toContain("const os = require('os')")
+  })
+
   it('is invoked from before-pack with intranet failure semantics', () => {
     const source = readFileSync(beforePackPath, 'utf8')
     expect(source).toContain('download-intranet-binaries.js')

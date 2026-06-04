@@ -28,6 +28,12 @@ vi.mock('../WindowService', () => ({
   }
 }))
 
+vi.mock('../AnalyticsService', () => ({
+  analyticsService: {
+    trackAppUpdate: vi.fn()
+  }
+}))
+
 vi.mock('@main/constant', () => ({
   isWin: false
 }))
@@ -103,7 +109,22 @@ describe('AppUpdater', () => {
   })
 
   describe('intranet mode', () => {
-    it('does not call autoUpdater or remote update config endpoints', async () => {
+    it('checks for updates so the central network guard decides connectivity', async () => {
+      process.env.CHERRY_INTRANET_MODE = 'true'
+      delete process.env.CHERRY_DISABLE_AUTO_UPDATE
+      appUpdater = new AppUpdater()
+
+      const result = await appUpdater.checkForUpdates()
+
+      expect(result).toEqual({
+        currentVersion: '1.0.0',
+        updateInfo: null
+      })
+      expect(net.fetch).toHaveBeenCalled()
+      expect(autoUpdater.checkForUpdates).toHaveBeenCalled()
+    })
+
+    it('does not call autoUpdater or remote update config endpoints when explicitly disabled', async () => {
       process.env.CHERRY_INTRANET_MODE = 'true'
       process.env.CHERRY_DISABLE_AUTO_UPDATE = 'true'
       appUpdater = new AppUpdater()

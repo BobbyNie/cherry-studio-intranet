@@ -68,7 +68,7 @@ export default class AppUpdater {
     if (isAutoUpdateDisabled()) {
       autoUpdater.autoDownload = false
       autoUpdater.autoInstallOnAppQuit = false
-      logger.info('Auto updater disabled in intranet mode')
+      logger.info('Auto updater disabled by configuration')
       this.autoUpdater = autoUpdater
       return
     }
@@ -304,7 +304,7 @@ export default class AppUpdater {
 
   public async checkForUpdates() {
     if (isAutoUpdateDisabled()) {
-      logger.info('Skipping update check because auto updater is disabled in intranet mode')
+      logger.info('Skipping update check because auto updater is disabled by configuration')
       return {
         currentVersion: app.getVersion(),
         updateInfo: null
@@ -350,7 +350,7 @@ export default class AppUpdater {
 
   public quitAndInstall() {
     if (isAutoUpdateDisabled()) {
-      logger.info('quitAndInstall ignored because auto updater is disabled in intranet mode')
+      logger.info('quitAndInstall ignored because auto updater is disabled by configuration')
       return
     }
 

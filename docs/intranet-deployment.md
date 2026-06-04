@@ -15,15 +15,11 @@
 
 ```bash
 CHERRY_INTRANET_MODE=true
-CHERRY_DISABLE_PUBLIC_NETWORK=false
-CHERRY_DISABLE_AUTO_UPDATE=true
-CHERRY_DISABLE_TELEMETRY=true
-CHERRY_DISABLE_MARKETPLACE=true
-CHERRY_DISABLE_EXTERNAL_LINKS=true
 CHERRY_NETWORK_ALLOWLIST=
 ```
 
 `CHERRY_NETWORK_ALLOWLIST` 用于首次启动时种子化白名单（逗号或换行分隔主机名），运行期策略以 **设置 → 通用 → 内网网络白名单** 为准。
+如需产品级硬禁用，可额外设置 `CHERRY_DISABLE_AUTO_UPDATE=true`、`CHERRY_DISABLE_TELEMETRY=true`、`CHERRY_DISABLE_MARKETPLACE=true`、`CHERRY_DISABLE_EXTERNAL_LINKS=true`；这些开关不由 `CHERRY_INTRANET_MODE` 自动启用。
 
 **内网版网络策略**（`CHERRY_INTRANET_MODE`，或兼容的 `CHERRY_OFFLINE_MODE`）：
 
@@ -52,13 +48,13 @@ searxng.intranet.local
 
 Web Search：
 
-- 仅支持内网 SearXNG
-- 默认地址：`http://searxng.intranet.local`
+- 保留 upstream Web Search provider 列表
+- 是否可访问由统一网络白名单决定；如使用内网 SearXNG，将其主机名加入白名单
 
 MCP：
 
 - 保留手动 MCP Server 配置
-- 自动安装、Marketplace、npx 搜索默认禁用
+- Marketplace、自动安装、npx 搜索入口保留；是否可访问由统一网络白名单决定
 - 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`
 
 ## 构建命令
@@ -127,7 +123,7 @@ GitHub Actions `intranet-release.yml` 中的 `pnpm package:mac:intranet` / `pnpm
 2. 在 **设置 → 通用 → 内网网络白名单** 添加企业 LLM Gateway、SearXNG 等主机名并保存。
 3. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
 4. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文（Gateway 主机名须在白名单中）。
-5. 验证 Web Search 只显示内网 SearXNG（SearXNG 主机名须在白名单中）。
+5. 验证 Web Search / MCP / OAuth / auto updater 不因内网模式直接隐藏或 no-op；非白名单目标由中心 guard 阻断。
 6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
 7. 验证点击关于页外链不会打开浏览器。
 8. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
@@ -138,9 +134,8 @@ GitHub Actions `intranet-release.yml` 中的 `pnpm package:mac:intranet` / `pnpm
 本次提交的自动化测试覆盖：
 
 - 内网模式默认 deny-all，仅放行内网网络白名单中的主机名（HTTP/HTTPS/WS/WSS）
-- `safeFetch`、`safeWebSocket` 阻断未列入白名单的目标
-- 内网 provider/Web Search/MCP 默认面
-- autoUpdater 内网模式 no-op
+- 主进程 `fetch`、`electron.net.fetch`、renderer/webview session 请求使用同一中心 guard
+- 内网 provider/Web Search/MCP/autoUpdater 不因内网模式直接隐藏或 no-op
 
 人工验收需补充：
 

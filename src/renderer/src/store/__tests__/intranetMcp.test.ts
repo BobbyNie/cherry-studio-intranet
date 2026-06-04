@@ -8,7 +8,19 @@ describe('intranet MCP defaults', () => {
     vi.resetModules()
   })
 
-  it('hides MCP auto install and public marketplace-oriented built-ins', async () => {
+  it('keeps MCP auto install and marketplace-oriented built-ins unless marketplace is explicitly disabled', async () => {
+    process.env.CHERRY_INTRANET_MODE = 'true'
+    delete process.env.CHERRY_DISABLE_MARKETPLACE
+    vi.resetModules()
+
+    const { builtinMCPServers } = await import('../mcp')
+    const serverNames = builtinMCPServers.map((server) => server.name)
+
+    expect(serverNames).toContain('@cherry/mcp-auto-install')
+    expect(serverNames).toContain('@cherry/brave-search')
+  })
+
+  it('hides MCP auto install and public marketplace-oriented built-ins when marketplace is explicitly disabled', async () => {
     process.env.CHERRY_INTRANET_MODE = 'true'
     process.env.CHERRY_DISABLE_MARKETPLACE = 'true'
     vi.resetModules()

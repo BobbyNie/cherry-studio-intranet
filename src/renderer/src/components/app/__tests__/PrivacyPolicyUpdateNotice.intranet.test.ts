@@ -8,8 +8,9 @@ describe('PrivacyPolicyUpdateNotice intranet guards', () => {
     vi.resetModules()
   })
 
-  it('treats telemetry as disabled in intranet mode', async () => {
+  it('treats telemetry as disabled only when explicitly disabled in intranet mode', async () => {
     process.env.CHERRY_INTRANET_MODE = 'true'
+    process.env.CHERRY_DISABLE_TELEMETRY = 'true'
     vi.resetModules()
 
     const { isTelemetryDisabled } = await import('@shared/config/intranet')

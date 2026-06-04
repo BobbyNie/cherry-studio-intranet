@@ -9,7 +9,7 @@ import MCPDescription from '@renderer/pages/settings/MCPSettings/McpDescription'
 import type { MCPPrompt, MCPResource, MCPServer, MCPTool } from '@renderer/types'
 import { parseKeyValueString } from '@renderer/utils/env'
 import { formatMcpError } from '@renderer/utils/error'
-import { isIntranetMode } from '@shared/config/intranet'
+import { isMarketplaceDisabled } from '@shared/config/intranet'
 import type { MCPServerLogEntry } from '@shared/config/types'
 import type { TabsProps } from 'antd'
 import { Badge, Button, Flex, Form, Input, Modal, Radio, Select, Switch, Tabs, Tag, Typography } from 'antd'
@@ -56,20 +56,12 @@ const NpmRegistry: Registry[] = [
   { name: '淘宝 NPM Mirror', url: 'https://registry.npmmirror.com' },
   { name: '自定义', url: 'custom' }
 ]
-const IntranetNpmRegistry: Registry[] = [
-  { name: '企业内网 NPM Registry', url: 'http://npm-registry.intranet.local:4873' },
-  { name: '自定义', url: 'custom' }
-]
 const PipRegistry: Registry[] = [
   { name: '清华大学', url: 'https://pypi.tuna.tsinghua.edu.cn/simple' },
   { name: '阿里云', url: 'http://mirrors.aliyun.com/pypi/simple/' },
   { name: '中国科学技术大学', url: 'https://mirrors.ustc.edu.cn/pypi/simple/' },
   { name: '华为云', url: 'https://repo.huaweicloud.com/repository/pypi/simple/' },
   { name: '腾讯云', url: 'https://mirrors.cloud.tencent.com/pypi/simple/' }
-]
-const IntranetPipRegistry: Registry[] = [
-  { name: '企业内网 PyPI Mirror', url: 'http://pypi.intranet.local/simple' },
-  { name: '自定义', url: 'custom' }
 ]
 
 type TabKey = 'settings' | 'description' | 'tools' | 'prompts' | 'resources'
@@ -95,7 +87,7 @@ const McpSettings: React.FC = () => {
   const [registry, setRegistry] = useState<Registry[]>()
   const [customRegistryUrl, setCustomRegistryUrl] = useState('')
   const [selectedRegistryType, setSelectedRegistryType] = useState<string>('')
-  const intranetMode = isIntranetMode()
+  const marketplaceDisabled = isMarketplaceDisabled()
 
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [serverVersion, setServerVersion] = useState<string | null>(null)
@@ -108,21 +100,18 @@ const McpSettings: React.FC = () => {
   const navigate = useNavigate()
 
   // Watch for command field changes
-  const handleCommandChange = useCallback(
-    (command: string) => {
-      if (command.includes('uv') || command.includes('uvx')) {
-        setIsShowRegistry(true)
-        setRegistry(intranetMode ? IntranetPipRegistry : PipRegistry)
-      } else if (command.includes('npx') || command.includes('bun') || command.includes('bunx')) {
-        setIsShowRegistry(true)
-        setRegistry(intranetMode ? IntranetNpmRegistry : NpmRegistry)
-      } else {
-        setIsShowRegistry(false)
-        setRegistry(undefined)
-      }
-    },
-    [intranetMode]
-  )
+  const handleCommandChange = useCallback((command: string) => {
+    if (command.includes('uv') || command.includes('uvx')) {
+      setIsShowRegistry(true)
+      setRegistry(PipRegistry)
+    } else if (command.includes('npx') || command.includes('bun') || command.includes('bunx')) {
+      setIsShowRegistry(true)
+      setRegistry(NpmRegistry)
+    } else {
+      setIsShowRegistry(false)
+      setRegistry(undefined)
+    }
+  }, [])
 
   // Initialize form values whenever the server changes
   useEffect(() => {
@@ -140,14 +129,14 @@ const McpSettings: React.FC = () => {
         // Determine registry type based on command
         let currentRegistry: Registry[] = []
         if (server.command.includes('uv') || server.command.includes('uvx')) {
-          currentRegistry = intranetMode ? IntranetPipRegistry : PipRegistry
+          currentRegistry = PipRegistry
           setRegistry(currentRegistry)
         } else if (
           server.command.includes('npx') ||
           server.command.includes('bun') ||
           server.command.includes('bunx')
         ) {
-          currentRegistry = intranetMode ? IntranetNpmRegistry : NpmRegistry
+          currentRegistry = NpmRegistry
           setRegistry(currentRegistry)
         }
 
@@ -201,7 +190,7 @@ const McpSettings: React.FC = () => {
       logoUrl: server.logoUrl || '',
       tags: server.tags || []
     })
-  }, [server, form, handleCommandChange, intranetMode])
+  }, [server, form, handleCommandChange])
 
   // Watch for serverType changes
   useEffect(() => {
@@ -626,7 +615,7 @@ const McpSettings: React.FC = () => {
                   tooltip={t('settings.mcp.registryTooltip')}>
                   <Radio.Group
                     value={selectedRegistryType === 'custom' ? 'custom' : form.getFieldValue('registryUrl') || ''}>
-                    {!intranetMode && (
+                    {!marketplaceDisabled && (
                       <Radio
                         key="no-proxy"
                         value=""

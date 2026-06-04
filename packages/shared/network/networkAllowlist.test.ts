@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   getNetworkAllowlistRules,
+  normalizeNetworkAllowlistRule,
   normalizeNetworkAllowlistRules,
   setNetworkAllowlistRules,
   urlMatchesNetworkAllowlist
@@ -13,6 +14,11 @@ describe('networkAllowlist', () => {
   })
 
   describe('normalizeNetworkAllowlistRules', () => {
+    it('normalizes one URL input to a hostname for UI validation', () => {
+      expect(normalizeNetworkAllowlistRule('https://Api.Comp.Com:8443/v1/chat')).toBe('api.comp.com')
+      expect(normalizeNetworkAllowlistRule('api.comp.com:8443')).toBeNull()
+    })
+
     it('trims, lowercases, dedupes, and extracts hostnames from URLs', () => {
       expect(
         normalizeNetworkAllowlistRules([
@@ -22,6 +28,17 @@ describe('networkAllowlist', () => {
           'http://127.0.0.1:11434/v1'
         ])
       ).toEqual(['comp.com', 'api.comp.com', '127.0.0.1'])
+    })
+
+    it('rejects non-URL inputs with path, port, or CIDR notation instead of truncating them', () => {
+      expect(
+        normalizeNetworkAllowlistRules([
+          'llm-gateway.intranet.local/v1/chat',
+          'llm-gateway.intranet.local:8080',
+          '10.0.0.0/8',
+          'host:bad'
+        ])
+      ).toEqual([])
     })
 
     it('rejects invalid rules', () => {

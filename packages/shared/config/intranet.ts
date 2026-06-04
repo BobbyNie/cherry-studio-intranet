@@ -49,19 +49,19 @@ export function isPublicNetworkDisabled(): boolean {
 }
 
 export function isAutoUpdateDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_AUTO_UPDATE')
+  return isFlagEnabled('CHERRY_DISABLE_AUTO_UPDATE')
 }
 
 export function isTelemetryDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_TELEMETRY')
+  return isFlagEnabled('CHERRY_DISABLE_TELEMETRY')
 }
 
 export function isMarketplaceDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_MARKETPLACE')
+  return isFlagEnabled('CHERRY_DISABLE_MARKETPLACE')
 }
 
 export function areExternalLinksDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
+  return isFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
 }
 
 export function parseNetworkAllowlistFromEnv(raw = readEnv('CHERRY_NETWORK_ALLOWLIST')): string[] {

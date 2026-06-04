@@ -11,12 +11,21 @@ const { assertNetworkAllowed } = require('./network-guard')
  * @returns {Promise<void>} Promise that resolves when download is complete
  */
 async function downloadWithRedirects(url, destinationPath) {
-  assertNetworkAllowed(url)
   return new Promise((resolve, reject) => {
     const request = (url) => {
+      try {
+        assertNetworkAllowed(url)
+      } catch (error) {
+        reject(error)
+        return
+      }
       https
         .get(url, (response) => {
           if (response.statusCode == 301 || response.statusCode == 302) {
+            if (!response.headers.location) {
+              reject(new Error('Download redirect missing Location header'))
+              return
+            }
             request(response.headers.location)
             return
           }

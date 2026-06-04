@@ -3513,7 +3513,6 @@ const migrateConfig = {
       state.settings.proxyMode = 'none'
       state.settings.proxyUrl = undefined
       state.settings.proxyBypassRules = undefined
-      state.settings.autoCheckUpdate = false
 
       state.llm.providers = state.llm.providers.map((provider) => {
         if (provider.id !== 'intranet') {
@@ -3562,9 +3561,6 @@ const migrateConfig = {
         )
       }
 
-      if (state.websearch) {
-        state.websearch.providers = []
-      }
       logger.info('migrate 210 success')
       return state
     } catch (error) {

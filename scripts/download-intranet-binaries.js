@@ -12,7 +12,6 @@
  */
 const fs = require('fs')
 const path = require('path')
-const os = require('os')
 const { execFileSync } = require('child_process')
 
 const UV_VERSION = '0.9.5'
@@ -31,8 +30,8 @@ const UV_PACKAGES = {
 const BUN_PACKAGES = {
   'darwin-arm64': 'bun-darwin-aarch64.zip',
   'darwin-x64': 'bun-darwin-x64.zip',
-  'win32-arm64': 'bun-windows-x64.zip',
-  'win32-x64': 'bun-windows-x64.zip',
+  'win32-arm64': 'bun-windows-x64-baseline.zip',
+  'win32-x64': 'bun-windows-x64-baseline.zip',
   'linux-arm64': 'bun-linux-aarch64.zip',
   'linux-x64': 'bun-linux-x64.zip'
 }

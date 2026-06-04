@@ -2,6 +2,8 @@ export type NetworkAllowlistRule = string
 
 const HOSTNAME_PATTERN =
   /^(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*|\d{1,3}(?:\.\d{1,3}){3})$/i
+const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i
+const BARE_RULE_FORBIDDEN_CHARS = /[/:\\]/
 
 let networkAllowlistRules: NetworkAllowlistRule[] = []
 
@@ -28,7 +30,7 @@ function extractRuleFromInput(raw: string): string | null {
     return null
   }
 
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) {
+  if (URL_SCHEME_PATTERN.test(trimmed)) {
     try {
       const parsed = new URL(trimmed)
       if (parsed.username || parsed.password) {
@@ -41,8 +43,21 @@ function extractRuleFromInput(raw: string): string | null {
     }
   }
 
-  const hostname = normalizeHostname(trimmed.split('/')[0]?.split(':')[0] ?? '')
+  if (BARE_RULE_FORBIDDEN_CHARS.test(trimmed)) {
+    return null
+  }
+
+  const hostname = normalizeHostname(trimmed)
   return hostname || null
+}
+
+export function normalizeNetworkAllowlistRule(rule: string): string | null {
+  const candidate = extractRuleFromInput(rule)
+  if (!candidate || !isValidAllowlistRule(candidate)) {
+    return null
+  }
+
+  return candidate
 }
 
 export function normalizeNetworkAllowlistRules(rules: string[]): string[] {
@@ -50,8 +65,8 @@ export function normalizeNetworkAllowlistRules(rules: string[]): string[] {
   const normalized: string[] = []
 
   for (const raw of rules) {
-    const candidate = extractRuleFromInput(raw)
-    if (!candidate || !isValidAllowlistRule(candidate)) {
+    const candidate = normalizeNetworkAllowlistRule(raw)
+    if (!candidate) {
       continue
     }
 

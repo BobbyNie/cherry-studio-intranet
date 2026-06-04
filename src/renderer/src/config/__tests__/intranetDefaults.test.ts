@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@shared/utils/pdf', () => ({
+  extractPdfText: vi.fn()
+}))
+
 describe('offline renderer defaults', () => {
   const originalEnv = { ...process.env }
 
@@ -28,13 +32,24 @@ describe('offline renderer defaults', () => {
     expect(INTRANET_BLOCKED_PROVIDER_IDS).toEqual(['zhinao', 'gitee-ai'])
   })
 
-  it('defaults web search to disabled in offline mode', async () => {
-    process.env.CHERRY_OFFLINE_MODE = 'true'
+  it('keeps web search providers visible in intranet mode so the central network guard decides connectivity', async () => {
+    process.env.CHERRY_INTRANET_MODE = 'true'
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
     vi.resetModules()
 
     const { WEB_SEARCH_PROVIDERS } = await import('../webSearchProviders')
 
-    expect(WEB_SEARCH_PROVIDERS).toEqual([])
+    expect(WEB_SEARCH_PROVIDERS.map((provider) => provider.id)).toEqual([
+      'zhipu',
+      'tavily',
+      'searxng',
+      'exa',
+      'exa-mcp',
+      'bocha',
+      'local-google',
+      'local-bing',
+      'local-baidu',
+      'querit'
+    ])
   })
 })
