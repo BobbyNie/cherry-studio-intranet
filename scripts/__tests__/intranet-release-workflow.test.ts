@@ -144,6 +144,13 @@ describe('intranet release workflow', () => {
     expect(buildStep?.env?.CSC_IDENTITY_AUTO_DISCOVERY).toBe('false')
   })
 
+  it('bundles offline tool binaries during electron-builder beforePack', () => {
+    const beforePack = readFileSync(resolve(root, 'scripts/before-pack.js'), 'utf8')
+    expect(beforePack).toContain('download-rtk-binaries.js')
+    expect(beforePack).toContain('download-intranet-binaries.js')
+    expect(beforePack).toContain('resources/binaries')
+  })
+
   it('keeps Windows portable target available for release users', () => {
     const builderConfig = parse(readFileSync(builderConfigPath, 'utf8'))
     const winTargets = builderConfig.win.target.map((target: { target: string }) => target.target)

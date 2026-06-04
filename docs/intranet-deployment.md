@@ -72,6 +72,19 @@ corepack pnpm package:win:intranet
 
 `build:intranet`、`package:mac:intranet`、`package:win:intranet` 会先加载 `.env.intranet.example`，再加载可选 `.env.intranet` 覆盖，因此没有本地 env 文件时也会按内网模式构建。
 
+### 离线工具安装包（与 RTK 相同框架）
+
+内网 Release 打包时，`electron-builder` 的 `beforePack`（`scripts/before-pack.js`）会按目标平台把工具二进制写入 `resources/binaries/<platform>-<arch>/`，并随安装包分发（`asarUnpack` 已包含 `resources/**`）：
+
+| 构建期脚本 | 内容 | 运行时消费 |
+|---|---|---|
+| `scripts/download-rtk-binaries.js` | `rtk` / `rtk.exe` | `extractRtkBinaries()` |
+| `scripts/download-intranet-binaries.js`（需 `CHERRY_INTRANET_MODE=true`） | `uv` / `bun` / `openclaw` 对应平台压缩包；Windows x64 另含 OVMS 两个 zip | `resources/scripts/install-*.js` → `local-binary.js` |
+
+GitHub Actions `intranet-release.yml` 中的 `pnpm package:mac:intranet` / `pnpm package:win:intranet` 会触发上述流程；构建机需能访问 GitCode 等镜像（与原先 RTK 从 GitHub 下载类似，属于**构建期**外联，不是用户运行时策略）。
+
+若构建环境完全不能出网，可手动将同名归档文件放入 `resources/binaries/<platform>-<arch>/` 后再执行 `package:*:intranet`。
+
 如果内网没有完整 pnpm store，请先在联网构建机执行依赖缓存同步，再把 pnpm store 和项目 lockfile 带入内网。
 
 ## GitHub Actions 自动发布

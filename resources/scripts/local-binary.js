@@ -5,6 +5,10 @@ const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
 
 /**
+ * Runtime install reads archives pre-bundled at build time by
+ * scripts/download-intranet-binaries.js (intranet release / before-pack),
+ * same layout as scripts/download-rtk-binaries.js.
+ *
  * @param {string} platformKey e.g. darwin-arm64
  * @returns {string} resources/binaries/<platformKey>
  */
