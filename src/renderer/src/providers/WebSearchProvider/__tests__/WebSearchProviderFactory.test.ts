@@ -1,8 +1,9 @@
 import type { WebSearchProvider } from '@renderer/types'
+import type * as IntranetConfig from '@shared/config/intranet'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@shared/config/intranet', async () => {
-  const actual = await vi.importActual<typeof import('@shared/config/intranet')>('@shared/config/intranet')
+  const actual = await vi.importActual<typeof IntranetConfig>('@shared/config/intranet')
   return {
     ...actual,
     isIntranetMode: () => true

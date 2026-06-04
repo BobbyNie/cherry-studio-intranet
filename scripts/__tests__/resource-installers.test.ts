@@ -166,6 +166,7 @@ describe('resource installer network policy', () => {
     })
 
     const httpsGet = vi.spyOn(https, 'get').mockImplementation(((url: string, callback: (response: any) => void) => {
+      void url
       const request = new EventEmitter()
       const response = new EventEmitter() as any
       response.statusCode = 302

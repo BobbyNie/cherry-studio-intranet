@@ -1,3 +1,4 @@
+import type * as IntranetConfig from '@shared/config/intranet'
 import { render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -5,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@renderer/databases', () => ({}))
 
 vi.mock('@shared/config/intranet', async () => {
-  const actual = await vi.importActual<typeof import('@shared/config/intranet')>('@shared/config/intranet')
+  const actual = await vi.importActual<typeof IntranetConfig>('@shared/config/intranet')
   return {
     ...actual,
     isIntranetMode: () => true

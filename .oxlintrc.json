@@ -20,6 +20,8 @@
     "src/main/integration/nutstore/sso/lib/**",
     "src/renderer/src/ui/**",
     "packages/**/dist",
+    "resources/**/vendor/**",
+    "src/renderer/public/pyodide/**",
     "eslint.config.mjs"
   ],
   "options": {
