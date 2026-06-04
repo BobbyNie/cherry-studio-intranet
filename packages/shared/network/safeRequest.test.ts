@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { OfflineNetworkBlockedError, setProviderAllowedEndpoints } from '../config/intranet'
-import { extractProviderEndpoints } from '../config/providerEndpoints'
+import { OfflineNetworkBlockedError, setNetworkAllowlistRules } from '../config/intranet'
 import { safeFetch, safeWebSocket } from './safeRequest'
 
 describe('safeRequest', () => {
@@ -13,14 +12,14 @@ describe('safeRequest', () => {
     process.env = { ...originalEnv }
     process.env.CHERRY_OFFLINE_MODE = 'true'
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
-    setProviderAllowedEndpoints([])
+    setNetworkAllowlistRules([])
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
     globalThis.fetch = originalFetch
     globalThis.WebSocket = originalWebSocket
-    setProviderAllowedEndpoints([])
+    setNetworkAllowlistRules([])
   })
 
   it('blocks public fetch targets in offline mode', async () => {
@@ -31,20 +30,20 @@ describe('safeRequest', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('blocks fetch targets until provider endpoints are configured', async () => {
+  it('blocks fetch targets until network allowlist rules are configured', async () => {
     const fetchMock = vi.fn()
     globalThis.fetch = fetchMock as typeof fetch
 
     await expect(safeFetch('http://127.0.0.1:8000/v1/models')).rejects.toThrow(OfflineNetworkBlockedError)
 
-    setProviderAllowedEndpoints(extractProviderEndpoints([{ enabled: true, apiHost: 'http://127.0.0.1:8000/v1' }]))
+    setNetworkAllowlistRules(['127.0.0.1'])
     const response = new Response('{}', { status: 200 })
     fetchMock.mockResolvedValue(response)
 
     await expect(safeFetch('http://127.0.0.1:8000/v1/models')).resolves.toBe(response)
     expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:8000/v1/models', undefined)
 
-    await expect(safeFetch('http://127.0.0.1:8000/oauth/token')).rejects.toThrow(OfflineNetworkBlockedError)
+    await expect(safeFetch('http://127.0.0.2:8000/v1/models')).rejects.toThrow(OfflineNetworkBlockedError)
   })
 
   it('blocks public websocket targets in offline mode', () => {
@@ -55,17 +54,14 @@ describe('safeRequest', () => {
     expect(webSocketMock).not.toHaveBeenCalled()
   })
 
-  it('allows websocket targets only when configured as websocket provider endpoints', () => {
+  it('allows websocket targets when hostname is allowlisted', () => {
     const webSocketMock = vi.fn(function WebSocketMock() {})
     globalThis.WebSocket = webSocketMock as unknown as typeof WebSocket
 
-    setProviderAllowedEndpoints(
-      extractProviderEndpoints([{ enabled: true, apiHost: 'wss://realtime.intranet.local/v1' }])
-    )
+    setNetworkAllowlistRules(['realtime.intranet.local'])
 
     expect(() => safeWebSocket('wss://realtime.intranet.local/v1/chat')).not.toThrow()
-    expect(() => safeWebSocket('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
-    expect(() => safeWebSocket('wss://realtime.intranet.local/oauth/token')).toThrow(OfflineNetworkBlockedError)
+    expect(() => safeWebSocket('wss://other.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
     expect(webSocketMock).toHaveBeenCalledTimes(1)
   })
 })
