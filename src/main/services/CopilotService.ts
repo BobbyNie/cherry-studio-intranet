@@ -1,5 +1,4 @@
 import { loggerService } from '@logger'
-import { isCopilotEnabled } from '@shared/config/oauth'
 import { app, net, safeStorage } from 'electron'
 import fs from 'fs'
 import path from 'path'
@@ -87,15 +86,6 @@ class CopilotService {
   }
 
   /**
-   * 检查 Copilot 是否启用（内网模式下禁用）
-   */
-  private ensureCopilotEnabled = (): void => {
-    if (!isCopilotEnabled()) {
-      throw new CopilotServiceError('GitHub Copilot integration is disabled in intranet mode')
-    }
-  }
-
-  /**
    * 设置自定义请求头
    */
   private updateHeaders = (headers?: Record<string, string>): void => {
@@ -108,7 +98,6 @@ class CopilotService {
    * 获取GitHub登录信息
    */
   public getUser = async (_: Electron.IpcMainInvokeEvent, token: string): Promise<UserResponse> => {
-    this.ensureCopilotEnabled()
     try {
       const response = await net.fetch(CONFIG.API_URLS.GITHUB_USER, {
         method: 'GET',
@@ -145,7 +134,6 @@ class CopilotService {
     _: Electron.IpcMainInvokeEvent,
     headers?: Record<string, string>
   ): Promise<AuthResponse> => {
-    this.ensureCopilotEnabled()
     try {
       this.updateHeaders(headers)
 
@@ -180,7 +168,6 @@ class CopilotService {
     device_code: string,
     headers?: Record<string, string>
   ): Promise<TokenResponse> => {
-    this.ensureCopilotEnabled()
     this.updateHeaders(headers)
 
     let currentDelay = CONFIG.POLLING.INITIAL_DELAY_MS
@@ -230,7 +217,6 @@ class CopilotService {
    * 保存Copilot令牌到本地文件
    */
   public saveCopilotToken = async (_: Electron.IpcMainInvokeEvent, token: string): Promise<void> => {
-    this.ensureCopilotEnabled()
     try {
       const encryptedToken = safeStorage.encryptString(token)
       // 确保目录存在
@@ -253,7 +239,6 @@ class CopilotService {
     _: Electron.IpcMainInvokeEvent,
     headers?: Record<string, string>
   ): Promise<CopilotTokenResponse> => {
-    this.ensureCopilotEnabled()
     try {
       this.updateHeaders(headers)
 

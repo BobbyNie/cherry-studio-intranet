@@ -19,7 +19,6 @@ import { IpcChannel } from '@shared/IpcChannel'
 import { ipcMain } from 'electron'
 
 import { CacheService } from './CacheService'
-import { syncProviderNetworkAllowlistFromRedux } from './ProviderNetworkAllowlistService'
 import { windowService } from './WindowService'
 
 type StoreValue = any
@@ -51,7 +50,6 @@ export class ReduxService {
     ipcMain.handle(IpcChannel.ReduxStoreReady, () => {
       this.isReady = true
       this.resolveReady()
-      void syncProviderNetworkAllowlistFromRedux()
     })
   }
 
@@ -101,9 +99,6 @@ export class ReduxService {
       await webContents.executeJavaScript(`window.store.dispatch(${JSON.stringify(action)})`)
       if (action?.type && typeof action.type === 'string') {
         invalidateApiServerProvidersCacheForAction(action.type)
-        if (PROVIDER_CACHE_INVALIDATION_ACTIONS.has(action.type)) {
-          await syncProviderNetworkAllowlistFromRedux()
-        }
       }
     } catch (error) {
       logger.error('Failed to dispatch action:', error as Error)

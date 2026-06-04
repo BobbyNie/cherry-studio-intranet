@@ -5,6 +5,8 @@ const https = require('https')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
 const { downloadWithRedirects } = require('./download')
+const { assertNetworkAllowed } = require('./network-guard')
+const { installFromBundledArchive } = require('./local-binary')
 
 // Download sources
 const GITCODE_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/openclaw-releases/releases/download'
@@ -19,6 +21,13 @@ const API_TIMEOUT_MS = 5000
  * @returns {Promise<string>} The latest version tag or DEFAULT_VERSION on failure
  */
 async function getLatestVersion(timeoutMs = API_TIMEOUT_MS) {
+  try {
+    assertNetworkAllowed(GITHUB_API_LATEST_RELEASE)
+  } catch {
+    console.warn('GitHub API blocked by network policy, using default version')
+    return DEFAULT_VERSION
+  }
+
   return new Promise((resolve) => {
     const request = https.get(
       GITHUB_API_LATEST_RELEASE,
@@ -239,6 +248,12 @@ async function installOpenClaw() {
   const version = await getLatestVersion()
   const platform = os.platform()
   const arch = os.arch()
+  const platformKey = `${platform}-${arch}`
+  const packageName = OPENCLAW_PACKAGES[platformKey]
+
+  if (packageName && (await installFromBundledArchive(platformKey, packageName, platform))) {
+    return 0
+  }
 
   // Check for mirror flag from environment variable
   const useMirror = process.env.OPENCLAW_USE_MIRROR === '1'

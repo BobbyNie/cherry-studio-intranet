@@ -4754,6 +4754,15 @@
         "russian": "Russian"
       }
     },
+    "intranet": {
+      "allowlist": {
+        "description": "When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "Invalid allowlist rule: {{rule}}",
+        "placeholder": "llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "Network allowlist saved",
+        "title": "Intranet network allowlist"
+      }
+    },
     "launch": {
       "onboot": "Start Automatically on Boot",
       "title": "Launch",

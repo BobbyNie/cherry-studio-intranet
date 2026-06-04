@@ -1,27 +1,20 @@
-import { isIntranetMode } from './intranet'
-
-/**
- * Remote MCP transports are disabled in intranet mode since they require
- * access to external network resources (SSE, StreamableHTTP).
- */
-
 /**
  * SSE transport status
  */
 export function isSseTransportEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
  * StreamableHTTP transport status
  */
 export function isStreamableHttpTransportEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
- * Generic check: all remote MCP transports disabled in intranet mode
+ * Generic check: remote MCP transports enabled
  */
 export function isRemoteMcpTransportEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }

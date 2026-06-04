@@ -6,13 +6,13 @@ import {
   isIntranetMode,
   isOfflineMode,
   isPublicNetworkDisabled,
-  OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE,
+  OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE,
   OfflineNetworkBlockedError,
+  parseNetworkAllowlistFromEnv,
   sanitizeExternalUrl,
-  setProviderAllowedEndpoints
+  setNetworkAllowlistRules
 } from './intranet'
 import * as intranetConfig from './intranet'
-import { extractProviderEndpoints } from './providerEndpoints'
 
 describe('offline network config', () => {
   const originalEnv = { ...process.env }
@@ -25,12 +25,13 @@ describe('offline network config', () => {
     process.env.CHERRY_DISABLE_EXTERNAL_LINKS = 'true'
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_LOCAL_MODEL_ALLOWED_PORTS
-    setProviderAllowedEndpoints([])
+    delete process.env.CHERRY_NETWORK_ALLOWLIST
+    setNetworkAllowlistRules([])
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
-    setProviderAllowedEndpoints([])
+    setNetworkAllowlistRules([])
   })
 
   it('detects offline mode and disabled update flags', () => {
@@ -45,9 +46,11 @@ describe('offline network config', () => {
     expect('getOfflineNetworkRuntimeConfig' in intranetConfig).toBe(false)
     expect('setOfflineNetworkRuntimeConfig' in intranetConfig).toBe(false)
     expect('validateLocalModelApiHost' in intranetConfig).toBe(false)
+    expect('getProviderAllowedEndpoints' in intranetConfig).toBe(false)
+    expect('setProviderAllowedEndpoints' in intranetConfig).toBe(false)
   })
 
-  it('rejects all network access when no provider endpoints are configured', () => {
+  it('rejects all network access when no allowlist rules are configured', () => {
     expect(() => assertNetworkAllowed('http://localhost:11434/api/tags')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/models')).toThrow(
@@ -55,49 +58,49 @@ describe('offline network config', () => {
     )
   })
 
-  it('allows configured provider endpoints including internal domains', () => {
-    setProviderAllowedEndpoints(
-      extractProviderEndpoints([
-        { enabled: true, apiHost: 'http://llm-gateway.intranet.local/v1' },
-        { enabled: true, apiHost: 'http://127.0.0.1:11434' }
-      ])
-    )
+  it('allows configured hostnames including internal domains regardless of path', () => {
+    setNetworkAllowlistRules(['llm-gateway.intranet.local', '127.0.0.1'])
 
     expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/chat/completions')).not.toThrow()
-    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/oauth/token')).toThrow(
-      OfflineNetworkBlockedError
-    )
+    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/oauth/token')).not.toThrow()
     expect(() => assertNetworkAllowed('http://127.0.0.1:11434/api/tags')).not.toThrow()
-    expect(() => assertNetworkAllowed('ws://127.0.0.1:11434/ws')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('ws://127.0.0.1:11434/ws')).not.toThrow()
   })
 
-  it('allows websocket requests only when websocket endpoints are explicitly configured', () => {
-    setProviderAllowedEndpoints(
-      extractProviderEndpoints([{ enabled: true, apiHost: 'wss://realtime.intranet.local/v1' }])
-    )
+  it('allows websocket and https requests to the same allowlisted hostname', () => {
+    setNetworkAllowlistRules(['realtime.intranet.local'])
 
     expect(() => assertNetworkAllowed('wss://realtime.intranet.local/v1/chat')).not.toThrow()
-    expect(() => assertNetworkAllowed('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('https://realtime.intranet.local/v1/chat')).not.toThrow()
   })
 
-  it('rejects unconfigured targets even when another localhost provider endpoint is configured', () => {
-    setProviderAllowedEndpoints(extractProviderEndpoints([{ enabled: true, apiHost: 'http://127.0.0.1:11434/v1' }]))
+  it('rejects unconfigured hostnames even when another allowlisted host exists', () => {
+    setNetworkAllowlistRules(['127.0.0.1'])
 
     expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/models')).toThrow(
       OfflineNetworkBlockedError
     )
-    expect(() => assertNetworkAllowed('http://127.0.0.1:8080/v1/models')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('http://127.0.0.2:8080/v1/models')).toThrow(OfflineNetworkBlockedError)
   })
 
-  it('requires provider configuration before allowing network access', () => {
+  it('uses empty allowlist message when no rules are configured', () => {
     try {
       assertNetworkAllowed('http://127.0.0.1:11434/api/tags')
       throw new Error('expected blocked error')
     } catch (error) {
       expect(error).toBeInstanceOf(OfflineNetworkBlockedError)
-      expect((error as Error).message).toBe(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
+      expect((error as Error).message).toBe(OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE)
     }
+  })
+
+  it('parses CHERRY_NETWORK_ALLOWLIST from comma or newline separated env values', () => {
+    process.env.CHERRY_NETWORK_ALLOWLIST = 'llm-gateway.intranet.local, *.searxng.intranet.local\n127.0.0.1'
+
+    const rules = parseNetworkAllowlistFromEnv()
+    expect(rules).toEqual(['llm-gateway.intranet.local', '*.searxng.intranet.local', '127.0.0.1'])
+    setNetworkAllowlistRules(rules)
+    expect(() => assertNetworkAllowed('http://search.searxng.intranet.local/search')).not.toThrow()
   })
 
   it('sanitizes external links when external links are disabled', () => {

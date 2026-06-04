@@ -2,6 +2,7 @@ const https = require('https')
 const fs = require('fs')
 const path = require('path')
 const { execSync } = require('child_process')
+const { assertNetworkAllowed } = require('./network-guard')
 
 /**
  * Downloads a file from a URL with redirect handling
@@ -10,6 +11,7 @@ const { execSync } = require('child_process')
  * @returns {Promise<void>} Promise that resolves when download is complete
  */
 async function downloadWithRedirects(url, destinationPath) {
+  assertNetworkAllowed(url)
   return new Promise((resolve, reject) => {
     const request = (url) => {
       https
@@ -41,6 +43,7 @@ async function downloadWithRedirects(url, destinationPath) {
  * @returns {Promise<boolean>} Promise that resolves to true if download succeeds
  */
 async function downloadWithPowerShell(url, destinationPath) {
+  assertNetworkAllowed(url)
   return new Promise((resolve, reject) => {
     try {
       // Only support windows platform for PowerShell download

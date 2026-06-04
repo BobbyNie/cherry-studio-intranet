@@ -4754,6 +4754,15 @@
         "russian": "Rusă"
       }
     },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
+      }
+    },
     "launch": {
       "onboot": "Pornește automat la pornirea sistemului",
       "title": "Lansare",

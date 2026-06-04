@@ -1,19 +1,17 @@
 import {
-  deserializeProviderEndpoints,
-  type ProviderEndpoint,
-  serializeProviderEndpoints,
-  urlMatchesProviderEndpoints
-} from './providerEndpoints'
+  getNetworkAllowlistRules,
+  normalizeNetworkAllowlistRules,
+  urlMatchesNetworkAllowlist
+} from '../network/networkAllowlist'
 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 export const OFFLINE_NETWORK_BLOCKED_MESSAGE = '完全离线版已禁用网络访问'
-export const OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE = '请先在模型 Provider 中配置 API 地址'
+export const OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE = '网络白名单为空，已禁止所有网络访问'
 
-let providerAllowedEndpoints: ProviderEndpoint[] = []
-
-const PROVIDER_ENDPOINTS_STORAGE_KEY = 'cherry.providerAllowedEndpoints'
+/** @deprecated Use OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE */
+export const OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE = OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE
 
 function getProcessEnv(): Record<string, string | undefined> {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
@@ -66,44 +64,24 @@ export function areExternalLinksDisabled(): boolean {
   return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
 }
 
-export function getProviderAllowedEndpoints(): ProviderEndpoint[] {
-  hydrateProviderAllowedEndpointsFromStorage()
-  return providerAllowedEndpoints.map((endpoint) => ({
-    ...endpoint,
-    protocols: [...endpoint.protocols]
-  }))
-}
-
-export function setProviderAllowedEndpoints(endpoints: ProviderEndpoint[]): void {
-  providerAllowedEndpoints = endpoints.map((endpoint) => ({
-    ...endpoint,
-    protocols: [...endpoint.protocols]
-  }))
-  persistProviderAllowedEndpoints()
-}
-
-function hydrateProviderAllowedEndpointsFromStorage(): void {
-  try {
-    const raw = globalThis.localStorage?.getItem(PROVIDER_ENDPOINTS_STORAGE_KEY)
-    if (!raw) {
-      return
-    }
-    providerAllowedEndpoints = deserializeProviderEndpoints(JSON.parse(raw))
-  } catch {
-    // Ignore malformed persisted config.
+export function parseNetworkAllowlistFromEnv(raw = readEnv('CHERRY_NETWORK_ALLOWLIST')): string[] {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return []
   }
+
+  const parts = raw
+    .split(/[\n,]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return normalizeNetworkAllowlistRules(parts)
 }
 
-function persistProviderAllowedEndpoints(): void {
-  try {
-    globalThis.localStorage?.setItem(
-      PROVIDER_ENDPOINTS_STORAGE_KEY,
-      serializeProviderEndpoints(providerAllowedEndpoints)
-    )
-  } catch {
-    // Ignore storage failures (private browsing, etc.).
-  }
+function getActiveNetworkAllowlistRules(): string[] {
+  return getNetworkAllowlistRules()
 }
+
+export { getNetworkAllowlistRules, setNetworkAllowlistRules } from '../network/networkAllowlist'
 
 export class OfflineNetworkBlockedError extends Error {
   constructor(message: string) {
@@ -145,12 +123,12 @@ export function assertNetworkAllowed(url: string): void {
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
   }
 
-  const endpoints = getProviderAllowedEndpoints()
-  if (endpoints.length === 0) {
-    throw new OfflineNetworkBlockedError(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
+  const rules = getActiveNetworkAllowlistRules()
+  if (rules.length === 0) {
+    throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE)
   }
 
-  if (!urlMatchesProviderEndpoints(parsed, endpoints)) {
+  if (!urlMatchesNetworkAllowlist(parsed, rules)) {
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
   }
 }
@@ -170,5 +148,3 @@ export function sanitizeExternalUrl(url: string): string | null {
     return null
   }
 }
-
-export type { ProviderEndpoint }

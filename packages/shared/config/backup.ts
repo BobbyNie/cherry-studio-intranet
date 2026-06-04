@@ -1,34 +1,27 @@
-import { isIntranetMode } from './intranet'
-
-/**
- * External backup services are disabled in intranet mode since they require
- * access to external network resources (WebDAV, S3, Nutstore).
- */
-
 /**
  * WebDAV backup service status
  */
 export function isWebDavBackupEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
  * S3 backup service status
  */
 export function isS3BackupEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
  * Nutstore backup service status
  */
 export function isNutstoreBackupEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
- * Generic check: all external backup services disabled in intranet mode
+ * Generic check: external backup services enabled
  */
 export function isExternalBackupEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }

@@ -21,6 +21,7 @@ import type { SpanEntity, TokenUsage } from '@mcp-trace/trace-core'
 import type { UpgradeChannel } from '@shared/config/constant'
 import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '@shared/config/constant'
 import { isIntranetMode } from '@shared/config/intranet'
+import { getNetworkAllowlistRules } from '@shared/config/intranet'
 import type { LocalTransferConnectPayload } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
 import { extractPdfText } from '@shared/utils/pdf'
@@ -55,6 +56,10 @@ import { ExportService } from './services/ExportService'
 import { externalAppsService } from './services/ExternalAppsService'
 import { fileStorage as fileManager } from './services/FileStorage'
 import FileService from './services/FileSystemService'
+import {
+  isIntranetNetworkAllowlistKey,
+  syncIntranetNetworkAllowlistConfigSet
+} from './services/IntranetNetworkAllowlistService'
 import KnowledgeService from './services/KnowledgeService'
 import { lanTransferClientService } from './services/lanTransfer'
 import { localTransferService } from './services/LocalTransferService'
@@ -68,7 +73,6 @@ import { ocrService } from './services/ocr/OcrService'
 import { openClawService } from './services/OpenClawService'
 import { isOvmsSupported } from './services/OvmsManager'
 import powerMonitorService from './services/PowerMonitorService'
-import { syncProviderNetworkAllowlistConfigSet } from './services/ProviderNetworkAllowlistService'
 import { proxyManager } from './services/ProxyManager'
 import { pythonService } from './services/PythonService'
 import { FileServiceManager } from './services/remotefile/FileServiceManager'
@@ -309,7 +313,7 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
   })
 
   ipcMain.handle(IpcChannel.Config_Set, async (_, key: string, value: any, isNotify: boolean = false) => {
-    if (await syncProviderNetworkAllowlistConfigSet(key)) {
+    if (syncIntranetNetworkAllowlistConfigSet(key, value)) {
       return
     }
 
@@ -317,6 +321,9 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
   })
 
   ipcMain.handle(IpcChannel.Config_Get, (_, key: string) => {
+    if (isIntranetNetworkAllowlistKey(key)) {
+      return getNetworkAllowlistRules()
+    }
     return configManager.get(key)
   })
 

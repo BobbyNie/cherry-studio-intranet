@@ -1,27 +1,20 @@
-import { isIntranetMode } from './intranet'
-
-/**
- * OAuth services are disabled in intranet mode since they require
- * external network access to authorization servers.
- */
-
 /**
  * GitHub Copilot OAuth integration status
  */
 export function isCopilotEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
  * CherryIN OAuth integration status
  */
 export function isCherryINEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }
 
 /**
- * Generic check: all OAuth integrations disabled in intranet mode
+ * Generic check: OAuth integrations enabled
  */
 export function isOAuthEnabled(): boolean {
-  return !isIntranetMode()
+  return true
 }

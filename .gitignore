@@ -39,6 +39,7 @@ mcp_server
 stats.html
 .eslintcache
 resources/binaries/
+src/renderer/public/pyodide/
 
 # ENV
 .env

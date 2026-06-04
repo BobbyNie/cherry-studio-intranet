@@ -3,6 +3,7 @@ const path = require('path')
 const os = require('os')
 const { execSync } = require('child_process')
 const { downloadWithPowerShell } = require('./download')
+const { findBundledArchive } = require('./local-binary')
 
 // Base URL for downloading OVMS binaries
 const OVMS_RELEASE_BASE_URL =
@@ -42,20 +43,29 @@ function cleanOldOvmsInstallation() {
 /**
  * Install OVMS Base package
  */
+const OVMS_BASE_ARCHIVE = 'ovms_windows_python_on.zip'
+const OVMS_EXTRA_ARCHIVE = 'ovms_25.4_ex.zip'
+
 async function installOvmsBase() {
-  // Download the base package
   const tempdir = os.tmpdir()
   const tempFilename = path.join(tempdir, 'ovms.zip')
+  const platformKey = `${os.platform()}-${os.arch()}`
+  const bundledBase = findBundledArchive(platformKey, OVMS_BASE_ARCHIVE)
 
   try {
-    console.log(`Downloading OVMS Base Package from ${OVMS_RELEASE_BASE_URL} to ${tempFilename}...`)
-
-    // Try PowerShell download first, fallback to Node.js download if it fails
-    await downloadWithPowerShell(OVMS_RELEASE_BASE_URL, tempFilename)
-    console.log(`Successfully downloaded from: ${OVMS_RELEASE_BASE_URL}`)
+    if (bundledBase) {
+      console.log(`Using bundled OVMS base package: ${bundledBase}`)
+      fs.copyFileSync(bundledBase, tempFilename)
+    } else {
+      console.log(`Downloading OVMS Base Package from ${OVMS_RELEASE_BASE_URL} to ${tempFilename}...`)
+      await downloadWithPowerShell(OVMS_RELEASE_BASE_URL, tempFilename)
+      console.log(`Successfully downloaded from: ${OVMS_RELEASE_BASE_URL}`)
+    }
   } catch (error) {
     console.error(`Download OVMS Base failed: ${error.message}`)
-    fs.unlinkSync(tempFilename)
+    if (fs.existsSync(tempFilename)) {
+      fs.unlinkSync(tempFilename)
+    }
     return 103
   }
 
@@ -120,19 +130,25 @@ async function installOvmsBase() {
  * Install OVMS Extra package
  */
 async function installOvmsExtra() {
-  // Download the extra package
   const tempdir = os.tmpdir()
   const tempFilename = path.join(tempdir, 'ovms_ex.zip')
+  const platformKey = `${os.platform()}-${os.arch()}`
+  const bundledExtra = findBundledArchive(platformKey, OVMS_EXTRA_ARCHIVE)
 
   try {
-    console.log(`Downloading OVMS Extra Package from ${OVMS_EX_URL} to ${tempFilename}...`)
-
-    // Try PowerShell download first, fallback to Node.js download if it fails
-    await downloadWithPowerShell(OVMS_EX_URL, tempFilename)
-    console.log(`Successfully downloaded from: ${OVMS_EX_URL}`)
+    if (bundledExtra) {
+      console.log(`Using bundled OVMS extra package: ${bundledExtra}`)
+      fs.copyFileSync(bundledExtra, tempFilename)
+    } else {
+      console.log(`Downloading OVMS Extra Package from ${OVMS_EX_URL} to ${tempFilename}...`)
+      await downloadWithPowerShell(OVMS_EX_URL, tempFilename)
+      console.log(`Successfully downloaded from: ${OVMS_EX_URL}`)
+    }
   } catch (error) {
     console.error(`Download OVMS Extra failed: ${error.message}`)
-    fs.unlinkSync(tempFilename)
+    if (fs.existsSync(tempFilename)) {
+      fs.unlinkSync(tempFilename)
+    }
     return 103
   }
 

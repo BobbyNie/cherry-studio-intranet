@@ -6,9 +6,6 @@ import { createRoot } from 'react-dom/client'
 
 import App from './App'
 import { registerIconifyCollections } from './components/Icons/registerIconifyCollections'
-import { installRendererIntranetNetworkGuard } from './network/intranetNetworkGuard'
-
-installRendererIntranetNetworkGuard()
 registerIconifyCollections()
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
