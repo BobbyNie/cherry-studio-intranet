@@ -4756,11 +4756,11 @@
     },
     "intranet": {
       "allowlist": {
-        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
-        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
-        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
-        "save": "[to be translated]:Network allowlist saved",
-        "title": "[to be translated]:Intranet network allowlist"
+        "description": "停用公網存取後，僅允許對下列主機名稱發出的 HTTP(S)/WS(S) 請求。每行輸入一個主機名稱或 URL，支援 *.corp.example.com 等萬用字元。",
+        "invalidRule": "無效的白名單規則：{{rule}}",
+        "placeholder": "llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "網路白名單已儲存",
+        "title": "內網網路白名單"
       }
     },
     "launch": {

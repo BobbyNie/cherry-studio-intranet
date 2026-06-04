@@ -56,13 +56,25 @@ describe('IntranetNetworkAllowlistService', () => {
     expect(isIntranetNetworkAllowlistKey('theme')).toBe(false)
   })
 
-  it('seeds runtime allowlist from environment when store key is absent', () => {
+  it('seeds runtime allowlist from environment and persists it when store key is absent', () => {
     mockConfigManager.has.mockReturnValue(false)
 
     loadIntranetNetworkAllowlistFromStore()
 
     expect(getNetworkAllowlistRules()).toEqual(['env-gateway.intranet.local'])
     expect(mockConfigManager.get).not.toHaveBeenCalled()
+    expect(mockConfigManager.set).toHaveBeenCalledWith(INTRANET_NETWORK_ALLOWLIST_KEY, ['env-gateway.intranet.local'])
+  })
+
+  it('does not refill from environment after an empty allowlist has been persisted', () => {
+    mockConfigManager.has.mockReturnValue(true)
+    mockConfigManager.get.mockReturnValue([])
+
+    loadIntranetNetworkAllowlistFromStore()
+
+    expect(getNetworkAllowlistRules()).toEqual([])
+    expect(mockConfigManager.set).not.toHaveBeenCalled()
+    expect(() => assertNetworkAllowed('http://env-gateway.intranet.local/v1/models')).toThrow()
   })
 
   it('loads persisted rules when store key exists', () => {
@@ -82,6 +94,19 @@ describe('IntranetNetworkAllowlistService', () => {
     expect(getNetworkAllowlistRules()).toEqual([])
     expect(mockConfigManager.set).toHaveBeenCalledWith(INTRANET_NETWORK_ALLOWLIST_KEY, [])
     expect(() => assertNetworkAllowed('http://any-host.intranet.local/v1/models')).toThrow()
+  })
+
+  it('normalizes full URL config writes before persisting', () => {
+    const synced = syncIntranetNetworkAllowlistConfigSet(INTRANET_NETWORK_ALLOWLIST_KEY, [
+      'https://Stored-Gateway.Intranet.Local:8443/v1/chat',
+      'stored-gateway.intranet.local'
+    ])
+
+    expect(synced).toBe(true)
+    expect(getNetworkAllowlistRules()).toEqual(['stored-gateway.intranet.local'])
+    expect(mockConfigManager.set).toHaveBeenCalledWith(INTRANET_NETWORK_ALLOWLIST_KEY, [
+      'stored-gateway.intranet.local'
+    ])
   })
 
   it('ignores unrelated config writes', () => {

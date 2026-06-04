@@ -29,6 +29,7 @@ export function loadIntranetNetworkAllowlistFromStore(): void {
 
   const seeded = parseNetworkAllowlistFromEnv()
   setNetworkAllowlistRules(seeded)
+  configManager.set(INTRANET_NETWORK_ALLOWLIST_KEY, seeded)
   logger.info('Intranet network allowlist seeded from environment', { count: seeded.length })
 }
 

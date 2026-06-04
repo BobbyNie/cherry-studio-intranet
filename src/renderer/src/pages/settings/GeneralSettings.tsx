@@ -26,7 +26,7 @@ import { isValidProxyUrl } from '@renderer/utils'
 import { formatErrorMessage } from '@renderer/utils/error'
 import { defaultByPassRules, defaultLanguage } from '@shared/config/constant'
 import { isIntranetMode, isOfflineMode } from '@shared/config/intranet'
-import { normalizeNetworkAllowlistRules } from '@shared/network/networkAllowlist'
+import { normalizeNetworkAllowlistRule, normalizeNetworkAllowlistRules } from '@shared/network/networkAllowlist'
 import { Alert, Button, Flex, Input, Switch, Tooltip } from 'antd'
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
@@ -214,7 +214,7 @@ const GeneralSettings: FC = () => {
       .map((line) => line.trim())
       .filter(Boolean)
 
-    const invalidRules = lines.filter((line) => normalizeNetworkAllowlistRules([line]).length === 0)
+    const invalidRules = lines.filter((line) => !normalizeNetworkAllowlistRule(line))
     if (invalidRules.length > 0) {
       setIntranetAllowlistInvalidRules(invalidRules)
       return
