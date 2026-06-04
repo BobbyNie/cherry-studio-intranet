@@ -113,9 +113,10 @@ async function downloadWithFallback(version, packageName, tempFilename, preferMi
 
   for (const source of sources) {
     const downloadUrl = `${source.baseUrl}/${version}/${packageName}`
-    console.log(`Trying ${source.name}: ${downloadUrl}`)
 
     try {
+      assertNetworkAllowed(downloadUrl)
+      console.log(`Trying ${source.name}: ${downloadUrl}`)
       await downloadWithRedirects(downloadUrl, tempFilename)
       console.log(`Downloaded successfully from ${source.name}`)
       return
@@ -245,7 +246,6 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
  * Main function to install openclaw
  */
 async function installOpenClaw() {
-  const version = await getLatestVersion()
   const platform = os.platform()
   const arch = os.arch()
   const platformKey = `${platform}-${arch}`
@@ -257,6 +257,7 @@ async function installOpenClaw() {
 
   // Check for mirror flag from environment variable
   const useMirror = process.env.OPENCLAW_USE_MIRROR === '1'
+  const version = packageName ? await getLatestVersion() : DEFAULT_VERSION
 
   console.log(`Installing openclaw ${version} for ${platform}-${arch}${useMirror ? ' (mirror)' : ''}...`)
 
