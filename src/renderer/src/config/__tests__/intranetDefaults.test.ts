@@ -37,4 +37,16 @@ describe('offline renderer defaults', () => {
 
     expect(WEB_SEARCH_PROVIDERS).toEqual([])
   })
+
+  it('keeps web search providers visible in intranet mode', async () => {
+    process.env.CHERRY_INTRANET_MODE = 'true'
+    process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
+    vi.resetModules()
+
+    const { PUBLIC_WEB_SEARCH_PROVIDERS, WEB_SEARCH_PROVIDERS } = await import('../webSearchProviders')
+
+    expect(WEB_SEARCH_PROVIDERS).toEqual(PUBLIC_WEB_SEARCH_PROVIDERS)
+    expect(WEB_SEARCH_PROVIDERS.some((provider) => provider.id === 'zhipu')).toBe(true)
+    expect(WEB_SEARCH_PROVIDERS.some((provider) => provider.id === 'searxng')).toBe(true)
+  })
 })

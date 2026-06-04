@@ -15,22 +15,20 @@
 
 ```bash
 CHERRY_INTRANET_MODE=true
-CHERRY_DISABLE_PUBLIC_NETWORK=false
-CHERRY_DISABLE_AUTO_UPDATE=true
-CHERRY_DISABLE_TELEMETRY=true
-CHERRY_DISABLE_MARKETPLACE=true
-CHERRY_DISABLE_EXTERNAL_LINKS=true
 CHERRY_NETWORK_ALLOWLIST=
 ```
 
-`CHERRY_NETWORK_ALLOWLIST` 仅为历史兼容变量。
+`CHERRY_NETWORK_ALLOWLIST` 仅用于首次启动时种子化运行时配置 `intranetNetworkAllowlist`。如果用户在 Settings -> General 保存过白名单，即使保存为空表，也不会再被环境变量覆盖。
 
-**完全离线版网络策略**（`CHERRY_OFFLINE_MODE` / `CHERRY_INTRANET_MODE`）：
+**企业内网版网络策略**（`CHERRY_INTRANET_MODE=true`）：
 
-- 默认 **deny-all**：拦截一切未明确放行的 HTTP(S)/WS(S) 请求。
-- **放行范围**：已在模型 Provider 中配置且启用的 `apiHost` / `anthropicApiHost`，按协议、主机、端口和路径前缀放行（含 `localhost`、私有 IP、企业内网域名）。
-- **不是 localhost-only**：内网模式不等于只能访问本机模型；模型实际访问地址以 Provider 配置为准。
-- 未在 Provider 中配置的公网地址仍会被 App 层拦截；公网物理不可达由企业 DNS/防火墙保证。
+- 默认 **deny-all**：白名单为空时，拦截一切 HTTP/HTTPS/WS/WSS 目标。
+- 白名单只匹配 hostname/IP，不限制协议、端口和路径。
+- `comp.com` 精确匹配 `comp.com`。
+- `*.comp.com` 匹配 `comp.com` 和任意 DNS 边界子域，例如 `aaa.bbb.comp.com`，不匹配 `evilcomp.com`。
+- 支持精确 IP literal，例如 `127.0.0.1`、`10.1.2.3`；不内置 localhost/私网段例外，不支持 CIDR。
+- 输入完整 URL 时仅保存 hostname。
+- 所有业务能力是否能联网，只由统一白名单 guard 判断；MCP、OAuth、备份、知识库、WebSearch、更新等功能本身不再因为 intranet mode 被直接禁用。
 
 ## 默认内网服务
 
@@ -43,14 +41,14 @@ CHERRY_NETWORK_ALLOWLIST=
 
 Web Search：
 
-- 仅支持内网 SearXNG
-- 默认地址：`http://searxng.intranet.local`
+- 保留上游 provider 行为。
+- 可配置企业内网 SearXNG 或其他搜索服务；未命中白名单的目标会被统一 guard 阻断。
 
 MCP：
 
 - 保留手动 MCP Server 配置
-- 自动安装、Marketplace、npx 搜索默认禁用
-- 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`
+- 自动安装、Marketplace、远端 MCP transport 不再因 intranet mode 直接禁用
+- 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`，并把 registry hostname 加入白名单
 
 ## 构建命令
 
@@ -102,23 +100,24 @@ corepack pnpm package:win:intranet
 ## 验收步骤
 
 1. 启动应用，确认未配置模型时应用不崩溃，并提示配置内网模型。
-2. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
-3. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文。
-4. 配置企业内网 OpenAI-compatible 域名，确认只需模型 Provider API Base URL 即可访问。
-5. 验证 Web Search 只显示内网 SearXNG。
-6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
-7. 验证点击关于页外链不会打开浏览器。
-8. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
-9. 在断网 Windows 环境安装并启动。
+2. 使用抓包工具观察 5 分钟，确认未加入白名单的 HTTP/HTTPS/WS/WSS 目标被阻断。
+3. 保存空白名单，确认模型、WebSearch、MCP、备份等网络目标全部被阻断。
+4. 配置 `127.0.0.1`、企业 LLM Gateway 或 `*.comp.com` 后验证聊天、流式输出、多轮上下文。
+5. 配置企业内网 SearXNG/WebDAV/MCP registry，确认命中白名单即可访问。
+6. 验证非白名单公网 URL 仍由中心 guard 阻断。
+7. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
+8. 在断网 Windows 环境安装并启动。
 
 ## 测试报告模板
 
 本次提交的自动化测试覆盖：
 
-- 内网模式默认 deny-all，仅放行已启用模型 Provider 配置的协议、主机、端口和路径前缀
-- `safeFetch`、`safeWebSocket` 阻断未配置目标，并透传已配置的 Provider API Base URL
-- 内网 provider/Web Search/MCP 默认面
-- autoUpdater 内网模式 no-op
+- 内网模式默认 deny-all，空白名单拒绝全部 HTTP/HTTPS/WS/WSS。
+- hostname/IP 白名单 matcher 覆盖精确域名、DNS 边界通配符、IP literal、URL 输入归一化。
+- 主进程 `session.webRequest`、`globalThis.fetch`、`electron.net.fetch` 共用同一白名单结果。
+- Settings -> General 读写 `intranetNetworkAllowlist`，`CHERRY_NETWORK_ALLOWLIST` 仅首次种子化。
+- MCP/OAuth/备份/知识库/WebSearch/Updater 不再因 intranet mode 直接禁用，连接由中心 guard 判断。
+- 启动/运行期公共 JS/CSS/wasm 资源使用本地打包资产。
 
 人工验收需补充：
 

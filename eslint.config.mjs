@@ -67,7 +67,9 @@ export default defineConfig([
       'src/main/integration/cherryai/index.js',
       'src/main/integration/nutstore/sso/lib/**',
       'src/renderer/src/ui/**',
-      'packages/**/dist'
+      'packages/**/dist',
+      'src/renderer/public/**',
+      'resources/skills/skill-creator/eval-viewer/assets/**'
     ]
   },
   // turn off oxlint supported rules.

@@ -34,13 +34,13 @@ describe('external service feature gates', () => {
     expect(isOAuthEnabled()).toBe(true)
   })
 
-  it('disables external integrations in intranet mode', () => {
+  it('keeps external integrations enabled in intranet mode', () => {
     process.env.CHERRY_INTRANET_MODE = 'true'
 
-    expect(isExternalBackupEnabled()).toBe(false)
-    expect(isRemoteLoaderEnabled()).toBe(false)
-    expect(isRemoteMcpTransportEnabled()).toBe(false)
-    expect(isOAuthEnabled()).toBe(false)
+    expect(isExternalBackupEnabled()).toBe(true)
+    expect(isRemoteLoaderEnabled()).toBe(true)
+    expect(isRemoteMcpTransportEnabled()).toBe(true)
+    expect(isOAuthEnabled()).toBe(true)
   })
 
   it('disables external integrations in offline mode', () => {

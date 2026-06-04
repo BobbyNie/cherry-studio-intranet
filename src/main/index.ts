@@ -8,7 +8,6 @@ import '@main/config'
 import { loggerService } from '@logger'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { replaceDevtoolsFont } from '@main/utils/windowUtil'
-import { isIntranetMode } from '@shared/config/intranet'
 import { app, crashReporter } from 'electron'
 import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from 'electron-devtools-installer'
 import { isDev, isLinux, isWin } from './constant'
@@ -47,10 +46,7 @@ import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
 import { installMainIntranetNetworkGuard, installSessionIntranetNetworkGuard } from './network/intranetNetworkGuard'
-import {
-  loadProviderNetworkAllowlistFromStore,
-  syncProviderNetworkAllowlistFromRedux
-} from './services/ProviderNetworkAllowlistService'
+import { loadNetworkAllowlistFromStore } from './services/NetworkAllowlistConfigService'
 
 const logger = loggerService.withContext('MainEntry')
 
@@ -62,6 +58,7 @@ crashReporter.start({
   uploadToServer: false
 })
 
+loadNetworkAllowlistFromStore()
 installMainIntranetNetworkGuard()
 
 /**
@@ -150,8 +147,6 @@ if (!app.requestSingleInstanceLock()) {
   // Some APIs can only be used after this event occurs.
 
   void app.whenReady().then(async () => {
-    loadProviderNetworkAllowlistFromStore()
-
     // Record current version for tracking
     // A preparation for v2 data refactoring
     versionService.recordCurrentVersion()
@@ -200,7 +195,6 @@ if (!app.requestSingleInstanceLock()) {
     registerShortcuts(mainWindow)
 
     await registerIpc(mainWindow, app)
-    void syncProviderNetworkAllowlistFromRedux()
     localTransferService.startDiscovery({ resetList: true })
 
     replaceDevtoolsFont(mainWindow)
@@ -251,12 +245,7 @@ if (!app.requestSingleInstanceLock()) {
         // Register IPC handlers for session stream before starting channels
         registerSessionStreamIpc()
 
-        // Start CherryClaw channel adapters only in public-network builds.
-        if (!isIntranetMode()) {
-          await channelManager.start()
-        } else {
-          logger.info('CherryClaw public channel adapters disabled in intranet mode')
-        }
+        await channelManager.start()
       } catch (error: any) {
         logger.error('Failed to check/start API server:', error)
       }

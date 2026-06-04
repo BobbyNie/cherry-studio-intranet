@@ -15,8 +15,10 @@ interface PyodideOutput {
   image?: string
 }
 
-const PYODIDE_INDEX_URL = 'https://cdn.jsdelivr.net/pyodide/v0.28.0/full/'
-const PYODIDE_MODULE_URL = PYODIDE_INDEX_URL + 'pyodide.mjs'
+const PYODIDE_VERSION = 'v0.28.0'
+// The Pyodide runtime is expected to be packaged with renderer public assets.
+const PYODIDE_INDEX_URL = `/pyodide/${PYODIDE_VERSION}/full/`
+const PYODIDE_MODULE_URL = `${PYODIDE_INDEX_URL}pyodide.mjs`
 
 const MATPLOTLIB_SHIM_CODE = `
 def __cherry_studio_matplotlib_setup():

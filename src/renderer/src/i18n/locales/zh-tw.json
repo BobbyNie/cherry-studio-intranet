@@ -4698,6 +4698,11 @@
       },
       "emoji_picker": "表情選擇器",
       "image_upload": "圖片上傳",
+      "intranet_network_allowlist": {
+        "invalid_rule": "內網域名白名單規則無效",
+        "placeholder": "每行一個域名或 IP，例如：\ncomp.com\n*.comp.com\n10.1.2.3",
+        "title": "內網域名白名單"
+      },
       "label": "一般設定",
       "reset": {
         "button": "重設",

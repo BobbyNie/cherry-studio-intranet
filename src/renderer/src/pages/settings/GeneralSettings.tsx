@@ -25,16 +25,30 @@ import type { NotificationSource } from '@renderer/types/notification'
 import { isValidProxyUrl } from '@renderer/utils'
 import { formatErrorMessage } from '@renderer/utils/error'
 import { defaultByPassRules, defaultLanguage } from '@shared/config/constant'
-import { isOfflineMode } from '@shared/config/intranet'
-import { Flex, Input, Switch, Tooltip } from 'antd'
+import {
+  isIntranetMode,
+  isOfflineMode,
+  NETWORK_ALLOWLIST_RULE_INVALID_MESSAGE,
+  normalizeNetworkAllowlistRules
+} from '@shared/config/intranet'
+import { Button, Flex, Input, Switch, Tooltip } from 'antd'
 import type { FC } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 
 import { SettingContainer, SettingDivider, SettingGroup, SettingRow, SettingRowTitle, SettingTitle } from '.'
 
 type SpellCheckOption = { readonly value: string; readonly label: string; readonly flag: string }
+
+const INTRANET_NETWORK_ALLOWLIST_CONFIG_KEY = 'intranetNetworkAllowlist'
+
+function parseNetworkAllowlistText(value: string): string[] {
+  return value
+    .split(/[,\n]/)
+    .map((rule) => rule.trim())
+    .filter(Boolean)
+}
 
 // Define available spell check languages with display names (only commonly supported languages)
 const spellCheckLanguageOptions: readonly SpellCheckOption[] = [
@@ -73,7 +87,9 @@ const GeneralSettings: FC = () => {
   } = useSettings()
   const [proxyUrl, setProxyUrl] = useState<string | undefined>(storeProxyUrl)
   const [proxyBypassRules, setProxyBypassRules] = useState<string | undefined>(storeProxyBypassRules)
+  const [networkAllowlistText, setNetworkAllowlistText] = useState('')
   const { theme } = useTheme()
+  const intranetMode = isIntranetMode()
   const offlineMode = isOfflineMode()
   const { enableDeveloperMode, setEnableDeveloperMode } = useEnableDeveloperMode()
   const { setTimeoutTimer } = useTimer()
@@ -209,6 +225,47 @@ const GeneralSettings: FC = () => {
     })
   }
 
+  useEffect(() => {
+    if (!intranetMode) {
+      return
+    }
+
+    let isMounted = true
+
+    void window.api.config.get(INTRANET_NETWORK_ALLOWLIST_CONFIG_KEY).then((value: unknown) => {
+      if (!isMounted) {
+        return
+      }
+
+      const rules = Array.isArray(value)
+        ? value.filter((rule): rule is string => typeof rule === 'string')
+        : typeof value === 'string'
+          ? parseNetworkAllowlistText(value)
+          : []
+      setNetworkAllowlistText(rules.join('\n'))
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [intranetMode])
+
+  const saveNetworkAllowlist = async () => {
+    try {
+      const rules = normalizeNetworkAllowlistRules(parseNetworkAllowlistText(networkAllowlistText))
+      setNetworkAllowlistText(rules.join('\n'))
+      await window.api.config.set(INTRANET_NETWORK_ALLOWLIST_CONFIG_KEY, rules, true)
+      window.toast.success(t('common.saved'))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      window.toast.error(
+        message === NETWORK_ALLOWLIST_RULE_INVALID_MESSAGE
+          ? t('settings.general.intranet_network_allowlist.invalid_rule')
+          : formatErrorMessage(error)
+      )
+    }
+  }
+
   return (
     <SettingContainer theme={theme}>
       <SettingGroup theme={theme}>
@@ -312,6 +369,27 @@ const GeneralSettings: FC = () => {
           <SettingRowTitle>{t('settings.hardware_acceleration.title')}</SettingRowTitle>
           <Switch checked={disableHardwareAcceleration} onChange={handleHardwareAccelerationChange} />
         </SettingRow>
+        {intranetMode && (
+          <>
+            <SettingDivider />
+            <SettingRow style={{ alignItems: 'flex-start', gap: 16 }}>
+              <SettingRowTitle style={{ paddingTop: 5 }}>
+                {t('settings.general.intranet_network_allowlist.title')}
+              </SettingRowTitle>
+              <Flex vertical gap={8} style={{ flex: 1, maxWidth: 420 }}>
+                <Input.TextArea
+                  aria-label={t('settings.general.intranet_network_allowlist.title')}
+                  spellCheck={false}
+                  autoSize={{ minRows: 4, maxRows: 8 }}
+                  placeholder={t('settings.general.intranet_network_allowlist.placeholder')}
+                  value={networkAllowlistText}
+                  onChange={(event) => setNetworkAllowlistText(event.target.value)}
+                />
+                <Button onClick={saveNetworkAllowlist}>{t('common.save')}</Button>
+              </Flex>
+            </SettingRow>
+          </>
+        )}
       </SettingGroup>
       <SettingGroup theme={theme}>
         <SettingTitle>{t('settings.notification.title')}</SettingTitle>

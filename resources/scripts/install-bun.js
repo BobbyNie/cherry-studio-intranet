@@ -4,6 +4,7 @@ const os = require('os')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
 const { downloadWithRedirects } = require('./download')
+const { copyLocalBinaryPackage } = require('./local-binary')
 
 // Base URL for downloading bun binaries
 const BUN_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/bun/releases/download'
@@ -58,11 +59,11 @@ async function downloadBunBinary(platform, arch, version = DEFAULT_BUN_VERSION, 
   const tempFilename = path.join(tempdir, packageName)
 
   try {
-    console.log(`Downloading bun ${version} for ${platformKey}...`)
-    console.log(`URL: ${downloadUrl}`)
-
-    // Use the new download function
-    await downloadWithRedirects(downloadUrl, tempFilename)
+    if (!copyLocalBinaryPackage(platformKey, packageName, tempFilename)) {
+      console.log(`Downloading bun ${version} for ${platformKey}...`)
+      console.log(`URL: ${downloadUrl}`)
+      await downloadWithRedirects(downloadUrl, tempFilename)
+    }
 
     // Extract the zip file using adm-zip
     console.log(`Extracting ${packageName} to ${binDir}...`)

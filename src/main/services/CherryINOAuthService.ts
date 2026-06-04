@@ -87,21 +87,28 @@ function cleanupExpiredFlows(): void {
 }
 
 class CherryINOAuthService {
-  /**
-   * Check if CherryIN is enabled (intranet mode disables it)
-   */
   private ensureCherryINEnabled = (): void => {
     if (!isCherryINEnabled()) {
       throw new CherryINOAuthServiceError('CherryIN OAuth integration is disabled in intranet mode')
     }
   }
 
-  /**
-   * Validate API host against allowlist to prevent SSRF attacks
-   */
   private validateApiHost(apiHost: string): void {
-    if (!CHERRYIN_CONFIG.ALLOWED_HOSTS.includes(apiHost)) {
-      throw new CherryINOAuthServiceError(`Unauthorized API host: ${apiHost}`)
+    let parsed: URL
+    try {
+      parsed = new URL(apiHost)
+    } catch {
+      throw new CherryINOAuthServiceError(`Invalid API host: ${apiHost}`)
+    }
+
+    if (
+      (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
+      !parsed.hostname ||
+      parsed.username ||
+      parsed.password ||
+      parsed.hash
+    ) {
+      throw new CherryINOAuthServiceError(`Invalid API host: ${apiHost}`)
     }
   }
 

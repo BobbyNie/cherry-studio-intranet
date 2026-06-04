@@ -1,27 +1,27 @@
-import { isIntranetMode } from './intranet'
+import { isOfflineMode } from './intranet'
 
 /**
- * Remote knowledge loaders are disabled in intranet mode since they require
- * access to external network resources (WebLoader for URLs, SitemapLoader).
+ * Remote knowledge loaders remain available in intranet mode; the central
+ * network allowlist guard decides whether the configured URL is reachable.
  */
 
 /**
  * WebLoader (remote URL) status
  */
 export function isWebLoaderEnabled(): boolean {
-  return !isIntranetMode()
+  return !isOfflineMode()
 }
 
 /**
  * SitemapLoader status
  */
 export function isSitemapLoaderEnabled(): boolean {
-  return !isIntranetMode()
+  return !isOfflineMode()
 }
 
 /**
- * Generic check: all remote loaders disabled in intranet mode
+ * Generic check: remote loaders are only disabled in full offline mode.
  */
 export function isRemoteLoaderEnabled(): boolean {
-  return !isIntranetMode()
+  return !isOfflineMode()
 }

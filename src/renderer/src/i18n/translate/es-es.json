@@ -4698,6 +4698,11 @@
       },
       "emoji_picker": "Selector de emojis",
       "image_upload": "Carga de imágenes",
+      "intranet_network_allowlist": {
+        "invalid_rule": "Invalid intranet network allowlist rule",
+        "placeholder": "One domain or IP per line, for example:\ncomp.com\n*.comp.com\n10.1.2.3",
+        "title": "Intranet Domain Allowlist"
+      },
       "label": "Configuración general",
       "reset": {
         "button": "Restablecer",

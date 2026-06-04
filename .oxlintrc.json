@@ -20,6 +20,8 @@
     "src/main/integration/nutstore/sso/lib/**",
     "src/renderer/src/ui/**",
     "packages/**/dist",
+    "src/renderer/public/**",
+    "resources/skills/skill-creator/eval-viewer/assets/**",
     "eslint.config.mjs"
   ],
   "options": {

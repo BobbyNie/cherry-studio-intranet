@@ -1,18 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
+  areExternalLinksDisabled,
   assertNetworkAllowed,
+  getNetworkAllowlistRules,
   isAutoUpdateDisabled,
   isIntranetMode,
+  isMarketplaceDisabled,
   isOfflineMode,
   isPublicNetworkDisabled,
-  OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE,
+  isTelemetryDisabled,
+  normalizeNetworkAllowlistRules,
   OfflineNetworkBlockedError,
   sanitizeExternalUrl,
-  setProviderAllowedEndpoints
+  setNetworkAllowlistRules,
+  urlMatchesNetworkAllowlist
 } from './intranet'
 import * as intranetConfig from './intranet'
-import { extractProviderEndpoints } from './providerEndpoints'
 
 describe('offline network config', () => {
   const originalEnv = { ...process.env }
@@ -23,14 +27,16 @@ describe('offline network config', () => {
     process.env.CHERRY_DISABLE_PUBLIC_NETWORK = 'true'
     process.env.CHERRY_DISABLE_AUTO_UPDATE = 'true'
     process.env.CHERRY_DISABLE_EXTERNAL_LINKS = 'true'
+    process.env.CHERRY_DISABLE_TELEMETRY = 'true'
+    process.env.CHERRY_DISABLE_MARKETPLACE = 'true'
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_LOCAL_MODEL_ALLOWED_PORTS
-    setProviderAllowedEndpoints([])
+    setNetworkAllowlistRules([])
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
-    setProviderAllowedEndpoints([])
+    setNetworkAllowlistRules([])
   })
 
   it('detects offline mode and disabled update flags', () => {
@@ -40,6 +46,24 @@ describe('offline network config', () => {
     expect(isPublicNetworkDisabled()).toBe(true)
   })
 
+  it('treats intranet mode as a network allowlist gate, not full offline mode', () => {
+    delete process.env.CHERRY_OFFLINE_MODE
+    delete process.env.CHERRY_DISABLE_PUBLIC_NETWORK
+    delete process.env.CHERRY_DISABLE_AUTO_UPDATE
+    delete process.env.CHERRY_DISABLE_EXTERNAL_LINKS
+    delete process.env.CHERRY_DISABLE_TELEMETRY
+    delete process.env.CHERRY_DISABLE_MARKETPLACE
+    process.env.CHERRY_INTRANET_MODE = 'true'
+
+    expect(isIntranetMode()).toBe(true)
+    expect(isOfflineMode()).toBe(false)
+    expect(isPublicNetworkDisabled()).toBe(true)
+    expect(isAutoUpdateDisabled()).toBe(false)
+    expect(isTelemetryDisabled()).toBe(false)
+    expect(isMarketplaceDisabled()).toBe(false)
+    expect(areExternalLinksDisabled()).toBe(false)
+  })
+
   it('does not expose legacy local-model offline network settings APIs', () => {
     expect('getDefaultLocalModelPorts' in intranetConfig).toBe(false)
     expect('getOfflineNetworkRuntimeConfig' in intranetConfig).toBe(false)
@@ -47,7 +71,7 @@ describe('offline network config', () => {
     expect('validateLocalModelApiHost' in intranetConfig).toBe(false)
   })
 
-  it('rejects all network access when no provider endpoints are configured', () => {
+  it('rejects all network access when the allowlist is empty', () => {
     expect(() => assertNetworkAllowed('http://localhost:11434/api/tags')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
     expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/models')).toThrow(
@@ -55,49 +79,59 @@ describe('offline network config', () => {
     )
   })
 
-  it('allows configured provider endpoints including internal domains', () => {
-    setProviderAllowedEndpoints(
-      extractProviderEndpoints([
-        { enabled: true, apiHost: 'http://llm-gateway.intranet.local/v1' },
-        { enabled: true, apiHost: 'http://127.0.0.1:11434' }
+  it('normalizes exact hosts, wildcard hosts, IP literals, and URL inputs', () => {
+    expect(
+      normalizeNetworkAllowlistRules([
+        ' Comp.COM ',
+        '*.Comp.com',
+        'https://Gateway.Comp.com:8443/v1/models',
+        '127.0.0.1',
+        '10.1.2.3',
+        'comp.com'
       ])
-    )
+    ).toEqual(['comp.com', '*.comp.com', 'gateway.comp.com', '127.0.0.1', '10.1.2.3'])
+  })
+
+  it('allows exact hosts without limiting protocol, port, or path', () => {
+    setNetworkAllowlistRules(['llm-gateway.intranet.local'])
 
     expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/chat/completions')).not.toThrow()
-    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/oauth/token')).toThrow(
-      OfflineNetworkBlockedError
-    )
-    expect(() => assertNetworkAllowed('http://127.0.0.1:11434/api/tags')).not.toThrow()
-    expect(() => assertNetworkAllowed('ws://127.0.0.1:11434/ws')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('https://llm-gateway.intranet.local:8443/oauth/token')).not.toThrow()
+    expect(() => assertNetworkAllowed('ws://llm-gateway.intranet.local/socket')).not.toThrow()
+    expect(() => assertNetworkAllowed('wss://llm-gateway.intranet.local/realtime')).not.toThrow()
   })
 
-  it('allows websocket requests only when websocket endpoints are explicitly configured', () => {
-    setProviderAllowedEndpoints(
-      extractProviderEndpoints([{ enabled: true, apiHost: 'wss://realtime.intranet.local/v1' }])
-    )
+  it('matches wildcard rules at the DNS boundary including the root domain', () => {
+    setNetworkAllowlistRules(['*.comp.com'])
 
-    expect(() => assertNetworkAllowed('wss://realtime.intranet.local/v1/chat')).not.toThrow()
-    expect(() => assertNetworkAllowed('https://realtime.intranet.local/v1/chat')).toThrow(OfflineNetworkBlockedError)
+    expect(urlMatchesNetworkAllowlist('https://comp.com', getNetworkAllowlistRules())).toBe(true)
+    expect(urlMatchesNetworkAllowlist('https://aaa.bbb.comp.com/path', getNetworkAllowlistRules())).toBe(true)
+    expect(urlMatchesNetworkAllowlist('https://evilcomp.com', getNetworkAllowlistRules())).toBe(false)
+    expect(urlMatchesNetworkAllowlist('https://comp.com.evil.com', getNetworkAllowlistRules())).toBe(false)
   })
 
-  it('rejects unconfigured targets even when another localhost provider endpoint is configured', () => {
-    setProviderAllowedEndpoints(extractProviderEndpoints([{ enabled: true, apiHost: 'http://127.0.0.1:11434/v1' }]))
+  it('requires exact IP literal matches without localhost or private-range exceptions', () => {
+    setNetworkAllowlistRules(['10.1.2.3'])
 
-    expect(() => assertNetworkAllowed('https://api.openai.com/v1/chat/completions')).toThrow(OfflineNetworkBlockedError)
-    expect(() => assertNetworkAllowed('http://llm-gateway.intranet.local/v1/models')).toThrow(
-      OfflineNetworkBlockedError
-    )
-    expect(() => assertNetworkAllowed('http://127.0.0.1:8080/v1/models')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('http://10.1.2.3:8080/health')).not.toThrow()
+    expect(() => assertNetworkAllowed('http://10.1.2.4:8080/health')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('http://127.0.0.1:11434/api/tags')).toThrow(OfflineNetworkBlockedError)
   })
 
-  it('requires provider configuration before allowing network access', () => {
-    try {
-      assertNetworkAllowed('http://127.0.0.1:11434/api/tags')
-      throw new Error('expected blocked error')
-    } catch (error) {
-      expect(error).toBeInstanceOf(OfflineNetworkBlockedError)
-      expect((error as Error).message).toBe(OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE)
-    }
+  it('requires exact IPv6 literal matches', () => {
+    setNetworkAllowlistRules(['2001:db8::1'])
+
+    expect(() => assertNetworkAllowed('http://[2001:db8::1]:8080/health')).not.toThrow()
+    expect(() => assertNetworkAllowed('http://[2001:db8::2]:8080/health')).toThrow(OfflineNetworkBlockedError)
+    expect(() => assertNetworkAllowed('http://[::1]:11434/api/tags')).toThrow(OfflineNetworkBlockedError)
+  })
+
+  it('rejects unsupported protocols and invalid allowlist rules', () => {
+    expect(() => normalizeNetworkAllowlistRules(['10.0.0.0/8'])).toThrow(OfflineNetworkBlockedError)
+    expect(() => normalizeNetworkAllowlistRules(['*.'])).toThrow(OfflineNetworkBlockedError)
+
+    setNetworkAllowlistRules(['comp.com'])
+    expect(() => assertNetworkAllowed('ftp://comp.com/file')).toThrow(OfflineNetworkBlockedError)
   })
 
   it('sanitizes external links when external links are disabled', () => {

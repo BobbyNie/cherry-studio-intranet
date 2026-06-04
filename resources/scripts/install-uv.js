@@ -4,6 +4,7 @@ const os = require('os')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
 const { downloadWithRedirects } = require('./download')
+const { copyLocalBinaryPackage } = require('./local-binary')
 
 // Base URL for downloading uv binaries
 const UV_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/uv/releases/download'
@@ -60,10 +61,11 @@ async function downloadUvBinary(platform, arch, version = DEFAULT_UV_VERSION, is
   const isTarGz = packageName.endsWith('.tar.gz')
 
   try {
-    console.log(`Downloading uv ${version} for ${platformKey}...`)
-    console.log(`URL: ${downloadUrl}`)
-
-    await downloadWithRedirects(downloadUrl, tempFilename)
+    if (!copyLocalBinaryPackage(platformKey, packageName, tempFilename)) {
+      console.log(`Downloading uv ${version} for ${platformKey}...`)
+      console.log(`URL: ${downloadUrl}`)
+      await downloadWithRedirects(downloadUrl, tempFilename)
+    }
 
     console.log(`Extracting ${packageName} to ${binDir}...`)
 

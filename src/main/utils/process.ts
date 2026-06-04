@@ -1,6 +1,7 @@
 import { loggerService } from '@logger'
 import type { GitBashPathInfo, GitBashPathSource } from '@shared/config/constant'
 import { HOME_CHERRY_DIR } from '@shared/config/constant'
+import { getNetworkAllowlistRules } from '@shared/config/intranet'
 import chardet from 'chardet'
 import { type ChildProcess, execFileSync, spawn, type SpawnOptions } from 'child_process'
 import fs from 'fs'
@@ -21,7 +22,12 @@ export function runInstallScript(scriptPath: string, extraEnv?: Record<string, s
     logger.info(`Running script at: ${installScriptPath}`)
 
     const nodeProcess = spawn(process.execPath, [installScriptPath], {
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', ...extraEnv }
+      env: {
+        ...process.env,
+        CHERRY_NETWORK_ALLOWLIST: getNetworkAllowlistRules().join('\n'),
+        ELECTRON_RUN_AS_NODE: '1',
+        ...extraEnv
+      }
     })
 
     nodeProcess.stdout.on('data', (data) => {

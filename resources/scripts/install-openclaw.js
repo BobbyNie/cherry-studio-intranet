@@ -4,7 +4,8 @@ const os = require('os')
 const https = require('https')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
-const { downloadWithRedirects } = require('./download')
+const { assertNetworkAllowed, downloadWithRedirects } = require('./download')
+const { copyLocalBinaryPackage } = require('./local-binary')
 
 // Download sources
 const GITCODE_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/openclaw-releases/releases/download'
@@ -20,6 +21,14 @@ const API_TIMEOUT_MS = 5000
  */
 async function getLatestVersion(timeoutMs = API_TIMEOUT_MS) {
   return new Promise((resolve) => {
+    try {
+      assertNetworkAllowed(GITHUB_API_LATEST_RELEASE)
+    } catch (error) {
+      console.warn(`GitHub API request blocked: ${error.message}, using default version`)
+      resolve(DEFAULT_VERSION)
+      return
+    }
+
     const request = https.get(
       GITHUB_API_LATEST_RELEASE,
       {
@@ -143,9 +152,10 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
   const isTarGz = packageName.endsWith('.tar.gz')
 
   try {
-    console.log(`Downloading openclaw ${version} for ${platformKey}...`)
-
-    await downloadWithFallback(version, packageName, tempFilename, useMirror)
+    if (!copyLocalBinaryPackage(platformKey, packageName, tempFilename)) {
+      console.log(`Downloading openclaw ${version} for ${platformKey}...`)
+      await downloadWithFallback(version, packageName, tempFilename, useMirror)
+    }
 
     console.log(`Extracting ${packageName} to ${binDir}...`)
 
