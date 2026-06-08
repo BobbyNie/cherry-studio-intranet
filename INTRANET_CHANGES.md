@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-06-01
+> 最后更新: 2026-06-08
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -114,6 +114,35 @@ const filteredSystemModels =
 | #15362 | upstream v1.9.7 release chore | ❌ | 由内网自行 bump 版本 |
 
 `scripts/__tests__/upstream-sync.test.ts` 改为对照 `v1.9.8` 标签（不再对照 `upstream/main` 的 v2 线）。
+
+## 8. 上游同步记录 (2026-06-08)
+
+从 `CherryHQ/cherry-studio` 标签 `v1.9.11` cherry-pick 了 v1.9.8 之后尚未同步的修复，版本升至 **1.9.11**。
+
+| PR / 变更 | 说明 | 内网适用 | 备注 |
+|-----------|------|----------|------|
+| revert #15146 | 回滚小程序 URL 缓存刷新 | ✅ | |
+| — | 清理 analytics 测试无用 mock | ✅ | |
+| #15538 | OV OCR CPU 检测防护 | ✅ | |
+| #15533 | Agent 会话尊重话题命名设置 | ✅ | |
+| #15543 | MiniMax M3 模型注册 | ✅ | |
+| — | 隐私政策文案更新 | ✅ | 内网仍跳过 `PrivacyPolicyUpdateNotice` |
+| — | 初始 LLM 状态排除 ceplalon/tokenflux | ✅ | 与内网 `SYSTEM_PROVIDERS` 过滤合并 |
+| #15580 | 精简 legacy MiniMax 模型 | ✅ | |
+| #15575 | Gemini 模型列表 API Key 编码 | ✅ | |
+| #15577 | 自定义 Provider 模型分组推断 | ✅ | 保留内网 allowlist 单测 |
+| #15531 | 删除 Agent 会话时清理消息 | ✅ | 含单测 |
+| #15389 | Gemini 小程序 Electron UA 字号修复 | ✅ | |
+| #15513 | MiniMax M3 思考过程支持 | ✅ | |
+| #15532 | Opus 4.8 自适应思考 | ✅ | |
+| #15644 | HTML 产物用 openPath 打开 | ✅ | 更适合内网本地打开 |
+| #15727 | 避免 embedding dimensions 请求参数 | ✅ | 含单测 |
+| #15391 | Mermaid 11.15.0 修复中文流程图 | ✅ | |
+| #15358 | Agent 任务完成状态同步 | ✅ | |
+| #15410 | CherryIN OAuth 绑定 sender | ❌ | 内网不使用 CherryIN |
+| — | v1.9.9/10/11 release chore | ❌ | 由内网自行 bump 版本 |
+
+`scripts/__tests__/upstream-sync.test.ts` 改为对照 `v1.9.11` 标签。
 
 ---
 

@@ -5,10 +5,10 @@ import { resolve } from 'node:path'
 const root = resolve(__dirname, '../..')
 
 /** Latest upstream v1 release tag the intranet edition tracks (not v2/main). */
-const UPSTREAM_SYNC_TAG = 'v1.9.8'
+const UPSTREAM_SYNC_TAG = 'v1.9.11'
 
 /** Upstream PRs intentionally skipped for intranet (CI-only or release automation). */
-const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362'])
+const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362', '15410'])
 
 function runGit(command: string): string {
   return execSync(command, { cwd: root, encoding: 'utf8' }).trim()
