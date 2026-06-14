@@ -244,7 +244,7 @@ jobs:
             fi
           }
 
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          if [ "${{ matrix.os }}" != "macos-latest" ]; then
             copy_first "*-x64-setup.exe" "${PREFIX}-windows-x64-setup.exe"
             copy_first "*-arm64-setup.exe" "${PREFIX}-windows-arm64-setup.exe"
             copy_first "*-x64-portable.exe" "${PREFIX}-windows-x64-portable.exe"
