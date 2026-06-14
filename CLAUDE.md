@@ -2,6 +2,24 @@
 
 This file provides guidance to AI coding assistants when working with code in this repository. Adherence to these guidelines is crucial for maintaining code quality and consistency.
 
+## Repository: Cherry Studio Intranet Edition
+
+This repository (`cherry-studio-intranet`) is an **enterprise intranet fork** of [Cherry Studio](https://github.com/CherryHQ/cherry-studio). It tracks upstream `main` and cherry-picks upstream fixes via `sync/upstream-*` branches. Current alignment: **upstream v1.9.11** (package version `1.9.11`).
+
+The fork disables public-network-facing surfaces (auto-update, telemetry, marketplace, external links) and enforces a **central network allowlist** so the app only talks to explicitly-approved endpoints. When touching network, provider, or build code, follow the intranet constraints below.
+
+**Key intranet docs (read these first):**
+
+| Doc | Purpose |
+|---|---|
+| `CONTEXT.md` | Domain glossary + network policy (intranet ≠ localhost-only) |
+| `INTRANET_CHANGES.md` | Fork-specific change log + per-change upstream-sync recommendations |
+| `docs/intranet-deployment.md` | Build & deployment guide |
+| `docs/intranet-network-audit.md` | Network egress audit |
+| `docs/intranet-test-report.md` | Acceptance test coverage |
+
+The remaining sections describe the shared architecture inherited from upstream (still accurate — the code layout is identical) plus the intranet-specific sections flagged below.
+
 ## Guiding Principles (MUST FOLLOW)
 
 - **Keep it clear**: Write code that is easy to read, maintain, and explain.
@@ -13,6 +31,48 @@ This file provides guidance to AI coding assistants when working with code in th
 - **Lint, test, and format before completion**: Coding tasks are only complete after running `pnpm lint`, `pnpm test`, and `pnpm format` successfully.
 - **Write conventional commits**: Commit small, focused changes using Conventional Commit messages (e.g., `feat:`, `fix:`, `refactor:`, `docs:`).
 - **Sign commits**: Use `git commit --signoff` as required by contributor guidelines.
+
+## Intranet Network Policy & Build Modes (CRITICAL)
+
+This is the single most important constraint in this fork. Read it before touching anything that makes an HTTP/WS request or ships a build.
+
+### Build-mode environment variables
+
+All read via `packages/shared/config/intranet.ts` (checks `process.env` and `VITE_`-prefixed variants):
+
+| Variable | Effect |
+|---|---|
+| `CHERRY_INTRANET_MODE` | Intranet mode (primary for this repo). Enables offline-mode network guards. |
+| `CHERRY_OFFLINE_MODE` | Fully-offline mode (same family). Stricter posture intended for air-gapped builds. |
+| `CHERRY_DISABLE_PUBLIC_NETWORK` | Force `isPublicNetworkDisabled()` true even outside offline mode. |
+| `CHERRY_DISABLE_AUTO_UPDATE` | Hard-disable the auto-updater product surface. |
+| `CHERRY_DISABLE_TELEMETRY` | Hard-disable telemetry product surface. |
+| `CHERRY_DISABLE_MARKETPLACE` | Hard-disable the MCP marketplace surface. |
+| `CHERRY_DISABLE_EXTERNAL_LINKS` | Hard-disable external links (about page, etc.). |
+| `CHERRY_NETWORK_ALLOWLIST` | Comma/newline-separated hostnames used to **seed** the allowlist on first launch (runtime policy lives in Settings). |
+
+> The `CHERRY_DISABLE_*` switches are independent of `CHERRY_INTRANET_MODE` — they are not auto-enabled by it. The intranet release CI sets them explicitly (see Intranet Build & Release).
+
+### Network policy (deny-all + central guard)
+
+When `isPublicNetworkDisabled()` is true (offline/intranet mode, or `CHERRY_DISABLE_PUBLIC_NETWORK`), **all** outbound HTTP(S)/WS(S) is denied unless it matches the allowlist. Enforcement funnels through one central guard:
+
+- **Guard**: `assertNetworkAllowed(url)` in `packages/shared/config/intranet.ts`.
+- **Interception points (all route through the same guard):**
+  - Main-process `globalThis.fetch` and `electron.net.fetch` — `src/main/network/intranetNetworkGuard.ts` (`installMainIntranetNetworkGuard`).
+  - Renderer / webview `<session>.webRequest.onBeforeRequest` — `installSessionIntranetNetworkGuard`.
+- **Allowlist rules**: `packages/shared/network/networkAllowlist.ts` — matches **hostnames only** (supports `*.corp.example.com` wildcards and IPs); protocols limited to `http`/`https`/`ws`/`wss`; URLs carrying credentials are rejected.
+- **Storage**: `src/main/services/IntranetNetworkAllowlistService.ts` persists rules under ConfigManager key `intranetNetworkAllowlist`; seeds from `CHERRY_NETWORK_ALLOWLIST` on first launch.
+- **UI**: Settings → General → Intranet network allowlist (设置 → 通用 → 内网网络白名单).
+
+**Key principle: intranet mode is NOT localhost-only.** Users configure the real API address in provider settings; the runtime trusts any host on the allowlist — including enterprise gateways, SearXNG, WebDAV, and internal domains. Public-internet unreachability is enforced by enterprise DNS/firewall/proxy, not by hard-coded localhost rules. See `CONTEXT.md`.
+
+### Editing rules
+
+- Any **new** outbound request must go through the central guard — do not bypass `assertNetworkAllowed`, and do not add a raw `fetch` / `net.fetch` / `session.loadURL` path that skips it.
+- When adding a **model provider endpoint**, ensure its `apiHost` / `anthropicApiHost` is reachable via the allowlist.
+- The built-in **CherryAI provider is replaced by the enterprise intranet model service** (`企业内网模型服务`, OpenAI-compatible, default `http://llm-gateway.intranet.local/v1`). Relevant files: `src/renderer/src/config/providers.ts`, `src/renderer/src/config/models/default.ts`, `src/renderer/src/config/models/intranet.ts`, `packages/shared/config/providerEndpoints.ts`, `packages/shared/config/intranet.ts`.
+- Intranet mode **skips** the upstream `PrivacyPolicyUpdateNotice` and does not force-enable data collection.
 
 ## Pull Request Workflow (CRITICAL)
 
@@ -35,17 +95,23 @@ Only investigate CI failures by reading the logs, not by re-running checks local
 When creating an Issue, you MUST use the `gh-create-issue` skill.
 If the skill is unavailable, directly read `.agents/skills/gh-create-issue/SKILL.md` and follow it manually.
 
-### Branch Strategy (Effective April 3, 2026)
+### Branch Strategy
 
-> **IMPORTANT**: The `main` branch is now under **code freeze**. Only critical bug fixes submitted via `hotfix/*` branches are accepted. Fix PRs must be minimal in scope and must not include any refactoring code.
->
-> All new features, refactoring, and optimizations should be developed on the **`v2` branch**. We welcome every developer to actively participate in v2 development!
->
-> The `v2` branch will only accept new feature submissions after all current features have been fully refactored.
+This fork is maintained on `main`; intranet fixes land via `hotfix/intranet-*` branches. There is **no local `v2` branch** — that line lives only in upstream (`CherryHQ/cherry-studio`), and this repo does not develop against it.
+
+Upstream context (for reference only): upstream `main` is under code freeze accepting only critical fixes via `hotfix/*`; upstream new features/refactors go to upstream `v2`. Those constraints govern upstream contribution, not this fork's intranet line.
+
+### Upstream Sync
+
+This fork tracks upstream `CherryHQ/cherry-studio` `main` and cherry-picks fixes via `sync/upstream-*` branches.
+
+- `scripts/__tests__/upstream-sync.test.ts` pins the upstream tag this fork is aligned to (currently **v1.9.11**). Update it when bumping alignment.
+- `INTRANET_CHANGES.md` records every fork-specific change with a sync recommendation per item: **⭐ can sync upstream** / **❌ intranet-only** / **⚠️ needs team confirmation**.
+- **Before syncing**: consult `INTRANET_CHANGES.md` and the Intranet Network Policy section above to avoid clobbering intranet-only logic (network guards, allowlist, provider replacement, disabled surfaces).
 
 ## Development Commands
 
-- **Install**: `pnpm install` — Install all project dependencies (requires Node ≥22, pnpm 10.27.0)
+- **Install**: `pnpm install` — Install all project dependencies (requires Node 24.11.1, see `.nvmrc`; pnpm 10.27.0 via corepack)
 - **Development**: `pnpm dev` — Runs Electron app in development mode with hot reload
 - **Debug**: `pnpm debug` — Starts with debugging; attach via `chrome://inspect` on port 9222
 - **Build Check**: `pnpm build:check` — **REQUIRED** before commits (`pnpm lint && pnpm test`)
@@ -71,6 +137,42 @@ If the skill is unavailable, directly read `.agents/skills/gh-create-issue/SKILL
   - `pnpm agents:generate` — Generate Drizzle migrations
   - `pnpm agents:push` — Push schema to SQLite DB
   - `pnpm agents:studio` — Open Drizzle Studio
+- **Intranet / Offline builds** (load `.env.intranet.example` + optional `.env.intranet` via `dotenv`; work without a local env file too):
+  - `pnpm build:intranet` — Build in intranet mode
+  - `pnpm package:mac:intranet` / `pnpm package:win:intranet` — Package intranet installers (macOS dmg/zip, Windows setup/portable)
+  - `pnpm debug:intranet` — Debug run in intranet mode
+  - `pnpm build:offline` / `pnpm package:mac:offline` / `pnpm package:win:offline` / `pnpm debug:offline` — Fully-offline equivalents (load `.env.offline.example` / `.env.offline`)
+  - `pnpm i18n:hardcoded:strict` — Hardcoded-string check (`I18N_STRICT=true`); **required gate** for intranet releases
+
+## Intranet Build & Release
+
+### Build-time binary bundling (beforePack)
+
+`electron-builder`'s `beforePack` hook (`scripts/before-pack.js`) downloads tool binaries into `resources/binaries/<platform>-<arch>/` so they ship inside the installer (`asarUnpack` already covers `resources/**`):
+
+| Script | Content | Runtime consumer |
+|---|---|---|
+| `scripts/download-rtk-binaries.js` | `rtk` / `rtk.exe` | `extractRtkBinaries()` |
+| `scripts/download-intranet-binaries.js` (needs `CHERRY_INTRANET_MODE=true`) | `uv` / `bun` / `openclaw` archives (+ OVMS zips on Windows x64) | `resources/scripts/install-*.js` → `local-binary.js` |
+
+The intranet binaries are pulled from GitCode mirrors — this is a **build-time** egress, not a runtime network policy. If the build host is fully offline, drop the same-named archives into `resources/binaries/<platform>-<arch>/` before running `package:*:intranet`.
+
+### Release workflow (`.github/workflows/intranet-release.yml`)
+
+Triggers:
+
+- Push to `main` → auto-generates an `intranet-v<package.version>-<short-sha>` tag and publishes a Release.
+- Manual `workflow_dispatch` with an explicit release tag (e.g. `intranet-v1.9.4`).
+- Tag push matching `v*` or `intranet-v*`.
+
+Build matrix: `macos-latest` (dmg/zip, arm64 + x64) and `windows-2022` (setup/portable, x64 + arm64).
+
+Gates & artifacts:
+
+- `test-intranet-release` runs `pnpm lint` + `pnpm i18n:hardcoded:strict` + `pnpm test` first.
+- `build-intranet-release` builds only after the gate passes, with `CHERRY_INTRANET_MODE=true` and `CHERRY_DISABLE_AUTO_UPDATE/TELEMETRY/MARKETPLACE/EXTERNAL_LINKS=true`.
+- Artifacts are uploaded, then `publish-intranet-release` creates/updates the GitHub Release including a `SHA256SUMS.txt`.
+- Optional Apple code-signing secrets: `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`. Without them the workflow keeps `CSC_IDENTITY_AUTO_DISCOVERY=false` and ships unsigned builds (suitable for intranet acceptance + secondary signing).
 
 ## Project Architecture
 
@@ -238,7 +340,7 @@ logger.error("message", error);
 
 | Layer | Technologies |
 |---|---|
-| Runtime | Electron 38, Node ≥22 |
+| Runtime | Electron 38, Node 24.11.1 |
 | Frontend | React 19, TypeScript ~5.8 |
 | UI | Ant Design 5.27, styled-components 6, TailwindCSS v4 |
 | State | Redux Toolkit, redux-persist, Dexie (IndexedDB) |
@@ -341,31 +443,20 @@ Uses canonical triage role labels. See `docs/agents/triage-labels.md`.
 
 Single-context repository with root-level CONTEXT.md. See `docs/agents/domain.md`.
 
-## Cursor Cloud specific instructions
+## Intranet Dev Environment
 
-### Environment Prerequisites
+### Prerequisites
 
-- **Node.js 24.11.1** is required (matches `.nvmrc`). Use `nvm use` to activate.
-- **pnpm 10.27.0** is managed via corepack (`corepack enable` then `pnpm --version`).
-- **System libraries** needed for native module compilation: `libxtst-dev`, `libx11-dev`, `libxkbfile-dev`, `libevdev-dev` (for `selection-hook` native addon).
-- After checkout, if `git config core.hooksPath` is set, unset it so `prek` (git hooks installer) can complete during `pnpm install`.
+- **Node.js 24.11.1** (matches `.nvmrc` / `.node-version`). Activate with `nvm use` / `fnm use`.
+- **pnpm 10.27.0** via corepack: `corepack enable`, then `pnpm --version`.
+- Native prebuilt binaries (sharp, libsql, system-ocr, canvas, claude-agent-sdk's ripgrep, etc.) are resolved per platform/arch by `scripts/before-pack.js` during packaging — dev runs on your host platform generally need no manual native setup.
 
-### Running the dev app
+### First run
 
-- Copy `.env.example` to `.env` before first run.
-- `pnpm dev` launches the Electron app with hot reload. Requires a display server (DISPLAY=:1 via Xvfb is fine).
-- The app will show API errors if no LLM provider API key is configured — this is expected and does not indicate a broken environment.
+- Copy `.env.intranet.example` to `.env.intranet` and adjust hostnames to your enterprise network (see Intranet Network Policy). The intranet build commands load `.env.intranet.example` first, then `.env.intranet` overrides, so a missing local file still builds in intranet mode.
+- `pnpm dev` runs the Electron app in dev mode; `pnpm debug:intranet` runs it under intranet-mode env.
+- API errors appear if no provider API key/host is configured — expected, not a broken environment.
 
-### Key commands (reference)
+### Notes
 
-All commands are documented in the Development Commands section above. Most commonly used:
-- `pnpm test` — runs all 247+ test files (unit tests, no external deps needed)
-- `pnpm typecheck` — concurrent type-checking of node, web, and aiCore
-- `pnpm format` — Biome format + lint (write mode)
-- `pnpm lint` — full lint pipeline including oxlint, eslint, typecheck, i18n check, format check
-
-### Gotchas
-
-- The `pnpm install` prepare script requires `core.hooksPath` to be unset. If you see `Cowardly refusing to install hooks with core.hooksPath set`, run `git config --unset-all core.hooksPath` (both local and global).
-- The `core-js@2.6.12` build script warning is benign and can be ignored.
-- `pnpm dev` runs `generate:openapi` first which requires the `.env` file to exist (even if empty/placeholder values).
+- Keep `git config core.hooksPath` unset so the `pnpm install` prepare hook can install git hooks. If you see `Cowardly refusing to install hooks with core.hooksPath set`, run `git config --unset-all core.hooksPath` (local + global).
