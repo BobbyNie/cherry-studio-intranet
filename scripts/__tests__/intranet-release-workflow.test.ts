@@ -52,7 +52,7 @@ describe('intranet release workflow', () => {
     const publishJob = workflow.jobs['publish-intranet-release']
 
     expect(workflow.permissions.contents).toBe('write')
-    expect(buildJob.strategy?.matrix.os).toEqual(['macos-latest', 'windows-latest'])
+    expect(buildJob.strategy?.matrix.os).toEqual(['macos-latest', 'windows-2022'])
     expect(publishJob.steps.some((step) => step.uses?.startsWith('ncipollo/release-action'))).toBe(true)
 
     const buildStep = buildJob.steps.find((step) => step.name === 'Build intranet package')
