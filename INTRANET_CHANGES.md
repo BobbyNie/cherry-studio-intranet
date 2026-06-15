@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-06-08
+> 最后更新: 2026-06-15
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -143,6 +143,25 @@ const filteredSystemModels =
 | — | v1.9.9/10/11 release chore | ❌ | 由内网自行 bump 版本 |
 
 `scripts/__tests__/upstream-sync.test.ts` 改为对照 `v1.9.11` 标签。
+
+## 9. 上游同步记录 (2026-06-15)
+
+从 `CherryHQ/cherry-studio` 分支 `v1`（`v1.9.11` 标签之后）cherry-pick 了 10 个修复/功能提交：
+
+| PR | 说明 | 内网适用 | 备注 |
+|----|------|----------|------|
+| #15834 | DeepSeek V4+ reasoning_effort 转发 | ✅ | |
+| #15872 | Claude Fable 系列与 Opus 5 能力识别 | ✅ | |
+| #15779 | Anthropic 原生 /v1/models 拉取 | ✅ | |
+| #15839 | 折叠工具组审批按钮防误触折叠 | ✅ | |
+| #15934 | NewAPI provider 使用 anthropicApiHost | ✅ | |
+| #15978 | Agent 模式注入 Cherry Studio 身份 headers | ✅ | |
+| #15301 | SVG data URL 图片下载 CSP 修复 | ✅ | |
+| #14668 | 保存图片时恢复扩展名前导点 | ✅ | |
+| #15991 | MiniMax-M3 思考过程控制修复 | ✅ | 含单测 |
+| #16017 | Kimi K2.7 Code 模型支持 | ✅ | |
+
+`scripts/__tests__/upstream-sync.test.ts` 改为对照 `upstream/v1` 分支（不再仅对照 `v1.9.11` 标签）。
 
 ---
 

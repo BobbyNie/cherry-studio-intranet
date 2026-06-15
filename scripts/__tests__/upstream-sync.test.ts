@@ -4,8 +4,8 @@ import { resolve } from 'node:path'
 
 const root = resolve(__dirname, '../..')
 
-/** Latest upstream v1 release tag the intranet edition tracks (not v2/main). */
-const UPSTREAM_SYNC_TAG = 'v1.9.11'
+/** Latest upstream v1 line the intranet edition tracks (branch, not v2/main). */
+const UPSTREAM_SYNC_REF = 'upstream/v1'
 
 /** Upstream PRs intentionally skipped for intranet (CI-only or release automation). */
 const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362', '15410'])
@@ -43,15 +43,15 @@ describe('upstream sync status', () => {
     expect(packageJson.homepage).toBe('https://github.com/CherryHQ/cherry-studio')
   })
 
-  it(`has no pending upstream commits through ${UPSTREAM_SYNC_TAG} when upstream remote is configured`, () => {
+  it(`has no pending upstream commits through ${UPSTREAM_SYNC_REF} when upstream remote is configured`, () => {
     if (!hasUpstreamRemote()) {
       return
     }
 
-    runGit(`git fetch upstream tag ${UPSTREAM_SYNC_TAG} --quiet`)
+    runGit(`git fetch upstream v1 --quiet`)
 
     const intranetPrNumbers = collectPrNumbers('HEAD')
-    const pendingUpstreamCommits = runGit(`git log --format=%H%x09%s HEAD..${UPSTREAM_SYNC_TAG}`)
+    const pendingUpstreamCommits = runGit(`git log --format=%H%x09%s HEAD..${UPSTREAM_SYNC_REF}`)
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
