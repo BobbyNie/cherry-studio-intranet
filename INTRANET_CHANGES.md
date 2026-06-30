@@ -165,6 +165,31 @@ const filteredSystemModels =
 
 ---
 
+## 10. 上游同步记录 (2026-06-30)
+
+从 `CherryHQ/cherry-studio` 分支 `v1`（`v1.9.11` 标签之后，承接第 9 节未覆盖部分）cherry-pick 了 6 个修复提交，并内网化适配 1 个提交：
+
+| PR | 说明 | 内网适用 | 备注 |
+|----|------|----------|------|
+| #16079 | ai-core 异常 finish reason 转错误 chunk | ✅ | 9 个外语 translate 文件冲突手动合并（保留内网专属 key，取上游翻译） |
+| #15329 | ExaMCP 保留完整 URL + Highlights 解析 | ✅ | |
+| #16371 | AIHubMix 从配置 baseURL 推导 Gemini baseURL | ✅ | |
+| #16556 | `fs.statfs` 修 Windows PowerShell 进程泄漏 | ✅ | `main/ipc.ts` auto-merge |
+| #15369 | claude-code 原生二进制缺失时恢复安装 | ✅ | |
+| #16437 | Claude Code agents 使用第一个配置 key | ✅ | `claudecode/index.ts` 与第 9 节 #15978 auto-merge |
+| (无号) | CherryIN API host `.cc` → `.net` | ✅ | **内网化适配**（commit `48154e9b15`）：上游原 migration 207/208 撞内网体系（207=intranet provider 清理、208=StepFun backfill），改为新 migration 211，persist version 210→211 |
+
+**仍跳过**：
+- 🔴 release v1.9.12 chore（无 PR 号，内网自行 bump）、windows-2022 构建环境（无 PR 号，内网已在 `99093cf2b`/`70cc4ec97` pin）
+
+**版本号保持 1.9.11**（部分同步，未完整对齐 v1.9.12，故不改 `UPSTREAM_SYNC_TAG`/`package.json`）。
+
+`scripts/__tests__/upstream-sync.test.ts` 修复 `collectPrNumbers` 读取完整 commit body（`%B` 而非仅 `%s` subject），使第 9 节的 squash 合并提交（PR #16）body 里列举的 PR 号能被识别为已同步，消除假阳性误报。
+
+内网专属逻辑未受影响：网络守卫 / allowlist / provider 替换 / disabled surfaces 均保持不变。
+
+---
+
 ## 同步优先级
 
 | 优先级 | 修改项 | 说明 |

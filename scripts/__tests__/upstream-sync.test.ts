@@ -11,7 +11,9 @@ const UPSTREAM_SYNC_REF = 'upstream/v1'
 const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362', '15410'])
 
 function runGit(command: string): string {
-  return execSync(command, { cwd: root, encoding: 'utf8' }).trim()
+  // Sized for `git log --format=%B HEAD` (full commit-body history, ~3MB today)
+  // used by collectPrNumbers to detect PR numbers inside squash-merge bodies.
+  return execSync(command, { cwd: root, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }).trim()
 }
 
 function hasUpstreamRemote(): boolean {
@@ -29,7 +31,11 @@ function extractPrNumber(message: string): string | null {
 }
 
 function collectPrNumbers(ref: string): Set<string> {
-  const lines = runGit(`git log --format=%s ${ref}`).split('\n').filter(Boolean)
+  // Use %B (full message body, not just %s subject) so PR numbers listed inside
+  // squash-merge commit bodies are recognised as already applied — e.g. a
+  // "sync: cherry-pick upstream/v1 fixes ..." commit enumerates each upstream
+  // PR in its body rather than carrying one commit per PR.
+  const lines = runGit(`git log --format=%B ${ref}`).split('\n').filter(Boolean)
   const prNumbers = lines.map(extractPrNumber).filter((value): value is string => value !== null)
   return new Set(prNumbers)
 }

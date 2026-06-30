@@ -3567,6 +3567,26 @@ const migrateConfig = {
       logger.error('migrate 210 error', error as Error)
       return state
     }
+  },
+  '211': (state: RootState) => {
+    try {
+      state.llm.providers.forEach((provider) => {
+        if (provider.id === 'cherryin') {
+          if (provider.apiHost === 'https://open.cherryin.cc') {
+            provider.apiHost = 'https://open.cherryin.net'
+          }
+          if (provider.anthropicApiHost === 'https://open.cherryin.cc') {
+            provider.anthropicApiHost = 'https://open.cherryin.net'
+          }
+        }
+      })
+
+      logger.info('migrate 211 success')
+      return state
+    } catch (error) {
+      logger.error('migrate 211 error', error as Error)
+      return state
+    }
   }
 }
 
