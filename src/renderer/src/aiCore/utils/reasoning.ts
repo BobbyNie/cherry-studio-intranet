@@ -39,6 +39,7 @@ import {
   isSupportedThinkingTokenGeminiModel,
   isSupportedThinkingTokenHunyuanModel,
   isSupportedThinkingTokenKimiModel,
+  isSupportedThinkingTokenLongCatModel,
   isSupportedThinkingTokenMiMoModel,
   isSupportedThinkingTokenModel,
   isSupportedThinkingTokenQwenModel,
@@ -127,6 +128,10 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
   // It's for some reasoning models that don't support reasoning control, such as deepseek reasoner.
   if (!reasoningEffort || reasoningEffort === 'default') {
     return {}
+  }
+
+  if (isSupportedThinkingTokenLongCatModel(model)) {
+    return { thinking: { type: reasoningEffort === 'none' ? 'disabled' : 'enabled' } }
   }
 
   // Handle 'none' reasoningEffort. It's explicitly off.

@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-06-15
+> 最后更新: 2026-07-11
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -187,6 +187,19 @@ const filteredSystemModels =
 `scripts/__tests__/upstream-sync.test.ts` 修复 `collectPrNumbers` 读取完整 commit body（`%B` 而非仅 `%s` subject），使第 9 节的 squash 合并提交（PR #16）body 里列举的 PR 号能被识别为已同步，消除假阳性误报。
 
 内网专属逻辑未受影响：网络守卫 / allowlist / provider 替换 / disabled surfaces 均保持不变。
+
+## 11. 上游同步记录 (2026-07-11)
+
+审计 `upstream/v1` 在上一轮同步后的 4 个 PR，并按内网适配性处理：
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #16789 | LongCat 2.0 思考与工具调用支持 | ✅ | 引入模型能力、provider options namespace 和思考参数映射，并补足测试 |
+| #16787 | 忽略本地 `AGENTS.override.md` | ✅ | 引入，避免个人 agent 指令污染工作区 |
+| #16606 | AIHubMix 遵循配置 baseURL，并切换公网品牌链接 | ⚠️ | 仅引入模型列表遵循配置 baseURL；跳过 inferera 等公网品牌跳转 |
+| #16703 | 隐藏 CherryIN 手动添加模型按钮 | ❌ | 跳过；内网版不使用 CherryIN，该 UI 变更没有适用对象 |
+
+同步保持内网 provider endpoint 策略不变：用户配置的内网地址仍是请求地址和网络放行依据，不引入固定公网跳转。
 
 ---
 
