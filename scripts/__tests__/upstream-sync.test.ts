@@ -8,7 +8,7 @@ const root = resolve(__dirname, '../..')
 const UPSTREAM_SYNC_REF = 'upstream/v1'
 
 /** Upstream PRs intentionally skipped for intranet (CI-only or release automation). */
-const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362', '15410'])
+const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362', '15410', '16703'])
 
 function runGit(command: string): string {
   // Sized for `git log --format=%B HEAD` (full commit-body history, ~3MB today)

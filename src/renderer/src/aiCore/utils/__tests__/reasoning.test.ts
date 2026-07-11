@@ -79,6 +79,7 @@ vi.mock('@renderer/config/models', async (importOriginal) => {
     isSupportedThinkingTokenDoubaoModel: vi.fn(() => false),
     isSupportedThinkingTokenZhipuModel: vi.fn(() => false),
     isSupportedThinkingTokenMiMoModel: vi.fn(() => false),
+    isSupportedThinkingTokenLongCatModel: vi.fn(() => false),
     isSupportedReasoningEffortModel: vi.fn(() => false),
     isDeepSeekHybridInferenceModel: vi.fn(() => false),
     isDeepSeekV4PlusModel: vi.fn(() => false),
@@ -244,6 +245,25 @@ describe('reasoning utils', () => {
 
       const result = getReasoningEffort(assistant, model)
       expect(result).toEqual({ thinking: { type: 'disabled' } })
+    })
+
+    it.each([
+      ['auto', 'enabled'],
+      ['none', 'disabled']
+    ] as const)('should map LongCat reasoning effort %s to thinking %s', async (reasoningEffort, thinkingType) => {
+      const { isReasoningModel, isSupportedThinkingTokenLongCatModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedThinkingTokenLongCatModel).mockReturnValue(true)
+
+      const model = { id: 'LongCat-2.0', name: 'LongCat 2.0', provider: 'longcat' } as Model
+      const assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: { reasoning_effort: reasoningEffort }
+      } as Assistant
+
+      expect(getReasoningEffort(assistant, model)).toEqual({ thinking: { type: thinkingType } })
     })
 
     it('should handle Qwen models with enable_thinking', async () => {
