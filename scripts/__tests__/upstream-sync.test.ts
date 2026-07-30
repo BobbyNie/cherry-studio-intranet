@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = resolve(__dirname, '../..')
@@ -8,7 +8,14 @@ const root = resolve(__dirname, '../..')
 const UPSTREAM_SYNC_REF = 'upstream/v1'
 
 /** Upstream PRs intentionally skipped for intranet (CI-only or release automation). */
-const EXCLUDED_UPSTREAM_PRS = new Set(['15324', '15362', '15410', '16703'])
+const EXCLUDED_UPSTREAM_PRS = new Set([
+  '15324', // upstream GitCode sync CI
+  '15362', // upstream release chore
+  '15410', // CherryIN OAuth flow
+  '16703', // CherryIN-only model UI
+  '17174', // CherryIN public website and OAuth domains
+  '17229' // public managed auto-update service
+])
 
 function runGit(command: string): string {
   // Sized for `git log --format=%B HEAD` (full commit-body history, ~3MB today)
@@ -40,6 +47,23 @@ function collectPrNumbers(ref: string): Set<string> {
   return new Set(prNumbers)
 }
 
+function collectDocumentedPrNumbers(): Set<string> {
+  const intranetChanges = readFileSync(resolve(root, 'INTRANET_CHANGES.md'), 'utf8')
+  const documentedPrNumbers = intranetChanges
+    .split('\n')
+    .map((line) =>
+      line
+        .split('|')
+        .map((cell) => cell.trim())
+        .filter(Boolean)
+    )
+    .filter((cells) => cells.some((cell) => cell.startsWith('✅') || cell.startsWith('⚠️')))
+    .map((cells) => cells[0]?.match(/^#(\d+)$/)?.[1])
+    .filter((value): value is string => value !== undefined)
+
+  return new Set(documentedPrNumbers)
+}
+
 describe('upstream sync status', () => {
   it('documents the upstream source of truth', () => {
     const packageJson = JSON.parse(
@@ -56,7 +80,7 @@ describe('upstream sync status', () => {
 
     runGit(`git fetch upstream v1 --quiet`)
 
-    const intranetPrNumbers = collectPrNumbers('HEAD')
+    const intranetPrNumbers = new Set([...collectPrNumbers('HEAD'), ...collectDocumentedPrNumbers()])
     const pendingUpstreamCommits = runGit(`git log --format=%H%x09%s HEAD..${UPSTREAM_SYNC_REF}`)
       .split('\n')
       .map((line) => line.trim())
@@ -80,11 +104,29 @@ describe('upstream sync status', () => {
         ? `Missing upstream PRs not yet applied to intranet:\n${missingByPr.join('\n')}`
         : undefined
     ).toEqual([])
-  })
+  }, 60_000)
 })
 
 describe('upstream sync fixtures', () => {
   it('keeps intranet change tracking doc available', () => {
     expect(existsSync(resolve(root, 'INTRANET_CHANGES.md'))).toBe(true)
+  })
+
+  it('documents public-only upstream PRs excluded from the intranet edition', () => {
+    const intranetChanges = readFileSync(resolve(root, 'INTRANET_CHANGES.md'), 'utf8')
+
+    expect(EXCLUDED_UPSTREAM_PRS.has('17174')).toBe(true)
+    expect(EXCLUDED_UPSTREAM_PRS.has('17229')).toBe(true)
+    expect(intranetChanges).toContain('#17174')
+    expect(intranetChanges).toContain('#17229')
+  })
+
+  it('collects audited upstream PRs recorded as applicable in the intranet change log', () => {
+    const documentedPrNumbers = collectDocumentedPrNumbers()
+
+    expect(documentedPrNumbers.has('15241')).toBe(true)
+    expect(documentedPrNumbers.has('17223')).toBe(true)
+    expect(documentedPrNumbers.has('17174')).toBe(false)
+    expect(documentedPrNumbers.has('17229')).toBe(false)
   })
 })

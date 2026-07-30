@@ -1783,7 +1783,9 @@
       "parse": "IA a returnat un răspuns invalid, vă rugăm să reîncercați sau să schimbați modelul",
       "payload": "Conținutul cererii este prea mare, reduceți dimensiunea fișierului sau a textului.",
       "proxy": "Eroare de proxy sau certificat SSL, verificați setările de proxy și de rețea",
-      "quota": "Cota contului epuizată, reîncărcați sau schimbați furnizorul",
+      "quota": "Cota contului este epuizată. Contactați administratorul furnizorului sau treceți la alt furnizor configurat",
+      "rate_limit": "Prea multe cereri într-un timp scurt. Așteptați un moment și încercați din nou, sau treceți la un model cu o limită de rată mai mare",
+      "region": "Furnizorul configurat a respins această regiune. Contactați administratorul companiei sau treceți la alt furnizor configurat",
       "server": "Eroare de server, reîncercați mai târziu",
       "stream": "Răspuns întrerupt, verificați stabilitatea rețelei sau reîncercați",
       "unknown": "A apărut o eroare",
@@ -1795,6 +1797,7 @@
     "http": {
       "400": "Cererea a eșuat. Te rugăm să verifici dacă parametrii cererii sunt corecți. Dacă ai modificat setările modelului, te rugăm să le resetezi la valorile implicite",
       "401": "Autentificarea a eșuat. Te rugăm să verifici dacă cheia API este corectă",
+      "402": "Plată necesară. Contactați administratorul furnizorului pentru a verifica alocarea contului sau treceți la alt furnizor configurat",
       "403": "Acces refuzat. Te rugăm să verifici dacă contul tău este verificat sau contactează furnizorul de servicii pentru mai multe informații",
       "404": "Modelul nu a fost găsit sau calea cererii este incorectă",
       "429": "Prea multe cereri. Te rugăm să încerci din nou mai târziu",

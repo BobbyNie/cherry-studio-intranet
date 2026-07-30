@@ -1783,7 +1783,9 @@
       "parse": "Die KI hat eine ungültige Antwort zurückgegeben, bitte versuchen Sie es erneut oder wechseln Sie das Modell.",
       "payload": "Anfrageinhalt zu groß, bitte verringern Sie die Datei- oder Textgröße",
       "proxy": "Proxy- oder SSL-Zertifikatsfehler, überprüfen Sie die Proxy- und Netzwerkeinstellungen",
-      "quota": "Kontoguthaben aufgebraucht, bitte aufladen oder Anbieter wechseln",
+      "quota": "Kontingent des Kontos ist aufgebraucht. Wenden Sie sich an den Anbieteradministrator oder wechseln Sie zu einem anderen konfigurierten Anbieter",
+      "rate_limit": "Zu viele Anfragen in kurzer Zeit. Bitte kurz warten und erneut versuchen, oder zu einem Modell mit höherer Ratenbegrenzung wechseln",
+      "region": "Der konfigurierte Anbieter hat diese Region abgelehnt. Wenden Sie sich an Ihren Unternehmensadministrator oder wechseln Sie zu einem anderen konfigurierten Anbieter",
       "server": "Serverfehler, bitte später erneut versuchen",
       "stream": "Antwort unterbrochen, überprüfen Sie die Netzwerkstabilität oder versuchen Sie es erneut",
       "unknown": "Ein Fehler ist aufgetreten",
@@ -1795,6 +1797,7 @@
     "http": {
       "400": "Anfragefehler. Bitte überprüfen Sie die Anfrageparameter. Falls Modelleinstellungen geändert wurden, setzen Sie diese auf Standardwerte zurück",
       "401": "Authentifizierung fehlgeschlagen. Bitte überprüfen Sie, ob der API-Schlüssel korrekt ist",
+      "402": "Zahlung erforderlich. Wenden Sie sich an den Anbieteradministrator, um die Kontozuweisung zu prüfen, oder wechseln Sie zu einem anderen konfigurierten Anbieter",
       "403": "Zugriff verweigert. Bitte übersetzen Sie die spezifische Fehlermeldung für Details oder kontaktieren Sie den Dienstanbieter",
       "404": "Modell existiert nicht oder Anfragepfad ist fehlerhaft",
       "429": "Anfragelimit überschritten. Bitte versuchen Sie es später erneut",

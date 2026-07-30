@@ -1783,7 +1783,9 @@
       "parse": "AI returned an invalid response, please retry or switch model",
       "payload": "Request content too large, please reduce file or text size",
       "proxy": "Proxy or SSL certificate error, check proxy and network settings",
-      "quota": "Account quota exhausted, please recharge or switch provider",
+      "quota": "Account quota exhausted. Contact the provider administrator or switch to another configured provider",
+      "rate_limit": "Too many requests in a short time. Wait a moment and retry, or switch to a model with a higher rate limit",
+      "region": "The configured provider rejected this region. Contact your enterprise administrator or switch to another configured provider",
       "server": "Server error, please retry later",
       "stream": "Response interrupted, check network stability or retry",
       "unknown": "An error occurred",
@@ -1795,6 +1797,7 @@
     "http": {
       "400": "Request failed. Please check if the request parameters are correct. If you have changed the model settings, please reset them to the default settings",
       "401": "Authentication failed. Please check if your API key is correct",
+      "402": "Payment required. Contact the provider administrator to check the account allocation, or switch to another configured provider",
       "403": "Access denied. Please check if your account is verified, or contact the service provider for more information",
       "404": "Model not found or request path is incorrect",
       "429": "Too many requests. Please try again later",
@@ -1940,6 +1943,7 @@
       "to_file": "Save as Image"
     },
     "code": "Code",
+    "code_block_progress": "Generating {{language}} · {{lines}} lines · {{characters}} chars",
     "empty_preview": "No content to display",
     "generating": "Generating",
     "preview": "Preview",
