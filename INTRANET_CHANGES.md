@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-07-11
+> 最后更新: 2026-07-30
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -200,6 +200,31 @@ const filteredSystemModels =
 | #16703 | 隐藏 CherryIN 手动添加模型按钮 | ❌ | 跳过；内网版不使用 CherryIN，该 UI 变更没有适用对象 |
 
 同步保持内网 provider endpoint 策略不变：用户配置的内网地址仍是请求地址和网络放行依据，不引入固定公网跳转。
+
+---
+
+## 12. 上游同步记录 (2026-07-30)
+
+以已合入内网 `main` 的第 11 节同步为基线，审计 `CherryHQ/cherry-studio` `v1`
+分支后续 8 个提交，引入并适配其中 6 个：
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #15241 | 修正 AI 错误分类并透传 provider 结构化错误 | ✅ 适配后引入 | 保留 402/429、region、MCP/OCR、safety 分类；地域和网络建议改为联系企业管理员、检查已配置 provider/allowlist，不建议通过公网代理绕过策略 |
+| #15832 | 长 fenced-code 流式响应使用轻量投影，避免 renderer OOM | ✅ | 增加 10,000 行代码块投影大小上界测试；完成或中止时恢复完整文本 |
+| #17005 | NewAPI Gemini endpoint 统一为 `/v1beta` | ✅ | 只影响运行时 URL 规范化；OpenAI endpoint 继续使用 `/v1`，不修改 provider 持久化结构 |
+| #17270 | 搜索改写内容作为 user content 发送 | ✅ | 修复 system/user 消息角色倒置，不新增公网请求路径 |
+| #17167 | 消息列表未撑满时自动加载历史记录 | ✅ | 使用精确原始消息游标；Agent 分页状态按 session 隔离 |
+| #17223 | Agent 会话接入已有 `Ctrl/Cmd+F` 内容搜索 | ✅ | 复用现有 DOM 搜索组件，不修改 Redux/数据库结构 |
+| #17174 | 更新 CherryIN 网站与 OAuth 公网域名 | ❌ | 内网版本不使用 CherryIN 公网网站/OAuth 流程；引入会扩大公网域名面 |
+| #17229 | updater 切换至 `releases.cherry-ai.com` 托管服务 | ❌ | 内网发布显式禁用 auto-update；托管公网更新服务违反运行时网络约束 |
+
+本轮没有 provider/model 数据迁移、Redux state shape、Dexie schema 或 persist version 变更。
+`scripts/__tests__/upstream-sync.test.ts` 对 #17174 与 #17229 做显式排除并验证本文件记录了排除原因，
+避免后续同步检查把经过审计的内网排除误报为遗漏。
+
+内网专属逻辑保持不变：允许已启用 provider 的已配置 `apiHost` / `anthropicApiHost`，
+并继续通过中央 network guard、协议/主机/端口/路径前缀规则执行运行时策略。
 
 ---
 
