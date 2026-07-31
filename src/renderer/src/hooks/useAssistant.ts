@@ -24,7 +24,7 @@ import {
   updateTopic,
   updateTopics
 } from '@renderer/store/assistants'
-import { setDefaultModel, setQuickModel, setTranslateModel } from '@renderer/store/llm'
+import { setDefaultModel, setDefaultVisionModel, setQuickModel, setTranslateModel } from '@renderer/store/llm'
 import type { Assistant, AssistantSettings, Model, ThinkingOption, Topic } from '@renderer/types'
 import { uuid } from '@renderer/utils'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
@@ -202,14 +202,16 @@ export function useDefaultAssistant() {
 }
 
 export function useDefaultModel() {
-  const { defaultModel, quickModel, translateModel } = useAppSelector((state) => state.llm)
+  const { defaultModel, defaultVisionModel, quickModel, translateModel } = useAppSelector((state) => state.llm)
   const dispatch = useAppDispatch()
 
   return {
     defaultModel,
+    defaultVisionModel,
     quickModel,
     translateModel,
     setDefaultModel: (model: Model) => dispatch(setDefaultModel({ model })),
+    setDefaultVisionModel: (model?: Model) => dispatch(setDefaultVisionModel({ model })),
     setQuickModel: (model: Model) => dispatch(setQuickModel({ model })),
     setTranslateModel: (model: Model) => dispatch(setTranslateModel({ model }))
   }

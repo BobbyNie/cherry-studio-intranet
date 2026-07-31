@@ -4,8 +4,6 @@ import {
   isGenerateImageModel,
   isGenerateImageModels,
   isMandatoryWebSearchModel,
-  isVisionModel,
-  isVisionModels,
   isWebSearchModel
 } from '@renderer/config/models'
 import db from '@renderer/databases'
@@ -29,6 +27,7 @@ import FileManager from '@renderer/services/FileManager'
 import { checkRateLimit, getUserMessage } from '@renderer/services/MessagesService'
 import { spanManagerService } from '@renderer/services/SpanManagerService'
 import { estimateTextTokens as estimateTxtTokens, estimateUserPromptUsage } from '@renderer/services/TokenService'
+import { canRouteImageInput } from '@renderer/services/VisionRoutingService'
 import WebSearchService from '@renderer/services/WebSearchService'
 import { useAppDispatch, useAppSelector } from '@renderer/store'
 import { sendMessage as _sendMessage } from '@renderer/store/thunk/messageThunk'
@@ -167,16 +166,14 @@ const InputbarInner: FC<InputbarInnerProps> = ({ assistant: initialAssistant, se
   const { pauseMessages } = useMessageOperations(topic)
   const loading = useTopicLoading(topic)
   const dispatch = useAppDispatch()
-  const isVisionAssistant = useMemo(() => isVisionModel(model), [model])
+  const { defaultVisionModel, providers } = useAppSelector((state) => state.llm)
   const isGenerateImageAssistant = useMemo(() => isGenerateImageModel(model), [model])
   const { setTimeoutTimer } = useTimer()
   const isMultiSelectMode = useAppSelector((state) => state.runtime.chat.isMultiSelectMode)
 
   const isVisionSupported = useMemo(
-    () =>
-      (mentionedModels.length > 0 && isVisionModels(mentionedModels)) ||
-      (mentionedModels.length === 0 && isVisionAssistant),
-    [mentionedModels, isVisionAssistant]
+    () => canRouteImageInput(mentionedModels.length > 0 ? mentionedModels : [model], defaultVisionModel, providers),
+    [defaultVisionModel, mentionedModels, model, providers]
   )
 
   const isGenerateImageSupported = useMemo(

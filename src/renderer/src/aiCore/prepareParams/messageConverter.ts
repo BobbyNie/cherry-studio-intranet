@@ -217,6 +217,37 @@ export function stripMarkdownBase64Images(text: string): string {
 }
 
 /**
+ * Builds a transient payload for the auxiliary vision model.
+ * It deliberately includes only conversation text and image blocks, so document
+ * extraction and every other attachment capability stay on the primary path.
+ */
+export async function convertMessagesToVisionAnalysisMessages(messages: Message[]): Promise<ModelMessage[]> {
+  const parts: Array<TextPart | ImagePart> = []
+  let imageCount = 0
+
+  for (const message of messages) {
+    const content = stripMarkdownBase64Images(getMainTextContent(message)?.trim() ?? '')
+    if (content) {
+      parts.push({ type: 'text', text: `[${message.role} context]\n${content}` })
+    }
+
+    for (const imageBlock of findImageBlocks(message)) {
+      const imageParts = await convertImageBlockToImagePart([imageBlock])
+      for (const imagePart of imageParts) {
+        imageCount += 1
+        parts.push({ type: 'text', text: `Image ${imageCount}:` }, imagePart)
+      }
+    }
+  }
+
+  if (imageCount === 0) {
+    throw new Error('No readable context images')
+  }
+
+  return [{ role: 'user', content: parts }]
+}
+
+/**
  * 转换为助手模型消息
  * 注意：当助手消息只包含图片（如图片生成模型的响应）而没有文本时，
  * 需要添加占位文本，因为某些 API（如 Gemini）不接受空的 assistant 消息

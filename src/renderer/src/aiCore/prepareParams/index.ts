@@ -16,7 +16,11 @@ export { getTimeout } from './modelParameters'
 export { extractFileContent } from './fileProcessor'
 
 // 消息转换
-export { convertMessagesToSdkMessages, convertMessageToSdkParam } from './messageConverter'
+export {
+  convertMessagesToSdkMessages,
+  convertMessagesToVisionAnalysisMessages,
+  convertMessageToSdkParam
+} from './messageConverter'
 
 // 参数构建 (主要API)
 export { buildGenerateTextParams, buildStreamTextParams } from './parameterBuilder'

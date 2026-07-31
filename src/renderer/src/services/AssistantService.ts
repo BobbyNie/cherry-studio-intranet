@@ -180,6 +180,10 @@ export function getDefaultModel() {
   return store.getState().llm.defaultModel
 }
 
+export function getDefaultVisionModel() {
+  return store.getState().llm.defaultVisionModel
+}
+
 export function getQuickModel() {
   return store.getState().llm.quickModel
 }

@@ -2371,6 +2371,10 @@
         "invalid": "Unable to retrieve valid table data"
       },
       "unknown": "Unknown error",
+      "vision_routing": {
+        "analysis_failed": "Image analysis failed. Check the default vision model and provider configuration, then retry.",
+        "not_configured": "The primary model cannot read images. Configure an enabled vision model in Settings > Models, then retry."
+      },
       "yuque": {
         "export": "Failed to export to Yuque. Please check connection status and configuration according to documentation",
         "no_config": "Yuque Token or Yuque Url is not configured"
@@ -5192,6 +5196,8 @@
       },
       "default_assistant_model": "Default Assistant Model",
       "default_assistant_model_description": "Model used when creating a new assistant, if the assistant is not set, this model will be used",
+      "default_vision_model": "Default Vision Model",
+      "default_vision_model_description": "Analyzes images for assistants whose primary model does not support image input",
       "empty": "No models found",
       "manage": {
         "add_listed": {

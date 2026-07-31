@@ -2371,6 +2371,10 @@
         "invalid": "无法获取有效的表格数据"
       },
       "unknown": "未知错误",
+      "vision_routing": {
+        "analysis_failed": "图片分析失败，请检查默认图片多模态模型及其服务配置后重试。",
+        "not_configured": "当前主模型无法识别图片，请先在“设置 > 模型服务”中配置已启用的图片多模态模型后重试。"
+      },
       "yuque": {
         "export": "导出语雀错误，请检查连接状态并对照文档检查配置",
         "no_config": "未配置语雀 Token 或 知识库 URL"
@@ -5192,6 +5196,8 @@
       },
       "default_assistant_model": "默认助手模型",
       "default_assistant_model_description": "创建新助手时使用的模型，如果助手未设置模型，则使用此模型",
+      "default_vision_model": "默认图片多模态模型",
+      "default_vision_model_description": "当助手主模型不支持图片输入时，使用此模型分析图片",
       "empty": "没有模型",
       "manage": {
         "add_listed": {

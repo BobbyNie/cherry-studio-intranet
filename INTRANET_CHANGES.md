@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-07-30
+> 最后更新: 2026-07-31
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -225,6 +225,26 @@ const filteredSystemModels =
 
 内网专属逻辑保持不变：允许已启用 provider 的已配置 `apiHost` / `anthropicApiHost`，
 并继续通过中央 network guard、协议/主机/端口/路径前缀规则执行运行时策略。
+
+---
+
+## 13. 默认图片多模态模型与助手自动分流 ⭐ 可向上游评估
+
+以已批准的 v1 功能冻结例外新增图片理解 fallback。当普通聊天的主模型不支持 vision、且有效上下文含图片时，
+由用户明确设置的默认图片多模态模型先输出客观视觉信息与 OCR，再以不可信的隐藏 user context 交回原主模型回答。
+
+**主要约束**:
+
+- 辅助模型只负责图片理解；主模型、回复 model metadata、工具、搜索、知识库、记忆与推理设置不变。
+- 设置可空、可清除，只接受已启用 provider 中支持 vision 且非纯图片生成的模型。
+- 每次请求重新分析有效上下文图片，不把分析结果写入 Redux、消息或 Dexie。
+- 设置无效、分析为空或调用失败时 fail closed，不启动主模型，并保留用户消息及附件供重试。
+- 普通发送、多模型提及、重发与重新生成共用规则；Agent／Claude Code 与图片生成流程不改。
+- 沿用 provider endpoint、API key rotation、trace、token usage 与中央网络守卫，不增加 allowlist 例外。
+
+设计与安全边界见 `docs/default-vision-model-routing.md`。
+
+**同步建议**: 功能具通用价值，可向上游评估；本内网 v1 版本以明确批准的功能冻结例外先行落地。
 
 ---
 
