@@ -2371,6 +2371,10 @@
         "invalid": "無法取得有效的表格資料"
       },
       "unknown": "未知錯誤",
+      "vision_routing": {
+        "analysis_failed": "圖片分析失敗，請檢查預設圖片多模態模型及其服務設定後重試。",
+        "not_configured": "目前主模型無法識別圖片，請先在「設定 > 模型服務」中設定已啟用的圖片多模態模型後重試。"
+      },
       "yuque": {
         "export": "匯出語雀失敗，請檢查連線狀態並參考說明文件確認設定",
         "no_config": "未設定語雀 Token 或知識庫 URL"
@@ -5192,6 +5196,8 @@
       },
       "default_assistant_model": "預設助手模型",
       "default_assistant_model_description": "建立新助手時使用的模型，如果助手未設定模型，則使用此模型",
+      "default_vision_model": "預設圖片多模態模型",
+      "default_vision_model_description": "當助手主模型不支援圖片輸入時，使用此模型分析圖片",
       "empty": "找不到模型",
       "manage": {
         "add_listed": {

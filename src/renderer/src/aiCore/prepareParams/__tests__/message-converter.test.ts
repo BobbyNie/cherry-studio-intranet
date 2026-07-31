@@ -47,7 +47,12 @@ vi.mock('@renderer/utils/messageUtils/find', () => ({
   findMainTextBlocks: (message: Message) => (message as MockableMessage).__mockMainTextBlocks ?? []
 }))
 
-import { convertMessagesToSdkMessages, convertMessageToSdkParam, stripMarkdownBase64Images } from '../messageConverter'
+import {
+  convertMessagesToSdkMessages,
+  convertMessagesToVisionAnalysisMessages,
+  convertMessageToSdkParam,
+  stripMarkdownBase64Images
+} from '../messageConverter'
 
 let messageCounter = 0
 let blockCounter = 0
@@ -833,6 +838,43 @@ describe('messageConverter', () => {
     it('handles unclosed parenthesis gracefully', () => {
       const input = '![broken](data:image/png;base64,AAA'
       expect(stripMarkdownBase64Images(input)).toBe(input)
+    })
+  })
+
+  describe('convertMessagesToVisionAnalysisMessages', () => {
+    it('builds one image-only analysis payload without processing document attachments', async () => {
+      const user = createMessage('user')
+      user.__mockContent = 'Compare the screenshots'
+      user.__mockFileBlocks = [createFileBlock(user.id)]
+      user.__mockImageBlocks = [createImageBlock(user.id, { url: 'https://example.com/first.png' })]
+      const assistant = createMessage('assistant')
+      assistant.__mockContent = 'Earlier answer'
+      assistant.__mockImageBlocks = [createImageBlock(assistant.id, { url: 'https://example.com/second.png' })]
+
+      const result = await convertMessagesToVisionAnalysisMessages([user, assistant])
+
+      expect(convertFileBlockToFilePartMock).not.toHaveBeenCalled()
+      expect(convertFileBlockToTextPartMock).not.toHaveBeenCalled()
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '[user context]\nCompare the screenshots' },
+            { type: 'text', text: 'Image 1:' },
+            { type: 'image', image: 'https://example.com/first.png' },
+            { type: 'text', text: '[assistant context]\nEarlier answer' },
+            { type: 'text', text: 'Image 2:' },
+            { type: 'image', image: 'https://example.com/second.png' }
+          ]
+        }
+      ])
+    })
+
+    it('rejects a payload when no context image can be read', async () => {
+      const user = createMessage('user')
+      user.__mockContent = 'Text only'
+
+      await expect(convertMessagesToVisionAnalysisMessages([user])).rejects.toThrow('No readable context images')
     })
   })
 })

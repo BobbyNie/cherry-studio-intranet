@@ -9,12 +9,13 @@ import { useDefaultModel } from '@renderer/hooks/useAssistant'
 import { useProviders } from '@renderer/hooks/useProvider'
 import { useSettings } from '@renderer/hooks/useSettings'
 import { getModelUniqId, hasModel } from '@renderer/services/ModelService'
+import { isSelectableVisionModel, resolveConfiguredVisionModel } from '@renderer/services/VisionRoutingService'
 import { useAppDispatch } from '@renderer/store'
 import { setTranslateModelPrompt } from '@renderer/store/settings'
 import type { Model } from '@renderer/types'
 import { Button, Tooltip } from 'antd'
 import { find } from 'lodash'
-import { Languages, MessageSquareMore, Rocket, Settings2 } from 'lucide-react'
+import { Images, Languages, MessageSquareMore, Rocket, Settings2 } from 'lucide-react'
 import type { FC } from 'react'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -35,8 +36,16 @@ const ModelSettings: FC<ModelSettingsProps> = ({
   showDescription = true,
   compact = false
 }) => {
-  const { defaultModel, quickModel, translateModel, setDefaultModel, setQuickModel, setTranslateModel } =
-    useDefaultModel()
+  const {
+    defaultModel,
+    defaultVisionModel,
+    quickModel,
+    translateModel,
+    setDefaultModel,
+    setDefaultVisionModel,
+    setQuickModel,
+    setTranslateModel
+  } = useDefaultModel()
   const { providers } = useProviders()
   const allModels = providers.map((p) => p.models).flat()
   const { theme } = useTheme()
@@ -53,6 +62,15 @@ const ModelSettings: FC<ModelSettingsProps> = ({
   const defaultModelValue = useMemo(
     () => (hasModel(defaultModel) ? getModelUniqId(defaultModel) : undefined),
     [defaultModel]
+  )
+
+  const resolvedVisionModel = useMemo(
+    () => resolveConfiguredVisionModel(defaultVisionModel, providers),
+    [defaultVisionModel, providers]
+  )
+  const defaultVisionModelValue = useMemo(
+    () => (resolvedVisionModel ? getModelUniqId(resolvedVisionModel) : undefined),
+    [resolvedVisionModel]
   )
 
   const defaultQuickModel = useMemo(() => (hasModel(quickModel) ? getModelUniqId(quickModel) : undefined), [quickModel])
@@ -95,6 +113,33 @@ const ModelSettings: FC<ModelSettingsProps> = ({
         </HStack>
         {showDescription && (
           <SettingDescription>{t('settings.models.default_assistant_model_description')}</SettingDescription>
+        )}
+      </SettingGroup>
+      <SettingGroup theme={theme} style={groupStyle}>
+        <SettingTitle style={{ marginBottom: 12 }}>
+          <HStack alignItems="center" gap={10}>
+            <Images size={18} color="var(--color-text)" />
+            {t('settings.models.default_vision_model')}
+          </HStack>
+        </SettingTitle>
+        <HStack alignItems="center">
+          <ModelSelector
+            allowClear
+            providers={providers}
+            predicate={isSelectableVisionModel}
+            value={defaultVisionModelValue}
+            style={{ width: compact ? '100%' : 360 }}
+            size={compact ? 'large' : 'middle'}
+            onChange={(value) =>
+              setDefaultVisionModel(
+                typeof value === 'string' ? (find(allModels, JSON.parse(value)) as Model | undefined) : undefined
+              )
+            }
+            placeholder={t('settings.models.empty')}
+          />
+        </HStack>
+        {showDescription && (
+          <SettingDescription>{t('settings.models.default_vision_model_description')}</SettingDescription>
         )}
       </SettingGroup>
       <SettingGroup theme={theme} style={groupStyle}>
