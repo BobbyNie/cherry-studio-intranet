@@ -308,10 +308,11 @@ async function convertMessageToAssistantModelMessage(
     }
   }
 
-  // 当 parts 为空但有图片时，添加占位文本
-  // 这对于图片生成模型的继续对话很重要，因为助手消息可能只包含生成的图片
-  if (parts.length === 0 && imageBlocks.length > 0) {
-    parts.push({ type: 'text', text: '[Image]' })
+  // Avoid sending content: [] for interrupted or tool-only assistant turns;
+  // Gemini and Anthropic reject empty assistant messages. Keep the existing
+  // image placeholder for image-generation conversations.
+  if (parts.length === 0) {
+    parts.push({ type: 'text', text: imageBlocks.length > 0 ? '[Image]' : '...' })
   }
 
   return {

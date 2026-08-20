@@ -3200,6 +3200,20 @@ describe('Doubao Seed 2.0 Models', () => {
   })
 })
 
+describe('Doubao Seed 2.1 and Evolving Models', () => {
+  it.each(['doubao-seed-2-1-pro-260628', 'doubao-seed-2-1-turbo-260628', 'doubao-seed-evolving'])(
+    'recognizes %s as a configurable reasoning model',
+    (id) => {
+      const model: Model = { id, name: id, provider: 'doubao', group: 'Doubao-Seed-2.1' }
+
+      expect(isSupportedThinkingTokenDoubaoModel(model)).toBe(true)
+      expect(isDoubaoSeedAfter251015(model)).toBe(true)
+      expect(getThinkModelType(model)).toBe('doubao_after_251015')
+      expect(getModelSupportedReasoningEffortOptions(model)).toEqual(['default', 'minimal', 'low', 'medium', 'high'])
+    }
+  )
+})
+
 describe('Gemma 4 Models', () => {
   describe('isReasoningModel', () => {
     it('detects Gemma 4 GenAI format as reasoning', () => {

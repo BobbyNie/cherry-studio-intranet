@@ -199,7 +199,7 @@ const filteredSystemModels =
 | #16606 | AIHubMix 遵循配置 baseURL，并切换公网品牌链接 | ⚠️ | 仅引入模型列表遵循配置 baseURL；跳过 inferera 等公网品牌跳转 |
 | #16703 | 隐藏 CherryIN 手动添加模型按钮 | ❌ | 跳过；内网版不使用 CherryIN，该 UI 变更没有适用对象 |
 
-同步保持内网 provider endpoint 策略不变：用户配置的内网地址仍是请求地址和网络放行依据，不引入固定公网跳转。
+同步保持内网 provider endpoint 配置方式不变：用户配置的内网地址仍是请求地址；其主机名/IP 还需由管理员加入运行时网络白名单，不引入固定公网跳转或自动放行。
 
 ---
 
@@ -223,8 +223,8 @@ const filteredSystemModels =
 `scripts/__tests__/upstream-sync.test.ts` 对 #17174 与 #17229 做显式排除并验证本文件记录了排除原因，
 避免后续同步检查把经过审计的内网排除误报为遗漏。
 
-内网专属逻辑保持不变：允许已启用 provider 的已配置 `apiHost` / `anthropicApiHost`，
-并继续通过中央 network guard、协议/主机/端口/路径前缀规则执行运行时策略。
+内网专属逻辑保持不变：provider 的 `apiHost` / `anthropicApiHost` 决定请求地址，
+运行时则由设置中的 hostname/IP 白名单与中央 network guard 独立执行放行策略。
 
 ---
 
@@ -240,11 +240,33 @@ const filteredSystemModels =
 - 每次请求重新分析有效上下文图片，不把分析结果写入 Redux、消息或 Dexie。
 - 设置无效、分析为空或调用失败时 fail closed，不启动主模型，并保留用户消息及附件供重试。
 - 普通发送、多模型提及、重发与重新生成共用规则；Agent／Claude Code 与图片生成流程不改。
-- 沿用 provider endpoint、API key rotation、trace、token usage 与中央网络守卫，不增加 allowlist 例外。
+- 沿用 provider endpoint、API key rotation、trace、token usage 与中央网络守卫，不自动增加 allowlist 例外。
 
 设计与安全边界见 `docs/default-vision-model-routing.md`。
 
 **同步建议**: 功能具通用价值，可向上游评估；本内网 v1 版本以明确批准的功能冻结例外先行落地。
+
+---
+
+## 14. 上游同步记录 (2026-08-20)
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #16458 | Doubao Seed 2.1 / Evolving 模型能力 | ✅ | 引入系统模型元数据、思考档位、视觉与工具调用识别；不新增 endpoint 或持久化迁移，自定义内网 provider 也可按模型 ID 复用能力判断 |
+| #17713 | Copilot 自定义 headers 保留 | ✅ 适配后引入 | 每次请求从默认 headers 重建，保留自定义 Authorization，但不跨请求残留；`Accept` / `Content-Type` 不允许被大小写变体覆盖 |
+| #17754 | PowerShell 支持与 native Claude runtime | ❌ 暂不引入 | 变更同时升级多项 SDK、改写打包及子进程启动链路；native 子进程未证明受 Electron 中央网络守卫覆盖，且缺少内网打包后的 Windows/Linux 回归证据。在补齐子进程网络约束和离线打包验证前显式排除。 |
+| (无号) | v1.9.13 release chore（commit `da22fb7973`） | ❌ | 内网版本独立发布，且未完整引入 #17754；保持 package version `1.9.11` |
+| #17728 | built-in Agent `builtin_role` | ✅ | 新建时写入权威角色；旧 Agent 保留配置后回填，损坏 JSON 可恢复，session 未同步时回退 Agent 配置；不改数据库 schema |
+| #17685 | 损坏 Agent / Session 数据恢复 | ✅ | 规范化 epoch/无效时间戳与 MCP ID；只对损坏行做条件回写，写失败仍返回 schema 合法数据，避免覆盖并发更新 |
+| #17798 | 知识库条目刷新崩溃 | ✅ | 去除重复 remove / 状态更新 / 队列调度，并以 hook 行为测试锁定一次性副作用 |
+| #16196 | 空 assistant 消息兼容（subject 同时引用 issue #16195） | ✅ | 空消息补 `...`，纯图片保留 `[Image]`，避免 Gemini/Anthropic 因 `content: []` 返回 400 |
+
+本轮没有 provider/model 参数迁移、Redux state shape、Dexie schema、Drizzle schema 或 persist version 变更。
+`scripts/__tests__/upstream-sync.test.ts` 现在取 subject 中最后一个 `(#N)`、收集完整 commit body 的全部 PR 号，
+并要求无 PR 号提交按完整 SHA 显式审计，避免 issue 号误判和 release chore 静默遗漏。
+
+运行时网络策略以 **设置 → 通用 → 内网网络白名单** 中的 hostname/IP 规则为准；provider endpoint 只决定请求地址，
+不会自动放行。`packages/shared/config/providerEndpoints.ts` 当前没有运行时调用方，本轮不做无关删除。
 
 ---
 
@@ -263,9 +285,9 @@ const filteredSystemModels =
 
 ### 内网/离线网络策略（2026-06-01）
 
-- 见根目录 `CONTEXT.md`：内网模式 **不是** 只能访问本机模型，可访问用户在 Provider 中配置的内网域名/API 地址。
-- 完全离线版默认 deny-all，仅按协议、主机、端口和路径前缀放行 **已启用模型 Provider** 上配置的 `apiHost` / `anthropicApiHost`。
-- 相关实现：`packages/shared/config/providerEndpoints.ts`、`packages/shared/config/intranet.ts`。
+- 见根目录 `CONTEXT.md`：内网模式 **不是** 只能访问本机模型，可访问管理员加入运行时白名单的内网域名/IP。
+- 完全离线版默认 deny-all；provider 的 `apiHost` / `anthropicApiHost` 只决定请求地址，其 hostname/IP 必须另行加入 **设置 → 通用 → 内网网络白名单**。
+- 运行时相关实现：`packages/shared/config/intranet.ts`、`packages/shared/network/networkAllowlist.ts`、`src/main/services/IntranetNetworkAllowlistService.ts`。
 
 已为项目启用 `CLAUDE_MEM_RUNTIME = server-beta` 以支持完整记忆功能：
 - 全局配置: `~/.claude.json`

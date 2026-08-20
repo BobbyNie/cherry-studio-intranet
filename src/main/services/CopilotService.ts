@@ -19,7 +19,7 @@ const CONFIG = {
     accept: 'application/json',
     'editor-version': 'Neovim/0.6.1',
     'editor-plugin-version': 'copilot.vim/1.16.0',
-    'content-type': 'application/json',
+    'Content-Type': 'application/json',
     'user-agent': 'GithubCopilot/1.155.0',
     'accept-encoding': 'gzip,deflate,br'
   },
@@ -32,6 +32,8 @@ const CONFIG = {
   },
   TOKEN_FILE_NAME: '.copilot_token'
 }
+
+const REQUIRED_HEADER_NAMES = new Set(['accept', 'content-type'])
 
 // 接口定义移到顶部，便于查阅
 interface UserResponse {
@@ -89,8 +91,16 @@ class CopilotService {
    * 设置自定义请求头
    */
   private updateHeaders = (headers?: Record<string, string>): void => {
-    if (headers && Object.keys(headers).length > 0) {
-      this.headers = { ...headers }
+    const customHeaders = Object.fromEntries(
+      Object.entries(headers ?? {}).filter(([name]) => !REQUIRED_HEADER_NAMES.has(name.toLowerCase()))
+    )
+
+    this.headers = {
+      ...CONFIG.DEFAULT_HEADERS,
+      'user-agent': 'Visual Studio Code (desktop)',
+      ...customHeaders,
+      accept: 'application/json',
+      'Content-Type': 'application/json'
     }
   }
 

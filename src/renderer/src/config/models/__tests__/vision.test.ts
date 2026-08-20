@@ -442,6 +442,15 @@ describe('Doubao Seed 2.0 Models', () => {
   })
 })
 
+describe('Doubao Seed 2.1 and Evolving Models', () => {
+  it.each(['doubao-seed-2-1-pro-260628', 'doubao-seed-2-1-turbo-260628', 'doubao-seed-evolving'])(
+    'recognizes %s as a vision model',
+    (id) => {
+      expect(isVisionModel({ id, name: id, provider: 'doubao', group: 'Doubao-Seed-2.1' })).toBe(true)
+    }
+  )
+})
+
 describe('Gemma 4 Models', () => {
   it('detects Gemma 4 GenAI format as vision', () => {
     expect(isVisionModel(createModel({ id: 'gemma-4-e2b' }))).toBe(true)

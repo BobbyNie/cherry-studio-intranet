@@ -81,5 +81,5 @@
 
 1. 使用抓包工具启动 5 分钟，确认无公网 DNS/HTTP/HTTPS。
 2. 在完全断网 Windows 环境启动安装包。
-3. 管理员配置内网 OpenAI-compatible 模型 Provider 后，验证对应 API endpoint 被放行且未配置目标被阻断。
+3. 管理员配置内网 OpenAI-compatible 模型 Provider，并将其 hostname/IP 加入 **设置 → 通用 → 内网网络白名单** 后，验证该目标被放行、未入白名单的目标被阻断；同时确认仅配置 Provider 不会自动放行。
 4. 如启用 SearXNG、WebDAV、MCP registry，需单独验收其内网地址不会触发公网访问或被离线网络策略误放行。

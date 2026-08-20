@@ -61,7 +61,7 @@ import { sessionService } from '../SessionService'
 import { buildNamespacedToolCallId } from './claude-stream-state'
 import { promptForToolApproval } from './tool-permissions'
 import { ClaudeStreamState, transformSDKMessageToStreamParts } from './transform'
-import { getFirstConfiguredApiKey, with1mContextSuffix } from './utils'
+import { getFirstConfiguredApiKey, resolveBuiltinRole, with1mContextSuffix } from './utils'
 
 const require_ = createRequire(import.meta.url)
 const logger = loggerService.withContext('ClaudeCodeService')
@@ -439,10 +439,10 @@ class ClaudeCodeService implements AgentServiceInterface {
     const isChannelSession = !!linkedChannel
     const channelSecurityBlock = isChannelSession ? `\n\n${CHANNEL_SECURITY_PROMPT}` : ''
 
-    // Built-in agent mode: check builtin_role in configuration
-    const builtinRole = (session.configuration as Record<string, unknown> | undefined)?.builtin_role as
-      | string
-      | undefined
+    const builtinRole = resolveBuiltinRole(
+      session.configuration as Record<string, unknown> | undefined,
+      agentConfig as Record<string, unknown> | undefined
+    )
     const isAssistant = builtinRole === 'assistant'
 
     // For non-Soul, non-Assistant agents we still want the model to know how

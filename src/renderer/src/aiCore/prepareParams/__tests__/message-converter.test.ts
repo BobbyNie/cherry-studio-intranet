@@ -313,6 +313,33 @@ describe('messageConverter', () => {
       })
     })
 
+    it('adds a placeholder so empty assistant messages never send empty content', async () => {
+      const model = createModel()
+      const message = createMessage('assistant')
+      message.__mockContent = ''
+
+      const result = await convertMessageToSdkParam(message, false, model)
+
+      expect(result).toEqual({
+        role: 'assistant',
+        content: [{ type: 'text', text: '...' }]
+      })
+    })
+
+    it('keeps the image placeholder for image-only assistant messages', async () => {
+      const model = createModel()
+      const message = createMessage('assistant')
+      message.__mockContent = ''
+      message.__mockImageBlocks = [createImageBlock(message.id, { url: 'https://example.com/generated.png' })]
+
+      const result = await convertMessageToSdkParam(message, false, model)
+
+      expect(result).toEqual({
+        role: 'assistant',
+        content: [{ type: 'text', text: '[Image]' }]
+      })
+    })
+
     it('trims content in assistant messages', async () => {
       const model = createModel()
       const message = createMessage('assistant')

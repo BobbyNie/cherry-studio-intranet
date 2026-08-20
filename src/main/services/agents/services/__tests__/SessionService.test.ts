@@ -1,3 +1,6 @@
+import { createClient } from '@libsql/client'
+import { ListAgentSessionsResponseSchema } from '@types'
+import { drizzle } from 'drizzle-orm/libsql'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@main/apiServer/services/mcp', () => ({
@@ -57,8 +60,90 @@ vi.mock('@electron-toolkit/utils', () => ({
   }
 }))
 
-import { channelsTable, sessionMessagesTable, sessionsTable, taskRunLogsTable } from '../../database/schema'
+import {
+  channelsTable,
+  sessionMessagesTable,
+  type SessionRow,
+  sessionsTable,
+  taskRunLogsTable
+} from '../../database/schema'
 import { SessionService } from '../SessionService'
+
+function createSessionRow(overrides: Partial<SessionRow> = {}): SessionRow {
+  return {
+    id: 'session_1783338427757_test',
+    agent_type: 'claude-code',
+    agent_id: 'agent_1783338427757_test',
+    name: 'Test Session',
+    description: null,
+    accessible_paths: '[]',
+    instructions: 'Test instructions',
+    model: 'test-model',
+    plan_model: null,
+    small_model: null,
+    mcps: null,
+    allowed_tools: null,
+    slash_commands: JSON.stringify([{ command: '/test', description: 'Test command' }]),
+    configuration: null,
+    sort_order: 0,
+    created_at: '2026-07-06T11:47:07.757Z',
+    updated_at: '2026-07-06T11:47:07.757Z',
+    ...overrides
+  }
+}
+
+interface TestFsModule {
+  mkdtempSync(prefix: string): string
+  rmSync(path: string, options: { recursive: boolean; force: boolean }): void
+}
+
+interface TestOsModule {
+  tmpdir(): string
+}
+
+interface TestPathModule {
+  join(...paths: string[]): string
+}
+
+async function createSessionDatabase(rows: SessionRow[]) {
+  const fs = await vi.importActual<TestFsModule>('node:fs')
+  const os = await vi.importActual<TestOsModule>('node:os')
+  const path = await vi.importActual<TestPathModule>('node:path')
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'session-repair-test-'))
+  const client = createClient({ url: `file:${path.join(directory, 'agents.db')}`, intMode: 'number' })
+  const database = drizzle(client)
+
+  await client.execute(`
+    CREATE TABLE sessions (
+      id TEXT PRIMARY KEY,
+      agent_type TEXT NOT NULL,
+      agent_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      accessible_paths TEXT,
+      instructions TEXT,
+      model TEXT NOT NULL,
+      plan_model TEXT,
+      small_model TEXT,
+      mcps TEXT,
+      allowed_tools TEXT,
+      slash_commands TEXT,
+      configuration TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `)
+  await database.insert(sessionsTable).values(rows)
+
+  return {
+    database,
+    cleanup: () => {
+      client.close()
+      fs.rmSync(directory, { recursive: true, force: true })
+    }
+  }
+}
 
 describe('SessionService deleteSession', () => {
   const service = SessionService.getInstance()
@@ -125,5 +210,76 @@ describe('SessionService deleteSession', () => {
     expect(txDelete).toHaveBeenCalledWith(sessionsTable)
     expect(txUpdate).toHaveBeenCalledWith(channelsTable)
     expect(txUpdate).toHaveBeenCalledWith(taskRunLogsTable)
+  })
+})
+
+describe('SessionService data repair', () => {
+  const service = SessionService.getInstance()
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('leaves valid data untouched without opening a repair transaction', async () => {
+    const { cleanup, database } = await createSessionDatabase([createSessionRow()])
+    const transactionSpy = vi.spyOn(database, 'transaction')
+
+    try {
+      vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+
+      const result = await service.listSessions('agent_1783338427757_test')
+
+      expect(result.sessions[0].updated_at).toBe('2026-07-06T11:47:07.757Z')
+      expect(transactionSpy).not.toHaveBeenCalled()
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('persists normalized timestamps and valid MCP IDs', async () => {
+    const { cleanup, database } = await createSessionDatabase([
+      createSessionRow({ updated_at: '1784810600097Z', mcps: JSON.stringify(['server-id', { invalid: true }]) })
+    ])
+
+    try {
+      vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+
+      const result = await service.listSessions('agent_1783338427757_test')
+      const stored = await database.select().from(sessionsTable)
+
+      expect(result.sessions[0].updated_at).toBe('2026-07-23T12:43:20.097Z')
+      expect(result.sessions[0].mcps).toEqual(['server-id'])
+      expect(stored[0].updated_at).toBe('2026-07-23T12:43:20.097Z')
+      expect(stored[0].mcps).toBe(JSON.stringify(['server-id']))
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('returns a schema-valid normalized list when repair persistence fails', async () => {
+    const { cleanup, database } = await createSessionDatabase([
+      createSessionRow({
+        updated_at: '1784810600097Z',
+        mcps: JSON.stringify([{ mcpServers: { obsidian: {} } }])
+      })
+    ])
+    const databaseWithFailedTransaction = {
+      select: database.select.bind(database),
+      transaction: vi.fn().mockRejectedValue(new Error('database is read-only'))
+    }
+
+    try {
+      vi.spyOn(service as never, 'getDatabase').mockResolvedValue(databaseWithFailedTransaction as never)
+
+      const result = await service.listSessions('agent_1783338427757_test')
+      const response = { data: result.sessions, total: result.total, limit: 20, offset: 0 }
+
+      expect(result.sessions[0].updated_at).toBe('2026-07-23T12:43:20.097Z')
+      expect(result.sessions[0].mcps).toEqual([])
+      expect(ListAgentSessionsResponseSchema.safeParse(response).success).toBe(true)
+      expect(databaseWithFailedTransaction.transaction).toHaveBeenCalledOnce()
+    } finally {
+      cleanup()
+    }
   })
 })

@@ -5,8 +5,17 @@ import {
   isCherryInOfficialHost,
   isDeepSeekOfficialHost,
   isMiMoOfficialHost,
+  resolveBuiltinRole,
   with1mContextSuffix
 } from '../utils'
+
+describe('resolveBuiltinRole', () => {
+  it('prefers the session role and falls back to the legacy agent configuration', () => {
+    expect(resolveBuiltinRole({ builtin_role: 'session-role' }, { builtin_role: 'agent-role' })).toBe('session-role')
+    expect(resolveBuiltinRole(undefined, { builtin_role: 'assistant' })).toBe('assistant')
+    expect(resolveBuiltinRole(undefined, undefined)).toBeUndefined()
+  })
+})
 
 describe('isDeepSeekOfficialHost', () => {
   it('matches the canonical DeepSeek Anthropic endpoint', () => {
