@@ -7,6 +7,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getFromApi as aiSdkGetFromApi,
+  postJsonToApi,
   zodSchema
 } from '@ai-sdk/provider-utils'
 import { loggerService } from '@logger'
@@ -34,6 +35,7 @@ import {
   GeminiModelsResponseSchema,
   GitHubModelsResponseSchema,
   NewApiModelsResponseSchema,
+  OllamaShowResponseSchema,
   OllamaTagsResponseSchema,
   OpenAIModelsResponseSchema,
   OVMSConfigResponseSchema,
@@ -165,6 +167,26 @@ function pickPreferredString(values: Array<unknown>): string | undefined {
 }
 
 // === Fetchers ===
+
+/** Check availability without loading the model or changing its stored capabilities. */
+export async function probeOllamaModel(provider: Provider, model: string, signal?: AbortSignal): Promise<void> {
+  const baseUrl = withoutTrailingSlash(provider.apiHost)
+    .replace(/\/v1$/, '')
+    .replace(/\/api$/, '')
+  // The Electron session guard checks the main process's live allowlist.
+  // Renderer modules do not hold a synchronized copy of that policy.
+  await postJsonToApi({
+    url: `${baseUrl}/api/show`,
+    headers: defaultHeaders(provider),
+    body: { model },
+    successfulResponseHandler: createJsonResponseHandler(zodSchema(OllamaShowResponseSchema)),
+    failedResponseHandler: createJsonErrorResponseHandler({
+      errorSchema: zodSchema(ApiErrorSchema),
+      errorToMessage: (error: ApiError) => error.error?.message || error.message || 'Unknown error'
+    }),
+    abortSignal: signal
+  })
+}
 
 const ollamaFetcher: ModelFetcher = {
   match: (p) => isOllamaProvider(p),

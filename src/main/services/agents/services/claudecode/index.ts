@@ -59,6 +59,7 @@ import { channelService } from '../ChannelService'
 import { PromptBuilder } from '../cherryclaw/prompt'
 import { sessionService } from '../SessionService'
 import { buildNamespacedToolCallId } from './claude-stream-state'
+import { filterReachableMcpServers } from './mcp'
 import { promptForToolApproval } from './tool-permissions'
 import { ClaudeStreamState, transformSDKMessageToStreamParts } from './transform'
 import { getFirstConfiguredApiKey, resolveBuiltinRole, with1mContextSuffix } from './utils'
@@ -566,9 +567,19 @@ class ClaudeCodeService implements AgentServiceInterface {
     }
 
     if (session.mcps && session.mcps.length > 0) {
+      // Resolve lazily: MCPService pulls window/browser services into the module graph.
+      const [{ getMCPServersFromRedux }, { default: mcpService }] = await Promise.all([
+        import('@main/apiServer/utils/mcp'),
+        import('@main/services/MCPService')
+      ])
+      const reachableMcpIds = await filterReachableMcpServers(session.mcps, {
+        listServers: getMCPServersFromRedux,
+        checkConnectivity: (server) => mcpService.checkMcpConnectivity({} as Electron.IpcMainInvokeEvent, server)
+      })
+
       // mcp configs
       const mcpList: Record<string, McpHttpServerConfig> = {}
-      for (const mcpId of session.mcps) {
+      for (const mcpId of reachableMcpIds) {
         mcpList[mcpId] = {
           type: 'http',
           url: `http://${apiConfig.host}:${apiConfig.port}/v1/mcps/${mcpId}/mcp`,

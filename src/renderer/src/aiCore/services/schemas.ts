@@ -50,6 +50,7 @@ export const OllamaTagsResponseSchema = z.object({
 })
 
 // === Gemini ===
+export const OllamaShowResponseSchema = z.looseObject({})
 
 export const GeminiModelsResponseSchema = z.object({
   models: z.array(

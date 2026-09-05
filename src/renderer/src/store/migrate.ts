@@ -3445,8 +3445,13 @@ const migrateConfig = {
           (!provider.isSystem || allowedProviderIds.has(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number]))
       )
 
+      const retainedProviderIds = new Set(state.llm.providers.map((provider) => provider.id))
       const ensureAllowedModel = (model?: Model) => {
-        if (!model || allowedProviderIds.has(model.provider as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])) {
+        if (
+          !model ||
+          retainedProviderIds.has(model.provider) ||
+          allowedProviderIds.has(model.provider as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
+        ) {
           return model ?? intranetFallbackModel
         }
         return intranetFallbackModel
@@ -3585,6 +3590,23 @@ const migrateConfig = {
       return state
     } catch (error) {
       logger.error('migrate 211 error', error as Error)
+      return state
+    }
+  },
+  '212': (state: RootState) => {
+    try {
+      // Keep historical package names literal; preserve enterprise launch options.
+      const legacyPackage = '@cherry/mcp-auto-install'
+      const currentPackage = '@mcpmarket/mcp-auto-install'
+      state.mcp?.servers?.forEach((server) => {
+        if (server?.name === legacyPackage && Array.isArray(server.args) && server.args.includes(legacyPackage)) {
+          server.args = server.args.map((arg) => (arg === legacyPackage ? currentPackage : arg))
+        }
+      })
+      logger.info('migrate 212 success')
+      return state
+    } catch (error) {
+      logger.error('migrate 212 error', error as Error)
       return state
     }
   }

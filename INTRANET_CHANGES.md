@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-07-31
+> 最后更新: 2026-09-05
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -267,6 +267,44 @@ const filteredSystemModels =
 
 运行时网络策略以 **设置 → 通用 → 内网网络白名单** 中的 hostname/IP 规则为准；provider endpoint 只决定请求地址，
 不会自动放行。`packages/shared/config/providerEndpoints.ts` 当前没有运行时调用方，本轮不做无关删除。
+
+---
+
+## 15. 上游同步审计与适配 (2026-09-05)
+
+核对远端 `upstream/v1` 至 `c76f529044ffa9c0a6596e2af81f01a374132d8e`，承接第 14 节。
+`origin/main` 为 `90141c37ca`；开始时工作区干净，已有未发布同步提交 `6de2dd0ffa`，本轮在其上新增聚焦提交。
+upstream `main` 已包含 v2 开发内容，不能用作 v1 的机械合并目标。
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #16245 | Agent 启动跳过不可达 MCP | ✅ 适配后引入 | 独立于被排除的 native runtime；沿用 MCPService 和已有 proxy，隔离同步抛错、异步拒绝及探测超时，不修改持久化 MCP 选择 |
+| #17743 | 修复旧 auto-install 包参数 | ✅ 适配后引入 | 内网模式与 marketplace disable 开关独立；管理员启用市场并配置企业 registry 时仍有价值。改为迁移 212，保留命令、registry、env、额外参数与 isActive，损坏条目不阻断后续修复；不会启用或恢复被禁用的入口 |
+| #19749 | v1 当前模型契约兼容 | ✅ 部分适配引入 | 引入模型识别、推理参数和配套 SDK 修复、Azure fetch、Ollama 轻量检查及 Qwen Image 3；以下子项逐项排除，不能将本记录解释为完整导入该 PR |
+
+### #19749 引入及内网适配
+
+- 模型族：DeepSeek V4 vision、GLM 5.2/5.3、Kimi K3、Qwen 3.8、Gemini 3.7/3.1 Flash Image、Grok 4.6，以及 LFM/Nemotron/Muse/Namazu/Solar/Voxtral 的适用能力分类。保留企业默认模型与 provider 过滤，元数据不会启用公网 provider。
+- 推理选项与序列化一起更新；新增已有字段的 `max` 取值，保留旧 `xhigh` 映射；区分原生、OpenRouter、DashScope、Anthropic-compatible 契约，不新增 Redux 字段或数据库 schema。
+- DeepSeek lockfile 固定至 `2.0.57`，撤销已被 SDK 取代的旧 patch，避免只改参数而被旧 SDK 丢弃。同步 Anthropic 无 signature 的兼容响应、Google/Vertex 工具组合、xAI xhigh、Ollama 显式 think 与默认省略 think 的协议补丁。
+- Azure Anthropic 透传自定义 fetch。Ollama 使用 `/api/show` 检查存在性，保留企业 host 前缀、headers、取消信号；超时清理定时器，不加载模型、不进行图片生成、不扩展持久化能力字段。
+- Qwen Image 3 使用 native multimodal endpoint；新 provider 的所有 fetch 包括结果图片下载均保留 renderer transport，由主进程 Electron session 中央 guard 调用 assertNetworkAllowed；renderer 不持有运行时白名单，不能在本地做预检查。其他图片模型保留原 OpenAI-compatible endpoint，避免协议回归。
+- Ollama inline reasoning extraction 与服务端默认思考语义配套保留。
+
+### #19749 不引入的子项与原因
+
+| 子项 | 决定 | 具体依据 |
+|------|------|----------|
+| Ollama `/api/show` 批量能力发现与 `Model.providerCapabilities` | 暂缓该实现 | 新字段进入持久化 Model，违反现行 state shape 冻结；无界并发 N+1 请求、吞 abort、空能力退回名字推断，不适合直接部署到共享内网模型服务。保留现有能力设置与名称推断 |
+| 全 provider tool schema 裁剪插件 | 排除该实现 | 无条件删除合法的数值/长度/唯一性约束；合法 `$ref` array 工具可能被整项删除，强制 toolChoice 未同步。企业网关没有统一的拒绝契约，不能默认降级所有工具 schema |
+| 通过真实图片生成执行健康检查 | 排除该实现 | 检查会消耗生成资源，timeout race 既不取消生成也不清 timer；本轮不把昂贵生成变成默认验证行为 |
+| upstream changeset/release 元数据 | 跳过 | 内网独立发布；仍有明确排除项，不宣称完整对齐新 release，package version 保持 1.9.11 |
+
+仍排除第 14 节 #17754 的 native runtime，以及既有公网 updater/OAuth 变更，未因本次适配间接引入。
+迁移 207 保留自定义 provider 的已选模型，修复旧升级路径中 provider 保留但模型被替换的不一致；不回溯恢复过去已经丢失的选择。迁移 208–211 保留，新增 212 且同步 persist version，不覆盖内网隐私迁移 209。
+同步测试现在区分“待适配”与“已引入”，并识别带 PR 号的 patch-equivalent 提交；不会将审计完成误写成全部同步。
+
+详细验证、已知限制及覆盖范围见 `docs/intranet-weekly-audit-2026-09-05.md`。
 
 ---
 

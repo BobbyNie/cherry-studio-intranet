@@ -4,7 +4,7 @@ This file provides guidance to AI coding assistants when working with code in th
 
 ## Repository: Cherry Studio Intranet Edition
 
-This repository (`cherry-studio-intranet`) is an **enterprise intranet fork** of [Cherry Studio](https://github.com/CherryHQ/cherry-studio). It tracks upstream `main` and cherry-picks upstream fixes via `sync/upstream-*` branches. Current alignment: **upstream v1.9.11** (package version `1.9.11`).
+This repository (`cherry-studio-intranet`) is an **enterprise intranet fork** of [Cherry Studio](https://github.com/CherryHQ/cherry-studio). It tracks upstream `v1` and selectively adapts upstream fixes via `sync/upstream-*` branches. Last fully aligned tag: **upstream v1.9.11** (package version `1.9.11`); later partial sync decisions are recorded in `INTRANET_CHANGES.md`.
 
 The fork disables public-network-facing surfaces (auto-update, telemetry, marketplace, external links) and enforces a **central network allowlist** so the app only talks to explicitly-approved endpoints. When touching network, provider, or build code, follow the intranet constraints below.
 
@@ -99,13 +99,13 @@ If the skill is unavailable, directly read `.agents/skills/gh-create-issue/SKILL
 
 This fork is maintained on `main`; intranet fixes land via `hotfix/intranet-*` branches. There is **no local `v2` branch** — that line lives only in upstream (`CherryHQ/cherry-studio`), and this repo does not develop against it.
 
-Upstream context (for reference only): upstream `main` is under code freeze accepting only critical fixes via `hotfix/*`; upstream new features/refactors go to upstream `v2`. Those constraints govern upstream contribution, not this fork's intranet line.
+Upstream context (verified 2026-09-05): `v1` is the maintenance line; `main` contains v2 development. These upstream branch names do not change this fork's intranet `main` workflow.
 
 ### Upstream Sync
 
-This fork tracks upstream `CherryHQ/cherry-studio` `main` and cherry-picks fixes via `sync/upstream-*` branches.
+This fork tracks upstream `CherryHQ/cherry-studio` `v1` and adapts fixes via `sync/upstream-*` branches. Upstream `main` now contains the v2 development line and is not a drop-in sync target.
 
-- `scripts/__tests__/upstream-sync.test.ts` pins the upstream tag this fork is aligned to (currently **v1.9.11**). Update it when bumping alignment.
+- `scripts/__tests__/upstream-sync.test.ts` audits `upstream/v1` against applied, adapted, and explicitly excluded decisions. Passing this check means no unaudited commits; it does not mean every upstream change was imported or a newer release tag is fully aligned.
 - `INTRANET_CHANGES.md` records every fork-specific change with a sync recommendation per item: **⭐ can sync upstream** / **❌ intranet-only** / **⚠️ needs team confirmation**.
 - **Before syncing**: consult `INTRANET_CHANGES.md` and the Intranet Network Policy section above to avoid clobbering intranet-only logic (network guards, allowlist, provider replacement, disabled surfaces).
 
@@ -404,10 +404,7 @@ Several dependencies have patches in `patches/` — be careful when upgrading:
 
 ### V2 Refactoring in Progress
 
-The `main` branch is under code freeze. All development has moved to the `v2` branch.
-
-- **`main` branch**: Only accepts critical bug fixes via `hotfix/*` branches. Minimal changes, no refactoring.
-- **`v2` branch**: All new features, refactoring, and optimizations go here.
+This fork remains on the v1 architecture and retains the following file-level freeze. Upstream maintenance now lives on `v1`; upstream `main` contains v2. Do not merge that development line into the intranet fork or create a local `v2` branch for this workflow.
 
 Files marked with the following header are **blocked for feature changes**:
 

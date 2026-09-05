@@ -64,8 +64,9 @@ function collectPrNumbers(ref: string): Set<string> {
   return new Set(prNumbers)
 }
 
-function collectDocumentedPrNumbers(): Set<string> {
-  const intranetChanges = readFileSync(resolve(root, 'INTRANET_CHANGES.md'), 'utf8')
+function collectDocumentedPrNumbers(
+  intranetChanges = readFileSync(resolve(root, 'INTRANET_CHANGES.md'), 'utf8')
+): Set<string> {
   const documentedPrNumbers = intranetChanges
     .split('\n')
     .map((line) =>
@@ -74,7 +75,11 @@ function collectDocumentedPrNumbers(): Set<string> {
         .map((cell) => cell.trim())
         .filter(Boolean)
     )
-    .filter((cells) => cells.some((cell) => cell.startsWith('✅') || cell.startsWith('⚠️')))
+    .filter(
+      (cells) =>
+        cells.some((cell) => cell.startsWith('✅')) ||
+        (cells.some((cell) => cell.startsWith('⚠️')) && cells.some((cell) => /^(仅引入|已引入|适配后引入)/.test(cell)))
+    )
     .map((cells) => cells[0]?.match(/^#(\d+)$/)?.[1])
     .filter((value): value is string => value !== undefined)
 
@@ -97,13 +102,14 @@ function isUpstreamCommitAudited(
   patchEquivalentCommits: Set<string> = new Set()
 ): boolean {
   const [sha, ...messageParts] = line.split('\t')
+  if (patchEquivalentCommits.has(sha)) return true
   const prNumber = extractPrNumber(messageParts.join('\t'))
 
   if (prNumber) {
     return intranetPrNumbers.has(prNumber) || EXCLUDED_UPSTREAM_PRS.has(prNumber)
   }
 
-  return patchEquivalentCommits.has(sha) || AUDITED_UNNUMBERED_UPSTREAM_COMMITS.has(sha)
+  return AUDITED_UNNUMBERED_UPSTREAM_COMMITS.has(sha)
 }
 
 describe('upstream sync status', () => {
@@ -115,7 +121,7 @@ describe('upstream sync status', () => {
     expect(packageJson.homepage).toBe('https://github.com/CherryHQ/cherry-studio')
   })
 
-  it(`has no pending upstream commits through ${UPSTREAM_SYNC_REF} when upstream remote is configured`, () => {
+  it(`has no unaudited upstream commits through ${UPSTREAM_SYNC_REF} when upstream remote is configured`, () => {
     if (!hasUpstreamRemote()) {
       return
     }
@@ -143,6 +149,16 @@ describe('upstream sync status', () => {
 })
 
 describe('upstream sync fixtures', () => {
+  it('does not treat a pending suitability review as an applied change', () => {
+    const entries = '| #99001 | compatible fix | ✅ | 引入 |\n| #99002 | migration | ⚠️ | 待适配，未引入 |'
+    expect(collectDocumentedPrNumbers(entries)).toEqual(new Set(['99001']))
+  })
+
+  it('accepts patch-equivalent numbered commits without relying on commit message mentions', () => {
+    const sha = '0123456789abcdef0123456789abcdef01234567'
+    expect(isUpstreamCommitAudited(`${sha}\tfix: ported separately (#99999)`, new Set(), new Set([sha]))).toBe(true)
+  })
+
   it('uses the final parenthesized number as the upstream PR number', () => {
     expect(extractPrNumber('fix(message-converter): avoid empty assistant messages (#16195) (#16196)')).toBe('16196')
   })

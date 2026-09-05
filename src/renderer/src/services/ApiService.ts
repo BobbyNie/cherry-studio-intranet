@@ -3,6 +3,7 @@
  */
 import { loggerService } from '@logger'
 import { buildStreamTextParams, convertMessagesToVisionAnalysisMessages } from '@renderer/aiCore/prepareParams'
+import { probeOllamaModel } from '@renderer/aiCore/services'
 import type { AiSdkMiddlewareConfig } from '@renderer/aiCore/types/middlewareConfig'
 import { buildProviderOptions } from '@renderer/aiCore/utils/options'
 import { isDedicatedImageGenerationModel, isEmbeddingModel, isFunctionCallingModel } from '@renderer/config/models'
@@ -24,7 +25,11 @@ import { getErrorMessage, isAbortError } from '@renderer/utils/error'
 import { purifyMarkdownImages } from '@renderer/utils/markdown'
 import { findFileBlocks, findImageBlocks, getMainTextContent } from '@renderer/utils/messageUtils/find'
 import { containsSupportedVariables, replacePromptVariables } from '@renderer/utils/prompt'
-import { NOT_SUPPORT_API_KEY_PROVIDER_TYPES, NOT_SUPPORT_API_KEY_PROVIDERS } from '@renderer/utils/provider'
+import {
+  isOllamaProvider,
+  NOT_SUPPORT_API_KEY_PROVIDER_TYPES,
+  NOT_SUPPORT_API_KEY_PROVIDERS
+} from '@renderer/utils/provider'
 import { DEFAULT_TIMEOUT } from '@shared/config/constant'
 import type { ModelMessage } from 'ai'
 import { isEmpty, takeRight } from 'lodash'
@@ -934,6 +939,17 @@ export function checkApiProvider(provider: Provider): void {
  */
 export async function checkApi(provider: Provider, model: Model, timeout = 15000): Promise<void> {
   checkApiProvider(provider)
+
+  if (isOllamaProvider(provider)) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeout)
+    try {
+      await probeOllamaModel(provider, model.id, controller.signal)
+    } finally {
+      clearTimeout(timer)
+    }
+    return
+  }
 
   const ai = new AiProvider(model, provider)
 
