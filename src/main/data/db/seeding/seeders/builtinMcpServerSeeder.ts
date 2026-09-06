@@ -1,5 +1,6 @@
 import { type McpServerRow, mcpServerTable } from '@data/db/schemas/mcpServer'
 import { PRESET_MCP_SERVERS } from '@shared/data/presets/mcpServers'
+import { isIntranetMode } from '@shared/utils/intranet'
 import { BuiltinMcpServerNames } from '@shared/utils/mcp'
 import { and, eq } from 'drizzle-orm'
 
@@ -46,6 +47,7 @@ export class BuiltinMcpServerSeeder implements ISeeder {
   }
 
   run(db: DbType): void {
+    if (isIntranetMode()) return
     // One transaction for the whole catalog: a half-migrated set would leave some servers
     // pointing at a transport the runtime no longer implements.
     db.transaction((tx) => {

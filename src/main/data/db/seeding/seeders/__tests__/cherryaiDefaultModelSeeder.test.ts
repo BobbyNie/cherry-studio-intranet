@@ -18,13 +18,17 @@ import { ENDPOINT_TYPE } from '@shared/data/types/model'
 import { setupTestDatabase } from '@test-helpers/db'
 import { mockMainLoggerService } from '@test-mocks/MainLoggerService'
 import { and, eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('CherryAiDefaultModelSeeder', () => {
   const dbh = setupTestDatabase()
 
   beforeEach(() => {
     mockMainLoggerService.warn.mockClear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   async function readPreferenceValue(key: string) {
@@ -85,6 +89,16 @@ describe('CherryAiDefaultModelSeeder', () => {
       value: CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
     })
     expect(await readPreferenceValue('topic.naming.model_id')).toBeUndefined()
+  })
+
+  it('does not seed public CherryAI defaults in intranet mode', async () => {
+    vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
+
+    new CherryAiDefaultModelSeeder().run(dbh.db)
+
+    expect(await dbh.db.select().from(userProviderTable)).toEqual([])
+    expect(await dbh.db.select().from(userModelTable)).toEqual([])
+    expect(await dbh.db.select().from(preferenceTable)).toEqual([])
   })
 
   it('does not overwrite existing non-empty default model preferences', async () => {

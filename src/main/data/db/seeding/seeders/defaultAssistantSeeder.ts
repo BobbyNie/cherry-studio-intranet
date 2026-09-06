@@ -4,6 +4,7 @@ import { topicTable } from '@data/db/schemas/topic'
 import { messageService } from '@data/services/MessageService'
 import { insertWithOrderKey } from '@data/services/utils/orderKey'
 import { DEFAULT_ASSISTANT_SEED, getDefaultAssistantNameForLocale } from '@shared/data/presets/defaultAssistant'
+import { isIntranetMode } from '@shared/utils/intranet'
 import { and, eq, isNull } from 'drizzle-orm'
 import { app } from 'electron'
 
@@ -26,6 +27,7 @@ export class DefaultAssistantSeeder implements ISeeder {
   }
 
   run(db: DbType): void {
+    if (isIntranetMode()) return
     db.transaction((tx) => {
       if (!this.isFreshUserDatabase(tx)) {
         return

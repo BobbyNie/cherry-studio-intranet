@@ -14,6 +14,7 @@ import {
   UNIQUE_MODEL_ID_SEPARATOR,
   type UniqueModelId
 } from '@shared/data/types/model'
+import { isIntranetMode } from '@shared/utils/intranet'
 
 /**
  * Shape of a legacy model object. All fields optional to handle
@@ -105,12 +106,12 @@ export function legacyChatModelToUniqueId(
 ): UniqueModelId | null {
   const providerId = typeof model?.provider === 'string' ? model.provider.trim() : ''
   if (providerId === CHERRYAI_PROVIDER_ID) {
-    return CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
+    return isIntranetMode() ? null : CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
   }
 
   const modelId = legacyModelToUniqueId(model, fallback)
   if (modelId?.startsWith(`${CHERRYAI_PROVIDER_ID}${UNIQUE_MODEL_ID_SEPARATOR}`)) {
-    return CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
+    return isIntranetMode() ? null : CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
   }
   return modelId
 }

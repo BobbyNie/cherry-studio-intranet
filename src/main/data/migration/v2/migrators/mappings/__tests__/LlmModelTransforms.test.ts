@@ -1,12 +1,16 @@
 import { CHERRYAI_DEFAULT_UNIQUE_MODEL_ID } from '@shared/data/presets/cherryai'
 import { mockMainLoggerService } from '@test-mocks/MainLoggerService'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { transformLlmModelIds } from '../LlmModelTransforms'
 
 describe('LlmModelTransforms', () => {
   beforeEach(() => {
     mockMainLoggerService.warn.mockClear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
   })
 
   describe('transformLlmModelIds', () => {
@@ -33,6 +37,22 @@ describe('LlmModelTransforms', () => {
         'chat.default_model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
         'feature.quick_assistant.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
         'feature.translate.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
+      })
+    })
+
+    it('leaves missing and public CherryAI models unset in intranet mode', () => {
+      vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
+
+      expect(
+        transformLlmModelIds({
+          defaultModel: { id: 'qwen', provider: 'cherryai' },
+          quickModel: undefined,
+          translateModel: undefined
+        })
+      ).toEqual({
+        'chat.default_model_id': null,
+        'feature.quick_assistant.model_id': null,
+        'feature.translate.model_id': null
       })
     })
 

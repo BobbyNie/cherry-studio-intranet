@@ -34,6 +34,7 @@ import { CHERRYAI_DEFAULT_UNIQUE_MODEL_ID, CHERRYAI_PROVIDER_ID } from '@shared/
 import { providerLogoRef } from '@shared/data/types/file'
 import { createUniqueModelId, isUniqueModelId, type UniqueModelId } from '@shared/data/types/model'
 import type { EndpointDialect } from '@shared/data/types/provider'
+import { isIntranetMode } from '@shared/utils/intranet'
 import { desc, eq, ne, sql } from 'drizzle-orm'
 import { isEqual } from 'es-toolkit/compat'
 
@@ -484,7 +485,7 @@ export class ProviderModelMigrator extends BaseMigrator {
         return count + uniqueModelIds.size
       }, 0)
       const validModelIds = new Set<UniqueModelId>([
-        CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
+        ...(isIntranetMode() ? [] : [CHERRYAI_DEFAULT_UNIQUE_MODEL_ID]),
         ...this.providers.flatMap((provider) =>
           Array.from(new Set((provider.models ?? []).map((model) => model.id)))
             .map((modelId) => createModelId(provider.id, modelId))
@@ -578,7 +579,9 @@ export class ProviderModelMigrator extends BaseMigrator {
       }
 
       ctx.db.transaction((tx) => {
-        ensureCherryAiDefaultProviderAndModelTx(tx)
+        if (!isIntranetMode()) {
+          ensureCherryAiDefaultProviderAndModelTx(tx)
+        }
 
         // Insert file_entries before the ref rows (their `file_entry_id` FK
         // needs them); the ref rows themselves go in after the owner rows exist

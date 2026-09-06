@@ -1,5 +1,6 @@
 import { loggerService } from '@logger'
 import { CHERRYAI_DEFAULT_UNIQUE_MODEL_ID } from '@shared/data/presets/cherryai'
+import { isIntranetMode } from '@shared/utils/intranet'
 
 import { legacyChatModelToUniqueId, type LegacyModelRef } from '../transformers/ModelTransformers'
 import type { TransformResult } from './ComplexPreferenceMappings'
@@ -19,9 +20,9 @@ function describeLegacyModelRef(value: unknown): Record<string, unknown> {
   }
 }
 
-function resolveChatModelPreference(preferenceKey: string, value: unknown): string {
+function resolveChatModelPreference(preferenceKey: string, value: unknown): string | null {
   const modelId = legacyChatModelToUniqueId(value as LegacyModelRef | null | undefined)
-  if (modelId) {
+  if (modelId && !(isIntranetMode() && modelId.startsWith('cherryai::'))) {
     return modelId
   }
 
@@ -32,7 +33,7 @@ function resolveChatModelPreference(preferenceKey: string, value: unknown): stri
     })
   }
 
-  return CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
+  return isIntranetMode() ? null : CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
 }
 
 /**

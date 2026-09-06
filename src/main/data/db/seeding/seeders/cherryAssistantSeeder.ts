@@ -2,6 +2,7 @@ import { agentService } from '@data/services/AgentService'
 import { agentSessionService } from '@data/services/AgentSessionService'
 import type { AgentConfiguration } from '@shared/data/api/schemas/agents'
 import { AGENT_WORKSPACE_TYPE } from '@shared/data/api/schemas/agentWorkspaces'
+import { isIntranetMode } from '@shared/utils/intranet'
 import { app } from 'electron'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -34,6 +35,7 @@ export class CherryAssistantSeeder implements ISeeder {
   readonly version = '2'
 
   run(db: DbType): void {
+    if (isIntranetMode()) return
     db.transaction((tx) => {
       const existing = agentService.findBuiltinAgentByRoleTx(tx, 'assistant', { includeDeleted: true })
       if (existing) return

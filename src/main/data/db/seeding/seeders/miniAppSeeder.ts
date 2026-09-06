@@ -1,6 +1,7 @@
 import { type InsertMiniAppRow, miniAppTable } from '@data/db/schemas/miniApp'
 import { generateOrderKeySequence, generateOrderKeySequenceBetween } from '@data/services/utils/orderKey'
 import { PRESETS_MINI_APPS } from '@shared/data/presets/miniApps'
+import { isIntranetMode } from '@shared/utils/intranet'
 import { isNotNull } from 'drizzle-orm'
 
 import type { DbType, ISeeder } from '../../types'
@@ -29,6 +30,7 @@ export class MiniAppSeeder implements ISeeder {
   }
 
   run(db: DbType): void {
+    if (isIntranetMode()) return
     const insertOrderKeys = this.buildInsertOrderKeys(db)
 
     for (const preset of PRESETS_MINI_APPS) {

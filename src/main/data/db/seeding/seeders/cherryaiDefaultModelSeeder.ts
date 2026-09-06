@@ -16,6 +16,7 @@ import {
   CHERRYAI_PROVIDER_NAME
 } from '@shared/data/presets/cherryai'
 import type { ModelCapability } from '@shared/data/types/model'
+import { isIntranetMode } from '@shared/utils/intranet'
 import { and, eq } from 'drizzle-orm'
 
 import type { DbType, ISeeder } from '../../types'
@@ -155,6 +156,10 @@ export class CherryAiDefaultModelSeeder implements ISeeder {
   }
 
   run(db: DbType): void {
+    if (isIntranetMode()) {
+      logger.info('Skipping public CherryAI default model in intranet mode')
+      return
+    }
     db.transaction((tx) => ensureCherryAiDefaultModelSetupTx(tx))
   }
 }
