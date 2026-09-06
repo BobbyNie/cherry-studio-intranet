@@ -17,6 +17,7 @@ import { writeProviderRegistrySnapshot } from '@main/services/providerRegistrySn
 import { regionService } from '@main/services/RegionService'
 import { generateUserAgent } from '@main/utils/systemInfo'
 import type { DataApiDataChangeEffect } from '@shared/data/api/types'
+import { isPublicNetworkDisabled } from '@shared/utils/intranet'
 import { app, net } from 'electron'
 
 const logger = loggerService.withContext('ProviderRegistryUpdaterService')
@@ -73,6 +74,7 @@ interface StagedFile {
 @ServicePhase(Phase.WhenReady)
 export class ProviderRegistryUpdaterService extends BaseService {
   protected onReady(): void {
+    if (isPublicNetworkDisabled()) return
     // Dev/test never auto-download — an override under userData would silently
     // shadow the source catalog a developer just regenerated. `check()` is still
     // callable directly for manual/test runs.
@@ -87,6 +89,7 @@ export class ProviderRegistryUpdaterService extends BaseService {
 
   /** Run one update cycle: fetch → compatibility+revision validate → apply → notify. Never throws. */
   public async check(): Promise<void> {
+    if (isPublicNetworkDisabled()) return
     try {
       const result = await this.fetchAndValidate()
       if (!result) return

@@ -1,12 +1,16 @@
 import { SettingsContentColumn } from '@renderer/components/SettingsPrimitives'
 import McpMarketList from '@renderer/pages/settings/McpSettings/McpMarketList'
-import { createFileRoute } from '@tanstack/react-router'
+import { isMarketplaceDisabled } from '@shared/utils/intranet'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 
-const MarketplacesWrapper = () => (
-  <SettingsContentColumn className="pt-2">
-    <McpMarketList />
-  </SettingsContentColumn>
-)
+const MarketplacesWrapper = () =>
+  isMarketplaceDisabled() ? (
+    <Navigate to="/settings/mcp/servers" replace />
+  ) : (
+    <SettingsContentColumn className="pt-2">
+      <McpMarketList />
+    </SettingsContentColumn>
+  )
 
 export const Route = createFileRoute('/settings/mcp/marketplaces')({
   component: MarketplacesWrapper

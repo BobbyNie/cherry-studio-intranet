@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
   netFetchMock,
@@ -111,6 +111,16 @@ describe('ProviderRegistryUpdaterService.check', () => {
     getCountryMock.mockResolvedValue('US')
     readActiveManifestMock.mockReturnValue(null)
     service = new ProviderRegistryUpdaterService()
+  })
+
+  afterEach(() => vi.unstubAllEnvs())
+
+  it('skips the public registry in intranet mode', async () => {
+    vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
+
+    await service.check()
+
+    expect(netFetchMock).not.toHaveBeenCalled()
   })
 
   it('applies only remote-safe model metadata and notifies mounted DataApi projections', async () => {
