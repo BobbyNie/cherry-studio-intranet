@@ -160,6 +160,9 @@ export class BootConfigMigrator extends BaseMigrator {
           bootConfigService.set('app.user_data_path', { ...legacy, ...current })
         } else {
           bootConfigService.set(item.targetKey, item.value as never)
+          if (item.targetKey === 'app.network.intranet_allowlist') {
+            bootConfigService.set('app.network.intranet_allowlist_initialized', true)
+          }
         }
         processedCount++
 

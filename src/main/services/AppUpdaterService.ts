@@ -9,6 +9,7 @@ import { generateUserAgent, getClientId } from '@main/utils/systemInfo'
 import type { RetryPolicy } from '@shared/data/api/schemas/jobs'
 import { UpgradeChannel } from '@shared/data/preference/preferenceTypes'
 import { APP_NAME } from '@shared/utils/constants'
+import { isAutoUpdateDisabled } from '@shared/utils/intranet'
 import {
   hasMultiLanguageReleaseNotes,
   localizeReleaseNotes,
@@ -88,6 +89,10 @@ export class AppUpdaterService extends BaseService {
   private updateCheckFailures = 0
 
   protected async onInit(): Promise<void> {
+    if (isAutoUpdateDisabled()) {
+      logger.info('Automatic updates disabled by CHERRY_DISABLE_AUTO_UPDATE')
+      return
+    }
     autoUpdater.logger = logger as Logger
     // Packaged builds use app-update.yml generated from electron-builder.yml;
     // development uses the repository's dev-app-update.yml.
@@ -326,6 +331,9 @@ export class AppUpdaterService extends BaseService {
   }
 
   public async checkForUpdates() {
+    if (isAutoUpdateDisabled()) {
+      return { currentVersion: app.getVersion(), updateInfo: null }
+    }
     try {
       return await this.performUpdateCheck()
     } catch (error) {

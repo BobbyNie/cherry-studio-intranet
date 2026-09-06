@@ -31,6 +31,18 @@ const MANUAL_BOOT_CONFIG_ITEMS = [
     ]
   },
   {
+    source: 'preboot',
+    sourceCategory: 'network-policy',
+    originalKey: 'intranetNetworkAllowlistInitialized',
+    targetKey: 'app.network.intranet_allowlist_initialized',
+    zodType: 'z.boolean()',
+    defaultValue: false,
+    jsdoc: [
+      'Whether the intranet network allowlist has been initialized for this profile.',
+      'This distinguishes an explicit empty allowlist from a first-launch seed.'
+    ]
+  },
+  {
     source: 'configfile',
     sourceCategory: 'legacy-home',
     originalKey: 'appDataPath',

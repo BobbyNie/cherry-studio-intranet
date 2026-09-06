@@ -5,6 +5,7 @@ import { createLatestReconciler, type LatestReconciler } from '@main/core/concur
 import { type Activatable, BaseService, Injectable, Phase, ServicePhase } from '@main/core/lifecycle'
 import { generateUserAgent, getClientId } from '@main/utils/systemInfo'
 import { APP_NAME, LATEST_PRIVACY_POLICY_VERSION } from '@shared/utils/constants'
+import { isTelemetryDisabled } from '@shared/utils/intranet'
 import { app } from 'electron'
 
 const logger = loggerService.withContext('AnalyticsService')
@@ -36,6 +37,11 @@ export class AnalyticsService extends BaseService implements Activatable {
   })
 
   private refreshDesiredEnabled(): void {
+    if (isTelemetryDisabled()) {
+      this.desiredEnabled = false
+      this.reconciler.request()
+      return
+    }
     const preferenceService = application.get('PreferenceService')
     this.desiredEnabled =
       preferenceService.get('app.privacy.data_collection.enabled') &&

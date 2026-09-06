@@ -9,6 +9,7 @@ import {
   settingsSubmenuScrollClassName,
   settingsSubmenuSectionTitleClassName
 } from '@renderer/pages/settings/settingsStyles'
+import { isMarketplaceDisabled } from '@shared/utils/intranet'
 import { Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { FolderCog, Server, ShoppingBag } from 'lucide-react'
 import type { FC } from 'react'
@@ -67,14 +68,16 @@ const McpSettings: FC = () => {
                 className={settingsSubmenuItemClassName}
                 labelClassName={settingsSubmenuItemLabelClassName}
               />
-              <MenuItem
-                label={t('settings.mcp.marketplaces', 'Marketplaces')}
-                active={activeView === 'marketplaces'}
-                onClick={() => navigate({ to: '/settings/mcp/marketplaces' })}
-                icon={<ShoppingBag size={18} />}
-                className={settingsSubmenuItemClassName}
-                labelClassName={settingsSubmenuItemLabelClassName}
-              />
+              {!isMarketplaceDisabled() && (
+                <MenuItem
+                  label={t('settings.mcp.marketplaces', 'Marketplaces')}
+                  active={activeView === 'marketplaces'}
+                  onClick={() => navigate({ to: '/settings/mcp/marketplaces' })}
+                  icon={<ShoppingBag size={18} />}
+                  className={settingsSubmenuItemClassName}
+                  labelClassName={settingsSubmenuItemLabelClassName}
+                />
+              )}
               <MenuDivider className={settingsSubmenuDividerClassName} />
               <div className={settingsSubmenuSectionTitleClassName}>{t('settings.mcp.providers', 'Providers')}</div>
               {providers.map((provider) => (

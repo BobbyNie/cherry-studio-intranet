@@ -4,7 +4,7 @@ const bootConfigGetMock = vi.fn()
 const bootConfigSetMock = vi.fn()
 const bootConfigOnChangeMock = vi.fn()
 
-function stubBootConfig(value: string) {
+function stubBootConfig(value: string, initialized = false) {
   vi.doMock('@main/data/bootConfig', () => ({
     bootConfigService: {
       get: bootConfigGetMock,
@@ -12,7 +12,9 @@ function stubBootConfig(value: string) {
       set: bootConfigSetMock
     }
   }))
-  bootConfigGetMock.mockReturnValue(value)
+  bootConfigGetMock.mockImplementation((key: string) =>
+    key === 'app.network.intranet_allowlist_initialized' ? initialized : value
+  )
 }
 
 async function loadModule() {
@@ -41,7 +43,7 @@ describe('intranet network policy', () => {
 
     expect(() => assertIntranetNetworkAllowed('https://api.corp.example/v1')).not.toThrow()
     expect(() => assertIntranetNetworkAllowed('https://seed.internal/v1')).toThrow(/Intranet mode blocked/)
-    expect(bootConfigSetMock).not.toHaveBeenCalled()
+    expect(bootConfigSetMock).toHaveBeenCalledWith('app.network.intranet_allowlist_initialized', true)
   })
 
   it('seeds the persisted allowlist from the environment on first launch', async () => {
@@ -53,6 +55,17 @@ describe('intranet network policy', () => {
 
     expect(getIntranetNetworkAllowlist()).toEqual(['gateway.internal', '*.corp.example'])
     expect(bootConfigSetMock).toHaveBeenCalledWith('app.network.intranet_allowlist', 'gateway.internal\n*.corp.example')
+  })
+
+  it('does not reseed the environment after an explicit empty save', async () => {
+    vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
+    vi.stubEnv('CHERRY_NETWORK_ALLOWLIST', 'gateway.internal')
+    stubBootConfig('', true)
+
+    const { getIntranetNetworkAllowlist } = await loadModule()
+
+    expect(getIntranetNetworkAllowlist()).toEqual([])
+    expect(bootConfigSetMock).not.toHaveBeenCalled()
   })
 
   it('fails closed when persisted rules are malformed', async () => {
@@ -67,7 +80,7 @@ describe('intranet network policy', () => {
 
   it('refreshes the active policy when settings update BootConfig', async () => {
     vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
-    stubBootConfig('gateway.internal')
+    stubBootConfig('gateway.internal', true)
 
     const { assertIntranetNetworkAllowed } = await loadModule()
     assertIntranetNetworkAllowed('https://gateway.internal/v1')

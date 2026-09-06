@@ -4,6 +4,7 @@ import { assertNetworkAllowed, isPublicNetworkDisabled, parseNetworkAllowlist } 
 
 const logger = loggerService.withContext('IntranetNetworkPolicy')
 const BOOT_CONFIG_KEY = 'app.network.intranet_allowlist' as const
+const BOOT_CONFIG_INITIALIZED_KEY = 'app.network.intranet_allowlist_initialized' as const
 
 let initialized = false
 let activeRules: string[] = []
@@ -20,8 +21,14 @@ export function getIntranetNetworkAllowlist(): readonly string[] {
 
   initialized = true
   const persistedValue = bootConfigService.get(BOOT_CONFIG_KEY)
+  const alreadyInitialized = bootConfigService.get(BOOT_CONFIG_INITIALIZED_KEY)
+  if (alreadyInitialized) {
+    activeRules = parsePersistedRules(persistedValue)
+    return activeRules
+  }
   if (persistedValue.trim()) {
     activeRules = parsePersistedRules(persistedValue)
+    bootConfigService.set(BOOT_CONFIG_INITIALIZED_KEY, true)
     return activeRules
   }
 
@@ -34,6 +41,7 @@ export function getIntranetNetworkAllowlist(): readonly string[] {
       logger.error('Failed to persist CHERRY_NETWORK_ALLOWLIST seed', error as Error)
     }
   }
+  bootConfigService.set(BOOT_CONFIG_INITIALIZED_KEY, true)
   return activeRules
 }
 
@@ -42,6 +50,7 @@ export function setIntranetNetworkAllowlist(raw: string): string[] {
   registerBootConfigListener()
   const normalizedRules = parsePersistedRules(raw)
   bootConfigService.set(BOOT_CONFIG_KEY, normalizedRules.join('\n'))
+  bootConfigService.set(BOOT_CONFIG_INITIALIZED_KEY, true)
   activeRules = normalizedRules
   initialized = true
   return normalizedRules
@@ -67,5 +76,11 @@ function registerBootConfigListener(): void {
   bootConfigService.onChange(BOOT_CONFIG_KEY, ({ value }) => {
     activeRules = parsePersistedRules(value)
     initialized = true
+  })
+  bootConfigService.onChange(BOOT_CONFIG_INITIALIZED_KEY, ({ value }) => {
+    if (value) {
+      activeRules = parsePersistedRules(bootConfigService.get(BOOT_CONFIG_KEY))
+      initialized = true
+    }
   })
 }

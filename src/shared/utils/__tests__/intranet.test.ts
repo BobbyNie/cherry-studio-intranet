@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { isIntranetMode, normalizeNetworkAllowlistRules, urlMatchesNetworkAllowlist } from '../intranet'
+import {
+  areExternalLinksDisabled,
+  isAutoUpdateDisabled,
+  isIntranetMode,
+  isMarketplaceDisabled,
+  isTelemetryDisabled,
+  normalizeNetworkAllowlistRules,
+  urlMatchesNetworkAllowlist
+} from '../intranet'
 
 afterEach(() => vi.unstubAllEnvs())
 
@@ -11,6 +19,17 @@ describe('intranet network contract', () => {
     vi.stubEnv('CHERRY_INTRANET_MODE', '')
     vi.stubEnv('CHERRY_OFFLINE_MODE', 'true')
     expect(isIntranetMode()).toBe(true)
+  })
+
+  it('reads independent product-surface disable switches', () => {
+    vi.stubEnv('CHERRY_DISABLE_AUTO_UPDATE', 'true')
+    vi.stubEnv('CHERRY_DISABLE_TELEMETRY', '1')
+    vi.stubEnv('CHERRY_DISABLE_MARKETPLACE', 'yes')
+    vi.stubEnv('CHERRY_DISABLE_EXTERNAL_LINKS', 'on')
+    expect(isAutoUpdateDisabled()).toBe(true)
+    expect(isTelemetryDisabled()).toBe(true)
+    expect(isMarketplaceDisabled()).toBe(true)
+    expect(areExternalLinksDisabled()).toBe(true)
   })
 
   it('denies every network destination for an empty allowlist', () => {

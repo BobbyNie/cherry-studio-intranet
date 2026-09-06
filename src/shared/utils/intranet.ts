@@ -30,6 +30,27 @@ export function isPublicNetworkDisabled(): boolean {
   return typeof value === 'string' && TRUE_VALUES.has(value.trim().toLowerCase())
 }
 
+export function isAutoUpdateDisabled(): boolean {
+  return isEnvironmentFlagEnabled('CHERRY_DISABLE_AUTO_UPDATE')
+}
+
+export function isTelemetryDisabled(): boolean {
+  return isEnvironmentFlagEnabled('CHERRY_DISABLE_TELEMETRY')
+}
+
+export function isMarketplaceDisabled(): boolean {
+  return isEnvironmentFlagEnabled('CHERRY_DISABLE_MARKETPLACE')
+}
+
+export function areExternalLinksDisabled(): boolean {
+  return isEnvironmentFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
+}
+
+function isEnvironmentFlagEnabled(name: string): boolean {
+  const value = readEnvironment(name)
+  return typeof value === 'string' && TRUE_VALUES.has(value.trim().toLowerCase())
+}
+
 function normalizeHost(host: string): string {
   return host.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
 }
