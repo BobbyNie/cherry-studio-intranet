@@ -19,6 +19,7 @@ import { serviceList } from '@main/core/application/serviceRegistry'
 import { runBackupRestoreGate } from '@main/core/preboot/backupRestoreGate'
 import { configureChromiumFlags } from '@main/core/preboot/chromiumFlags'
 import { initCrashTelemetry } from '@main/core/preboot/crashTelemetry'
+import { installIntranetNetworkGuard } from '@main/core/preboot/intranetNetworkGuard'
 import { requireSingleInstance } from '@main/core/preboot/singleInstance'
 import { resolveUserDataLocation } from '@main/core/preboot/userDataLocation'
 import { runV2MigrationGate } from '@main/core/preboot/v2MigrationGate'
@@ -31,6 +32,7 @@ resolveUserDataLocation()
 requireSingleInstance()
 configureChromiumFlags()
 initCrashTelemetry()
+installIntranetNetworkGuard()
 // Custom media scheme must be declared privileged before the app is ready, and
 // startApp() itself awaits app.whenReady() — so this cannot move in there.
 registerMediaSchemes()
