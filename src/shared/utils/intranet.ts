@@ -1,3 +1,5 @@
+declare const __CHERRY_BUILD_ENV__: Record<string, string | undefined> | undefined
+
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 const ALLOWED_PROTOCOLS = new Set(['http:', 'https:', 'ws:', 'wss:'])
 const HOST_LABEL = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?'
@@ -14,6 +16,8 @@ export interface NetworkAllowlistRule {
 }
 
 function readEnvironment(name: string): string | undefined {
+  const buildValue = typeof __CHERRY_BUILD_ENV__ === 'undefined' ? undefined : __CHERRY_BUILD_ENV__?.[name]
+  if (buildValue !== undefined) return buildValue
   const processEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
   const importMetaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env
   return processEnv?.[name] ?? importMetaEnv?.[name] ?? processEnv?.[`VITE_${name}`] ?? importMetaEnv?.[`VITE_${name}`]

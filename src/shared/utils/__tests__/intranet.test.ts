@@ -10,9 +10,26 @@ import {
   urlMatchesNetworkAllowlist
 } from '../intranet'
 
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
 
 describe('intranet network contract', () => {
+  it('retains packaged policy without launch-time environment variables', () => {
+    vi.stubGlobal('__CHERRY_BUILD_ENV__', {
+      CHERRY_INTRANET_MODE: 'true',
+      CHERRY_DISABLE_AUTO_UPDATE: 'true',
+      CHERRY_DISABLE_TELEMETRY: 'true',
+      CHERRY_DISABLE_MARKETPLACE: 'true'
+    })
+    vi.stubEnv('CHERRY_INTRANET_MODE', 'false')
+    expect(isIntranetMode()).toBe(true)
+    expect(isAutoUpdateDisabled()).toBe(true)
+    expect(isTelemetryDisabled()).toBe(true)
+    expect(isMarketplaceDisabled()).toBe(true)
+  })
+
   it('enables the guard for intranet and offline builds', () => {
     vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
     expect(isIntranetMode()).toBe(true)

@@ -37,6 +37,23 @@ const visualizerPlugin = (type: 'renderer' | 'main') => {
   return process.env[`VISUALIZER_${type.toUpperCase()}`] ? [visualizer({ open: true })] : []
 }
 
+const intranetBuildDefine = {
+  __CHERRY_BUILD_ENV__: JSON.stringify(
+    Object.fromEntries(
+      [
+        'CHERRY_INTRANET_MODE',
+        'CHERRY_OFFLINE_MODE',
+        'CHERRY_DISABLE_PUBLIC_NETWORK',
+        'CHERRY_DISABLE_AUTO_UPDATE',
+        'CHERRY_DISABLE_TELEMETRY',
+        'CHERRY_DISABLE_MARKETPLACE',
+        'CHERRY_DISABLE_EXTERNAL_LINKS',
+        'CHERRY_NETWORK_ALLOWLIST'
+      ].flatMap((name) => (process.env[name] === undefined ? [] : [[name, process.env[name]]]))
+    )
+  )
+}
+
 const isDev = process.env.NODE_ENV === 'development'
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -62,6 +79,7 @@ export const isMainExternalModule = (id: string) => {
 
 export default defineConfig({
   main: {
+    define: intranetBuildDefine,
     plugins: [chunkExportGuardPlugin(), ...visualizerPlugin('main')],
     resolve: {
       alias: {
@@ -107,6 +125,7 @@ export default defineConfig({
     }
   },
   preload: {
+    define: intranetBuildDefine,
     plugins: [
       react({
         tsDecorators: true
@@ -137,6 +156,7 @@ export default defineConfig({
   },
   renderer: {
     define: {
+      ...intranetBuildDefine,
       __APP_RELEASE_HISTORY__: JSON.stringify(bundledReleaseHistory),
       __APP_RELEASE_NOTES__: JSON.stringify(bundledReleaseNotes),
       __APP_RELEASE_VERSION__: JSON.stringify(pkg.version)
