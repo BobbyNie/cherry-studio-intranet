@@ -5,7 +5,13 @@ const appOnMock = vi.fn()
 function stubElectron() {
   vi.doMock('electron', () => ({
     __esModule: true,
-    app: { on: appOnMock }
+    app: {
+      getPath: vi.fn((key: string) => (key === 'logs' ? '/mock/logs' : '/mock/userData')),
+      isPackaged: true,
+      on: appOnMock,
+      onChange: vi.fn(),
+      setAppLogsPath: vi.fn()
+    }
   }))
 }
 

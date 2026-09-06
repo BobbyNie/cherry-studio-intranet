@@ -1,6 +1,8 @@
 import { loggerService } from '@logger'
-import { assertNetworkAllowed, isPublicNetworkDisabled } from '@shared/utils/intranet'
+import { isPublicNetworkDisabled } from '@shared/utils/intranet'
 import { app } from 'electron'
+
+import { assertIntranetNetworkAllowed } from './intranetNetworkPolicy'
 
 const logger = loggerService.withContext('IntranetNetworkGuard')
 
@@ -20,10 +22,10 @@ export function installIntranetNetworkGuard(): void {
       { urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] },
       (details, callback) => {
         try {
-          assertNetworkAllowed(details.url)
+          assertIntranetNetworkAllowed(details.url)
           callback({ cancel: false })
         } catch (error) {
-          logger.warn(`Blocked renderer network request: ${details.url}`, error)
+          logger.warn(`Blocked renderer network request: ${details.url}`, error as Error)
           callback({ cancel: true })
         }
       }

@@ -1,9 +1,16 @@
 import { MockUsePreferenceUtils } from '@test-mocks/renderer/usePreference'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import type { HTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { HTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import GeneralSettings from '../GeneralSettings'
+
+const publicNetworkDisabledMock = vi.fn(() => false)
+
+vi.mock('@shared/utils/intranet', () => ({
+  isPublicNetworkDisabled: () => publicNetworkDisabledMock(),
+  normalizeNetworkAllowlistRules: (rules: string[]) => rules
+}))
 
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3rdParty', init: vi.fn() },
@@ -32,6 +39,7 @@ vi.mock('../ContextManagementSettings', () => ({
 
 vi.mock('@renderer/components/SettingsPrimitives', () => ({
   SettingDivider: () => <hr />,
+  SettingDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
   SettingGroup: ({ children }: { children: ReactNode }) => <section>{children}</section>,
   SettingRow: ({ children }: { children: ReactNode }) => <div data-testid="setting-row">{children}</div>,
   SettingRowTitle: ({ children }: { children: ReactNode }) => <span>{children}</span>,
@@ -51,6 +59,9 @@ vi.mock('@cherrystudio/ui', () => ({
   Flex: ({ children, ...props }: HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
   InfoTooltip: () => null,
   Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+  Textarea: {
+    Input: (props: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...props} />
+  },
   Switch: ({ checked, onCheckedChange }: { checked?: boolean; onCheckedChange?: (checked: boolean) => void }) => (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onCheckedChange?.(!checked)}>
       switch
@@ -61,6 +72,7 @@ vi.mock('@cherrystudio/ui', () => ({
 describe('GeneralSettings', () => {
   beforeEach(() => {
     MockUsePreferenceUtils.resetMocks()
+    publicNetworkDisabledMock.mockReturnValue(false)
     MockUsePreferenceUtils.setMultiplePreferenceValues({
       'app.tray.enabled': true,
       'app.tray.on_close': true,
@@ -92,6 +104,21 @@ describe('GeneralSettings', () => {
       expect(MockUsePreferenceUtils.getPreferenceValue('app.tray.on_close')).toBe(false)
       expect(MockUsePreferenceUtils.getPreferenceValue('app.tray.on_launch')).toBe(false)
       expect(MockUsePreferenceUtils.getPreferenceValue('feature.quick_assistant.click_tray_to_show')).toBe(false)
+    })
+  })
+
+  it('shows and persists the intranet network allowlist in intranet mode', async () => {
+    publicNetworkDisabledMock.mockReturnValue(true)
+    render(<GeneralSettings />)
+
+    const input = screen.getByRole('textbox', { name: 'settings.intranet.network.allowlist' })
+    fireEvent.change(input, { target: { value: 'gateway.internal\n*.corp.example' } })
+    fireEvent.blur(input)
+
+    await waitFor(() => {
+      expect(MockUsePreferenceUtils.getPreferenceValue('BootConfig.app.network.intranet_allowlist' as any)).toBe(
+        'gateway.internal\n*.corp.example'
+      )
     })
   })
 })

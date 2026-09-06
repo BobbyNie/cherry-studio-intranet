@@ -184,7 +184,7 @@ export function urlMatchesNetworkAllowlist(url: string | URL, rules: readonly st
   return rules.some((rule) => matchesRule(parsed, rule))
 }
 
-export function assertNetworkAllowed(url: string | URL, rules = parseNetworkAllowlist()): void {
+export function assertNetworkAllowed(url: string | URL, rules: readonly string[] = parseNetworkAllowlist()): void {
   if (!isPublicNetworkDisabled()) return
   if (!urlMatchesNetworkAllowlist(url, rules)) throw new Error(`${INTRANET_NETWORK_BLOCKED_MESSAGE}: ${String(url)}`)
 }

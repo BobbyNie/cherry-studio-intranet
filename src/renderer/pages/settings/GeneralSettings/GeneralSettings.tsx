@@ -1,8 +1,9 @@
-import { Flex, InfoTooltip, Input, Switch } from '@cherrystudio/ui'
+import { Flex, InfoTooltip, Input, Switch, Textarea } from '@cherrystudio/ui'
 import { useMultiplePreferences, usePreference } from '@data/hooks/usePreference'
 import CopyButton from '@renderer/components/CopyButton'
 import Selector from '@renderer/components/Selector'
 import {
+  SettingDescription,
   SettingDivider,
   SettingGroup,
   SettingRow,
@@ -16,8 +17,9 @@ import { popup } from '@renderer/services/popup'
 import { toast } from '@renderer/services/toast'
 import { formatErrorMessage } from '@renderer/utils/error'
 import { isValidProxyUrl } from '@renderer/utils/url'
+import { isPublicNetworkDisabled, normalizeNetworkAllowlistRules } from '@shared/utils/intranet'
 import type { FC } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ContextManagementSettings } from './ContextManagementSettings'
@@ -49,9 +51,15 @@ const GeneralSettings: FC = () => {
   const [storeProxyUrl, _setProxyUrl] = usePreference('app.proxy.url')
   const [enableDeveloperMode, setEnableDeveloperMode] = usePreference('app.developer_mode.enabled')
   const [clientId] = usePreference('app.user.id')
+  const [intranetAllowlist, setIntranetAllowlist] = usePreference('BootConfig.app.network.intranet_allowlist')
+  const [intranetAllowlistDraft, setIntranetAllowlistDraft] = useState(intranetAllowlist ?? '')
 
   const [proxyUrl, setProxyUrl] = useState<string>(storeProxyUrl)
   const [proxyBypassRules, setProxyBypassRules] = useState<string>(storeProxyBypassRules)
+
+  useEffect(() => {
+    setIntranetAllowlistDraft(intranetAllowlist ?? '')
+  }, [intranetAllowlist])
 
   const proxyModeOptions: { value: 'system' | 'custom' | 'none'; label: string }[] = [
     { value: 'system', label: t('settings.proxy.mode.system') },
@@ -86,6 +94,21 @@ const GeneralSettings: FC = () => {
 
   const onSetProxyBypassRules = () => {
     void _setProxyBypassRules(proxyBypassRules)
+  }
+
+  const onSetIntranetAllowlist = async () => {
+    try {
+      const normalized = normalizeNetworkAllowlistRules(
+        intranetAllowlistDraft
+          .split(/[\n,]/)
+          .map((rule) => rule.trim())
+          .filter(Boolean)
+      )
+      await setIntranetAllowlist(normalized.join('\n'))
+      setIntranetAllowlistDraft(normalized.join('\n'))
+    } catch (error) {
+      toast.error(formatErrorMessage(error))
+    }
   }
 
   const handleHardwareAccelerationChange = async (checked: boolean) => {
@@ -211,6 +234,27 @@ const GeneralSettings: FC = () => {
           <Switch checked={disableHardwareAcceleration} onCheckedChange={handleHardwareAccelerationChange} />
         </SettingRow>
       </SettingGroup>
+
+      {isPublicNetworkDisabled() ? (
+        <SettingGroup theme={theme}>
+          <SettingTitle>{t('settings.intranet.network.title')}</SettingTitle>
+          <SettingDescription>{t('settings.intranet.network.description')}</SettingDescription>
+          <SettingDivider />
+          <SettingRow className="items-start">
+            <SettingRowTitle>{t('settings.intranet.network.allowlist')}</SettingRowTitle>
+            <Textarea.Input
+              aria-label={t('settings.intranet.network.allowlist')}
+              spellCheck={false}
+              placeholder={t('settings.intranet.network.placeholder')}
+              value={intranetAllowlistDraft}
+              onChange={(event) => setIntranetAllowlistDraft(event.target.value)}
+              onBlur={() => void onSetIntranetAllowlist()}
+              rows={4}
+              style={{ width: 260 }}
+            />
+          </SettingRow>
+        </SettingGroup>
+      ) : null}
 
       <ContextManagementSettings />
 

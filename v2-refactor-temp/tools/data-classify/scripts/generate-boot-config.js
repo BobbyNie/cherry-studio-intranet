@@ -16,6 +16,21 @@ const path = require('path')
  */
 const MANUAL_BOOT_CONFIG_ITEMS = [
   {
+    source: 'preboot',
+    sourceCategory: 'network-policy',
+    originalKey: 'intranetNetworkAllowlist',
+    targetKey: 'app.network.intranet_allowlist',
+    zodType: 'z.string()',
+    defaultValue: '',
+    jsdoc: [
+      'Comma- or newline-separated network hosts that the intranet build may reach.',
+      '',
+      'The environment variable CHERRY_NETWORK_ALLOWLIST seeds this value on first',
+      'launch. Subsequent edits are persisted in BootConfig and are authoritative.',
+      'Rules are validated by the shared intranet network policy before use.'
+    ]
+  },
+  {
     source: 'configfile',
     sourceCategory: 'legacy-home',
     originalKey: 'appDataPath',
