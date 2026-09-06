@@ -138,6 +138,16 @@ export function normalizeNetworkAllowlistRules(rules: readonly string[]): string
   return normalized
 }
 
+export function parseNetworkAllowlist(raw = readEnvironment('CHERRY_NETWORK_ALLOWLIST')): string[] {
+  if (!raw?.trim()) return []
+  return normalizeNetworkAllowlistRules(
+    raw
+      .split(/[\n,]/)
+      .map((rule) => rule.trim())
+      .filter(Boolean)
+  )
+}
+
 function matchesIpv4Wildcard(host: string, rule: string): boolean {
   const hostParts = host.split('.')
   const ruleParts = rule.split('.')
@@ -174,7 +184,7 @@ export function urlMatchesNetworkAllowlist(url: string | URL, rules: readonly st
   return rules.some((rule) => matchesRule(parsed, rule))
 }
 
-export function assertNetworkAllowed(url: string | URL, rules: readonly string[]): void {
+export function assertNetworkAllowed(url: string | URL, rules = parseNetworkAllowlist()): void {
   if (!isPublicNetworkDisabled()) return
   if (!urlMatchesNetworkAllowlist(url, rules)) throw new Error(`${INTRANET_NETWORK_BLOCKED_MESSAGE}: ${String(url)}`)
 }

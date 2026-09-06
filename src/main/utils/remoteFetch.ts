@@ -4,6 +4,7 @@ import { request as httpsRequest, type RequestOptions } from 'node:https'
 import type { LookupFunction } from 'node:net'
 
 import { application } from '@application'
+import { assertNetworkAllowed } from '@shared/utils/intranet'
 
 import { type ResolvedRemoteFetchUrl, resolveRemoteFetchUrl } from './remoteUrlSafety'
 
@@ -103,6 +104,7 @@ async function fetchRemoteTextFromUrl(
   signal: AbortSignal,
   redirectsRemaining: number
 ): Promise<string> {
+  assertNetworkAllowed(url)
   const target = await resolveRemoteFetchUrl(url, {
     signal,
     allowPrivateNetwork: application.get('PreferenceService').get('app.fetch.allow_private_network')

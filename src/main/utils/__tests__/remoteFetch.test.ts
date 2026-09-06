@@ -3,7 +3,7 @@ import type { IncomingMessage } from 'node:http'
 import type { RequestOptions } from 'node:https'
 
 import { MockMainPreferenceServiceUtils } from '@test-mocks/main/PreferenceService'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const httpRequestMock = vi.hoisted(() => vi.fn())
 const httpsRequestMock = vi.hoisted(() => vi.fn())
@@ -55,6 +55,8 @@ function mockHttpsResponse({ body = 'ok', headers = {}, statusCode = 200 }: Mock
 }
 
 describe('fetchRemoteText', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
   beforeEach(() => {
     httpRequestMock.mockReset()
     httpsRequestMock.mockReset()
@@ -87,6 +89,14 @@ describe('fetchRemoteText', () => {
 
     expect(allCallback).toHaveBeenCalledWith(null, [{ address: '93.184.216.34', family: 4 }])
     expect(lookupMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('blocks a direct Node request when intranet mode does not allow its host', async () => {
+    vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
+    vi.stubEnv('CHERRY_NETWORK_ALLOWLIST', 'wiki.internal')
+
+    await expect(fetchRemoteText('https://example.com/article')).rejects.toThrow(/Intranet mode blocked/)
+    expect(httpsRequestMock).not.toHaveBeenCalled()
   })
 
   it('overrides caller-provided host headers with the validated URL host', async () => {
