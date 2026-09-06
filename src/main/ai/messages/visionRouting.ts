@@ -32,7 +32,7 @@ export function selectVisionMessages(messages: ReadonlyArray<UIMessage>): UIMess
     (message) =>
       message.role === 'user' &&
       message.parts?.some((part) => part.type === 'file' && part.mediaType.toLowerCase().startsWith('image/'))
-  ) as UIMessage[]
+  )
 }
 
 export function injectVisionAnalysis(messages: ModelMessage[], analysis: string): ModelMessage[] {

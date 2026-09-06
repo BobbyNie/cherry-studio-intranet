@@ -56,8 +56,8 @@ describe('vision routing', () => {
     const messages = [{ id: '1', role: 'user', parts: [{ type: 'text', text: 'question' }] }] as never[]
     const routed = injectVisionAnalysisIntoUiMessages(messages as any, 'analysis') as any
     expect((messages[0] as any).parts).toHaveLength(1)
-    expect((routed[0] as any).parts).toHaveLength(1)
-    expect((routed[0] as any).parts[0].text).toContain('analysis')
+    expect(routed[0].parts).toHaveLength(1)
+    expect(routed[0].parts[0].text).toContain('analysis')
   })
 
   it('fails closed when there is no user message to receive analysis', () => {

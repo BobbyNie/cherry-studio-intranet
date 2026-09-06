@@ -669,7 +669,7 @@ export class AiService extends BaseService {
   ): Promise<UIMessage[]> {
     if (!hasImageInput(sourceMessages) || resolveMediaCapabilities(primary).image) return preparedMessages
 
-    const configuredId = application.get('PreferenceService').get('chat.default_vision_model_id') as string | null
+    const configuredId = application.get('PreferenceService').get('chat.default_vision_model_id')
     if (!configuredId) throw new VisionRoutingError('not_configured')
 
     let visionModel: Model
