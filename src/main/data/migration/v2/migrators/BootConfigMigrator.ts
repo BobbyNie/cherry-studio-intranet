@@ -11,6 +11,7 @@ import { bootConfigService } from '@main/data/bootConfig'
 import { bootConfigSchema, DefaultBootConfig } from '@shared/data/bootConfig/bootConfigSchemas'
 import type { BootConfigKey } from '@shared/data/bootConfig/bootConfigTypes'
 import type { ExecuteResult, PrepareResult, ValidateResult, ValidationError } from '@shared/data/migration/v2/types'
+import { normalizeNetworkAllowlistRules } from '@shared/utils/intranet'
 
 import type { MigrationContext } from '../core/MigrationContext'
 import { BaseMigrator } from './BaseMigrator'
@@ -79,6 +80,12 @@ export class BootConfigMigrator extends BaseMigrator {
             // the shared null-skip guard below, matching the other sources'
             // "no data → skip" semantics without a special branch.
             originalValue = ctx.sources.legacyHomeConfig.getUserDataPath()
+          }
+
+          if (item.targetKey === 'app.network.intranet_allowlist' && Array.isArray(originalValue)) {
+            originalValue = normalizeNetworkAllowlistRules(
+              originalValue.filter((rule): rule is string => typeof rule === 'string')
+            ).join('\n')
           }
 
           // Determine value to migrate
@@ -307,6 +314,14 @@ export class BootConfigMigrator extends BaseMigrator {
         targetKey: 'app.user_data_path'
       }
     ]
+
+    items.push({
+      originalKey: 'intranetNetworkAllowlist',
+      targetKey: 'app.network.intranet_allowlist',
+      defaultValue: null,
+      source: 'electronStore',
+      sourceCategory: 'network-policy'
+    })
     for (const mapping of configFileMappings) {
       items.push({
         originalKey: mapping.originalKey,

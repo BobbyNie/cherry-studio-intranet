@@ -22,6 +22,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { loggerService } from '@logger'
+import { isIntranetMode } from '@shared/utils/intranet'
 import semver from 'semver'
 
 const logger = loggerService.withContext('VersionPolicy')
@@ -35,6 +36,13 @@ const logger = loggerService.withContext('VersionPolicy')
  * TODO: Update this value once the final v1 version is determined (expected ~1.9.x).
  */
 export const V1_REQUIRED_VERSION = '1.9.12'
+
+/**
+ * The intranet v1 line carries the upstream v1.9.12 migration fixes while its
+ * product version remains 1.9.11. This is a compatibility floor for that
+ * audited fork, not a version string rewrite in the user's data.
+ */
+export const INTRANET_V1_REQUIRED_VERSION = '1.9.11'
 
 /** First version in the v2.0.x migration gateway line. */
 export const V2_GATEWAY_VERSION = '2.0.0'
@@ -62,6 +70,10 @@ export interface VersionCheckInput {
   versionLogExists: boolean
 }
 
+function getRequiredV1Version(): string {
+  return isIntranetMode() ? INTRANET_V1_REQUIRED_VERSION : V1_REQUIRED_VERSION
+}
+
 // ── Core check (pure function) ──────────────────────────────────────
 
 /**
@@ -73,6 +85,7 @@ export interface VersionCheckInput {
  */
 export function checkUpgradePathCompatibility(input: VersionCheckInput): VersionCheckResult {
   const { currentAppVersion, previousVersion, versionLogExists } = input
+  const requiredV1Version = getRequiredV1Version()
 
   // Coerce current version: 2.0.0-alpha → 2.0.0.
   // Do NOT pass { includePrerelease: true } — the default strips the
@@ -86,16 +99,16 @@ export function checkUpgradePathCompatibility(input: VersionCheckInput): Version
     return {
       outcome: 'block',
       reason: 'no_version_log',
-      details: { requiredVersion: V1_REQUIRED_VERSION }
+      details: { requiredVersion: requiredV1Version }
     }
   }
 
   // ❷ Previous version exists but is below V1_REQUIRED_VERSION.
-  if (previousVersion && semver.lt(previousVersion, V1_REQUIRED_VERSION)) {
+  if (previousVersion && semver.lt(previousVersion, requiredV1Version)) {
     return {
       outcome: 'block',
       reason: 'v1_too_old',
-      details: { previousVersion, requiredVersion: V1_REQUIRED_VERSION }
+      details: { previousVersion, requiredVersion: requiredV1Version }
     }
   }
 

@@ -242,9 +242,15 @@ export const COMPLEX_PREFERENCE_MAPPINGS: ComplexMapping[] = [
     sources: {
       defaultModel: { source: 'redux', category: 'llm', key: 'defaultModel' },
       quickModel: { source: 'redux', category: 'llm', key: 'quickModel' },
-      translateModel: { source: 'redux', category: 'llm', key: 'translateModel' }
+      translateModel: { source: 'redux', category: 'llm', key: 'translateModel' },
+      defaultVisionModel: { source: 'redux', category: 'llm', key: 'defaultVisionModel' }
     },
-    targetKeys: ['chat.default_model_id', 'feature.quick_assistant.model_id', 'feature.translate.model_id'],
+    targetKeys: [
+      'chat.default_model_id',
+      'feature.quick_assistant.model_id',
+      'feature.translate.model_id',
+      'chat.default_vision_model_id'
+    ],
     transform: transformLlmModelIds
   },
 

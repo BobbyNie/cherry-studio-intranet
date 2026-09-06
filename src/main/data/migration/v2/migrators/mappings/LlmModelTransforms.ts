@@ -36,6 +36,11 @@ function resolveChatModelPreference(preferenceKey: string, value: unknown): stri
   return isIntranetMode() ? null : CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
 }
 
+function resolveOptionalVisionModelPreference(value: unknown): string | null {
+  const modelId = legacyChatModelToUniqueId(value as LegacyModelRef | null | undefined)
+  return modelId?.startsWith('cherryai::') ? null : modelId
+}
+
 /**
  * Transform 3 legacy LLM Model objects into UniqueModelId preference values.
  *
@@ -49,6 +54,7 @@ export function transformLlmModelIds(sources: Record<string, unknown>): Transfor
       'feature.quick_assistant.model_id',
       sources.quickModel
     ),
-    'feature.translate.model_id': resolveChatModelPreference('feature.translate.model_id', sources.translateModel)
+    'feature.translate.model_id': resolveChatModelPreference('feature.translate.model_id', sources.translateModel),
+    'chat.default_vision_model_id': resolveOptionalVisionModelPreference(sources.defaultVisionModel)
   }
 }

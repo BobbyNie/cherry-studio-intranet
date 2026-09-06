@@ -35,6 +35,7 @@ vi.mock('@main/data/bootConfig', () => ({
 function createMockContext(overrides?: {
   redux?: Record<string, unknown>
   legacyHomeConfig?: Record<string, string> | null
+  electronStore?: Record<string, unknown>
 }) {
   const reduxState = new ReduxStateReader(overrides?.redux ?? {})
 
@@ -44,7 +45,7 @@ function createMockContext(overrides?: {
 
   return {
     sources: {
-      electronStore: { get: vi.fn() },
+      electronStore: { get: vi.fn((key: string) => overrides?.electronStore?.[key]) },
       reduxState,
       dexieExport: { readTable: vi.fn(), createStreamReader: vi.fn(), tableExists: vi.fn() },
       dexieSettings: { keys: vi.fn().mockReturnValue([]), get: vi.fn() },
@@ -86,6 +87,21 @@ describe('BootConfigMigrator', () => {
   })
 
   describe('configfile source — prepare/execute/validate', () => {
+    it('migrates the v1 intranet allowlist into BootConfig', async () => {
+      const migrator = await createMigrator()
+      const ctx = createMockContext({
+        electronStore: { intranetNetworkAllowlist: ['gateway.internal', '*.corp.example'] }
+      })
+
+      await migrator.prepare(ctx)
+      await migrator.execute()
+
+      expect(mockBootConfigSet).toHaveBeenCalledWith(
+        'app.network.intranet_allowlist',
+        'gateway.internal\n*.corp.example'
+      )
+    })
+
     it('prepares and executes a legacy-string derived record', async () => {
       const migrator = await createMigrator()
       const ctx = createMockContext({

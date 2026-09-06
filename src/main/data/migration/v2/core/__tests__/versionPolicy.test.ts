@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { VersionCheckInput, VersionCheckResult } from '../versionPolicy'
 import { checkUpgradePathCompatibility, evaluateCandidateVersion, readPreviousVersion } from '../versionPolicy'
@@ -13,6 +13,10 @@ vi.mock('node:fs', async () => {
 // ── checkUpgradePathCompatibility ──────────────────────────────────
 
 describe('checkUpgradePathCompatibility', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   function check(input: VersionCheckInput): VersionCheckResult {
     return checkUpgradePathCompatibility(input)
   }
@@ -95,6 +99,14 @@ describe('checkUpgradePathCompatibility', () => {
   it('#12 passes when previous version is above V1_REQUIRED (1.9.13)', () => {
     const result = check({ previousVersion: '1.9.13', versionLogExists: true, currentAppVersion: '2.0.0' })
     expect(result).toStrictEqual({ outcome: 'pass' })
+  })
+
+  it('accepts the audited intranet v1.9.11 compatibility floor', () => {
+    vi.stubEnv('CHERRY_INTRANET_MODE', 'true')
+
+    expect(check({ previousVersion: '1.9.11', versionLogExists: true, currentAppVersion: '2.0.9' })).toEqual({
+      outcome: 'pass'
+    })
   })
 })
 

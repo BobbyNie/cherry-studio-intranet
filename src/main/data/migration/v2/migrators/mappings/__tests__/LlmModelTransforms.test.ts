@@ -25,6 +25,7 @@ describe('LlmModelTransforms', () => {
 
       expect(result).toEqual({
         'chat.default_model_id': 'openai::gpt-4',
+        'chat.default_vision_model_id': null,
         'feature.quick_assistant.model_id': 'anthropic::claude-3-haiku',
         'feature.translate.model_id': 'qwen::qwen-max'
       })
@@ -35,6 +36,7 @@ describe('LlmModelTransforms', () => {
 
       expect(result).toEqual({
         'chat.default_model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
+        'chat.default_vision_model_id': null,
         'feature.quick_assistant.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
         'feature.translate.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
       })
@@ -51,6 +53,7 @@ describe('LlmModelTransforms', () => {
         })
       ).toEqual({
         'chat.default_model_id': null,
+        'chat.default_vision_model_id': null,
         'feature.quick_assistant.model_id': null,
         'feature.translate.model_id': null
       })
@@ -67,6 +70,14 @@ describe('LlmModelTransforms', () => {
       expect(result['chat.default_model_id']).toBe('openai::gpt-4')
       expect(result['feature.quick_assistant.model_id']).toBe(CHERRYAI_DEFAULT_UNIQUE_MODEL_ID)
       expect(result['feature.translate.model_id']).toBe(CHERRYAI_DEFAULT_UNIQUE_MODEL_ID)
+    })
+
+    it('migrates the optional v1 default vision model without creating a fallback', () => {
+      expect(
+        transformLlmModelIds({
+          defaultVisionModel: { id: 'gpt-4o', provider: 'openai' }
+        })['chat.default_vision_model_id']
+      ).toBe('openai::gpt-4o')
     })
 
     it('handles model with incomplete data (missing provider)', () => {
@@ -88,6 +99,7 @@ describe('LlmModelTransforms', () => {
 
       expect(result).toEqual({
         'chat.default_model_id': 'openai::gpt-4',
+        'chat.default_vision_model_id': null,
         'feature.quick_assistant.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
         'feature.translate.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
       })
@@ -118,6 +130,7 @@ describe('LlmModelTransforms', () => {
 
       expect(result).toEqual({
         'chat.default_model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
+        'chat.default_vision_model_id': null,
         'feature.quick_assistant.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID,
         'feature.translate.model_id': CHERRYAI_DEFAULT_UNIQUE_MODEL_ID
       })

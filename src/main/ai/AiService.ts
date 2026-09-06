@@ -41,6 +41,7 @@ import {
   isToolUIPart,
   type LanguageModelUsage,
   type ModelMessage,
+  type UIMessage,
   type UIMessageChunk
 } from 'ai'
 
@@ -48,8 +49,17 @@ import { isAgentSessionTopic } from './agentSession/topic'
 import { createAnalyticsHook } from './hooks/analyticsHook'
 import { createAiUsagePlugin } from './hooks/billingHook'
 import { resolveAttachmentBudget } from './messages/attachmentBudget'
-import { prepareChatMessages } from './messages/attachmentRouting'
+import { collectFileAttachments, prepareChatMessages } from './messages/attachmentRouting'
 import { resolveMediaCapabilities, resolveToolResultMediaCapabilities } from './messages/messageCapabilities'
+import { toModelMessages } from './messages/messageRules'
+import {
+  hasImageInput,
+  injectVisionAnalysisIntoUiMessages,
+  isSelectableVisionModel,
+  selectVisionMessages,
+  VISION_ANALYSIS_SYSTEM_PROMPT,
+  VisionRoutingError
+} from './messages/visionRouting'
 import { hasImageTransport } from './provider/custom/imageTransportRegistry'
 import { deleteImageInputEntries, imageGenerationJobHandler } from './provider/custom/tasks/imageGenerationJobHandler'
 import type { ImageGenerationJobOutput, ImageGenerationJobPayload } from './provider/custom/tasks/jobTypes'
@@ -558,7 +568,7 @@ export class AiService extends BaseService {
     // Route attachments: native files stay inline, non-native become capped text
     // (always visible — never gated on the model calling read_file). The cap is
     // one shared pool, priced against what the rest of the request already spends.
-    const preparedMessages = await prepareChatMessages(request.messages ?? [], {
+    let preparedMessages = await prepareChatMessages(request.messages ?? [], {
       attachments: fileAttachments,
       nativeSupport: nativeFileSupport,
       isToolCapable: isFunctionCallingModel(model),
@@ -578,6 +588,8 @@ export class AiService extends BaseService {
           : undefined,
       signal
     })
+
+    preparedMessages = await this.routeVisionInput(request, model, request.messages ?? [], preparedMessages, signal)
 
     // An explicit per-request `maxRetries: 0` means "no retries for this request"
     // — honor it (like embedding/rerank), overriding the global retry preference.
@@ -641,6 +653,66 @@ export class AiService extends BaseService {
 
   private analyticsHookPart(model: Model): Partial<AgentLoopHooks> {
     return createAnalyticsHook(model, (trackedModel, usage) => this.trackUsage(trackedModel, usage))
+  }
+
+  /**
+   * Analyze image-bearing context with the configured helper model when the
+   * selected primary model cannot receive images. The helper call is ephemeral:
+   * only its untrusted text result is injected into the in-memory primary input.
+   */
+  private async routeVisionInput(
+    request: AsInProcess<AiStreamRequest>,
+    primary: Model,
+    sourceMessages: UIMessage[],
+    preparedMessages: UIMessage[],
+    signal: AbortSignal
+  ): Promise<UIMessage[]> {
+    if (!hasImageInput(sourceMessages) || resolveMediaCapabilities(primary).image) return preparedMessages
+
+    const configuredId = application.get('PreferenceService').get('chat.default_vision_model_id') as string | null
+    if (!configuredId) throw new VisionRoutingError('not_configured')
+
+    let visionModel: Model
+    try {
+      const parsed = parseUniqueModelId(configuredId as `${string}::${string}`)
+      const visionProvider = providerService.getByProviderId(parsed.providerId)
+      visionModel = modelService.getByKey(parsed.providerId, parsed.modelId)
+      if (!visionProvider.isEnabled || !visionModel.isEnabled || !isSelectableVisionModel(visionModel)) {
+        throw new Error('configured vision model is disabled or unsupported')
+      }
+    } catch (error) {
+      throw new VisionRoutingError('not_configured', error)
+    }
+
+    const helperRequest: AsInProcess<AiGenerateRequest> = {
+      uniqueModelId: visionModel.id,
+      contextOwner: 'caller',
+      requestOptions: { ...request.requestOptions, maxRetries: 0, signal },
+      callOverrides: { tools: {} },
+      messages: []
+    }
+    const helperParams = await this.buildAgentParamsFor(helperRequest, signal)
+    if (!helperParams.nativeFileSupport.image) throw new VisionRoutingError('not_configured')
+
+    const helperUiMessages = await prepareChatMessages(selectVisionMessages(sourceMessages), {
+      attachments: collectFileAttachments(sourceMessages),
+      nativeSupport: helperParams.nativeFileSupport,
+      isToolCapable: false,
+      signal
+    })
+    const helperMessages = await toModelMessages(helperUiMessages, resolveMediaCapabilities(visionModel), {})
+    if (helperMessages.length === 0) throw new VisionRoutingError('analysis_failed')
+
+    let analysis: string
+    try {
+      analysis = (
+        await this.generateText({ ...helperRequest, messages: helperMessages, system: VISION_ANALYSIS_SYSTEM_PROMPT })
+      ).text.trim()
+    } catch (error) {
+      throw new VisionRoutingError('analysis_failed', error)
+    }
+    if (!analysis) throw new VisionRoutingError('analysis_failed')
+    return injectVisionAnalysisIntoUiMessages(preparedMessages, analysis)
   }
 
   // ── Non-streaming text generation (agent.generate) ──
