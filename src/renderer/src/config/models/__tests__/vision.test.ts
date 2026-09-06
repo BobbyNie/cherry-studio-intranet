@@ -130,6 +130,22 @@ describe('vision helpers', () => {
       expect(isAutoEnableImageGenerationModel(createModel({ id: 'gemini-2.5-flash-image-ultra' }))).toBe(true)
     })
 
+    it.each(['grok-imagine-image-2.0', 'muse-image-1.0', 'recraft-v4-styles', 'qwen-image-3.0-pro'])(
+      'routes current main image model %s through image generation',
+      (id) => {
+        const model = createModel({ id })
+        expect(isDedicatedImageGenerationModel(model)).toBe(true)
+        expect(isAutoEnableImageGenerationModel(model)).toBe(true)
+      }
+    )
+
+    it.each(['grok-imagine-image-2.0', 'muse-image-1.0', 'recraft-v4-styles', 'qwen-image-3.0-pro'])(
+      'recognizes image input for current main image model %s',
+      (id) => {
+        expect(isImageEnhancementModel(createModel({ id }))).toBe(true)
+      }
+    )
+
     it('returns false when models are not in dedicated or auto-enable sets', () => {
       expect(isDedicatedImageGenerationModel(createModel({ id: 'gpt-4o' }))).toBe(false)
       expect(isAutoEnableImageGenerationModel(createModel({ id: 'gpt-4o' }))).toBe(false)
@@ -166,6 +182,18 @@ describe('isVisionModel', () => {
 
     expect(isVisionModel(createModel({ id: 'gpt-4o-mini' }))).toBe(true)
   })
+
+  it('matches MiniMax M3 as vision but not text-only M2.x', () => {
+    expect(isVisionModel(createModel({ id: 'MiniMax-M3', provider: 'minimax' }))).toBe(true)
+    expect(isVisionModel(createModel({ id: 'MiniMax-M2.7', provider: 'minimax' }))).toBe(false)
+  })
+
+  it.each(['muse-glimmer-30b', 'muse-spark-1.2', 'namazu'])(
+    'recognizes current main multimodal chat model %s',
+    (id) => {
+      expect(isVisionModel(createModel({ id }))).toBe(true)
+    }
+  )
 
   it('leverages image enhancement regex when standard vision regex does not match', () => {
     expect(isVisionModel(createModel({ id: 'qwen-image-edit' }))).toBe(true)
@@ -345,9 +373,27 @@ describe('isVisionModel', () => {
       expect(isVisionModel(createModel({ id: 'moonshot/kimi-k2.5' }))).toBe(true)
       expect(isVisionModel(createModel({ id: 'kimi-k2.6' }))).toBe(true)
       expect(isVisionModel(createModel({ id: 'moonshot/kimi-k2.6' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'kimi-k2.7-code' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'moonshot/kimi-k2.7-code' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'kimi-k3' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'moonshotai/kimi-k3-fast' }))).toBe(true)
     })
     it('should return false for kimi non-vision models', () => {
       expect(isVisionModel(createModel({ id: 'kimi-k2-thinking' }))).toBe(false)
+    })
+  })
+
+  describe('DeepSeek and GLM vision models', () => {
+    it('recognizes only the multimodal DeepSeek V4 variant', () => {
+      expect(isVisionModel(createModel({ id: 'deepseek-v4-flash-vision-exp' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'deepseek-v4-flash' }))).toBe(false)
+      expect(isVisionModel(createModel({ id: 'deepseek-v4-pro' }))).toBe(false)
+    })
+
+    it('recognizes GLM-5.3-Flash aliases as multimodal', () => {
+      expect(isVisionModel(createModel({ id: 'glm-5.3-flash' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'glm-5-3-flash' }))).toBe(true)
+      expect(isVisionModel(createModel({ id: 'z-ai/glm-5.3-flash' }))).toBe(true)
     })
   })
 
@@ -433,6 +479,15 @@ describe('Doubao Seed 2.0 Models', () => {
     }
     expect(isVisionModel(model)).toBe(true)
   })
+})
+
+describe('Doubao Seed 2.1 and Evolving Models', () => {
+  it.each(['doubao-seed-2-1-pro-260628', 'doubao-seed-2-1-turbo-260628', 'doubao-seed-evolving'])(
+    'recognizes %s as a vision model',
+    (id) => {
+      expect(isVisionModel({ id, name: id, provider: 'doubao', group: 'Doubao-Seed-2.1' })).toBe(true)
+    }
+  )
 })
 
 describe('Gemma 4 Models', () => {

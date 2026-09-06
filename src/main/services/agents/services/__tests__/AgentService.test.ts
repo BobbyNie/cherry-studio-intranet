@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createClient } from '@libsql/client'
+import { ListAgentsResponseSchema } from '@types'
+import { drizzle } from 'drizzle-orm/libsql'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { mockGetModels, mockInitSkillsForAgent } = vi.hoisted(() => ({
   mockGetModels: vi.fn(),
@@ -69,6 +72,16 @@ vi.mock('../../skills/SkillService', () => ({
   }
 }))
 
+import {
+  type AgentRow,
+  agentsTable,
+  channelsTable,
+  channelTaskSubscriptionsTable,
+  scheduledTasksTable,
+  sessionMessagesTable,
+  sessionsTable,
+  taskRunLogsTable
+} from '../../database/schema'
 import { AgentService } from '../AgentService'
 
 function createSelectQuery(rows: unknown[]) {
@@ -81,11 +94,89 @@ function createSelectQuery(rows: unknown[]) {
   }
 }
 
+function createAgentRow(overrides: Partial<AgentRow> = {}): AgentRow {
+  return {
+    id: 'agent_1783338427757_test',
+    type: 'claude-code',
+    name: 'Test Agent',
+    description: null,
+    deleted_at: null,
+    accessible_paths: '[]',
+    instructions: 'Test instructions',
+    model: 'test-model',
+    plan_model: null,
+    small_model: null,
+    mcps: null,
+    allowed_tools: null,
+    configuration: null,
+    sort_order: 0,
+    created_at: '2026-07-06T11:47:07.757Z',
+    updated_at: '2026-07-06T11:47:07.757Z',
+    ...overrides
+  }
+}
+
+interface TestFsModule {
+  mkdtempSync(prefix: string): string
+  rmSync(path: string, options: { recursive: boolean; force: boolean }): void
+}
+
+interface TestOsModule {
+  tmpdir(): string
+}
+
+interface TestPathModule {
+  join(...paths: string[]): string
+}
+
+async function createAgentDatabase(rows: AgentRow[]) {
+  const fs = await vi.importActual<TestFsModule>('node:fs')
+  const os = await vi.importActual<TestOsModule>('node:os')
+  const path = await vi.importActual<TestPathModule>('node:path')
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-repair-test-'))
+  const client = createClient({ url: `file:${path.join(directory, 'agents.db')}`, intMode: 'number' })
+  const database = drizzle(client)
+
+  await client.execute(`
+    CREATE TABLE agents (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      deleted_at TEXT,
+      accessible_paths TEXT,
+      instructions TEXT,
+      model TEXT NOT NULL,
+      plan_model TEXT,
+      small_model TEXT,
+      mcps TEXT,
+      allowed_tools TEXT,
+      configuration TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `)
+  await database.insert(agentsTable).values(rows)
+
+  return {
+    database,
+    cleanup: () => {
+      client.close()
+      fs.rmSync(directory, { recursive: true, force: true })
+    }
+  }
+}
+
 describe('AgentService built-in agent lifecycle', () => {
   const service = AgentService.getInstance()
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('skips recreating a built-in agent that was soft-deleted by the user', async () => {
@@ -105,6 +196,117 @@ describe('AgentService built-in agent lifecycle', () => {
 
     expect(result).toEqual({ agentId: null, skippedReason: 'deleted' })
     expect(mockGetModels).not.toHaveBeenCalled()
+  })
+
+  it('backfills builtin_role for a legacy built-in agent missing it', async () => {
+    const database = {
+      select: vi.fn(() =>
+        createSelectQuery([
+          {
+            id: 'cherry-assistant-default',
+            deleted_at: null,
+            configuration: JSON.stringify({ avatar: '🍒', permission_mode: 'default' })
+          }
+        ])
+      )
+    }
+
+    vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+    vi.spyOn(service as never, 'resolveAccessiblePaths').mockReturnValue(['/mock/workspace'] as never)
+    const updateSpy = vi.spyOn(service, 'updateAgent').mockResolvedValue(null as never)
+
+    const result = await service.initBuiltinAgent({
+      id: 'cherry-assistant-default',
+      builtinRole: 'assistant',
+      provisionWorkspace: vi.fn().mockResolvedValue(undefined)
+    })
+
+    expect(result).toEqual({ agentId: 'cherry-assistant-default' })
+    expect(updateSpy).toHaveBeenCalledWith('cherry-assistant-default', {
+      configuration: expect.objectContaining({ builtin_role: 'assistant', avatar: '🍒' })
+    })
+    expect(mockGetModels).not.toHaveBeenCalled()
+  })
+
+  it('recovers malformed legacy configuration while backfilling builtin_role', async () => {
+    const database = {
+      select: vi.fn(() =>
+        createSelectQuery([{ id: 'cherry-assistant-default', deleted_at: null, configuration: '{invalid' }])
+      )
+    }
+
+    vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+    vi.spyOn(service as never, 'resolveAccessiblePaths').mockReturnValue(['/mock/workspace'] as never)
+    const updateSpy = vi.spyOn(service, 'updateAgent').mockResolvedValue(null as never)
+
+    const result = await service.initBuiltinAgent({
+      id: 'cherry-assistant-default',
+      builtinRole: 'assistant',
+      provisionWorkspace: vi.fn().mockResolvedValue(undefined)
+    })
+
+    expect(result).toEqual({ agentId: 'cherry-assistant-default' })
+    expect(updateSpy).toHaveBeenCalledWith('cherry-assistant-default', {
+      configuration: { builtin_role: 'assistant' }
+    })
+  })
+
+  it('does not rewrite configuration when builtin_role is already current', async () => {
+    const database = {
+      select: vi.fn(() =>
+        createSelectQuery([
+          {
+            id: 'cherry-assistant-default',
+            deleted_at: null,
+            configuration: JSON.stringify({ builtin_role: 'assistant', permission_mode: 'default' })
+          }
+        ])
+      )
+    }
+
+    vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+    vi.spyOn(service as never, 'resolveAccessiblePaths').mockReturnValue(['/mock/workspace'] as never)
+    const updateSpy = vi.spyOn(service, 'updateAgent').mockResolvedValue(null as never)
+
+    const result = await service.initBuiltinAgent({
+      id: 'cherry-assistant-default',
+      builtinRole: 'assistant',
+      provisionWorkspace: vi.fn().mockResolvedValue(undefined)
+    })
+
+    expect(result).toEqual({ agentId: 'cherry-assistant-default' })
+    expect(updateSpy).not.toHaveBeenCalled()
+  })
+
+  it('stamps the authoritative builtin_role on a newly created built-in agent', async () => {
+    const insertValues = vi.fn().mockResolvedValue(undefined)
+    const database = {
+      select: vi
+        .fn()
+        .mockReturnValueOnce(createSelectQuery([]))
+        .mockReturnValueOnce({
+          from: vi.fn(() => ({ where: vi.fn().mockResolvedValue([{ min: 0 }]) }))
+        }),
+      insert: vi.fn(() => ({ values: insertValues }))
+    }
+    mockGetModels.mockResolvedValue({ data: [{ id: 'internal-claude' }] })
+
+    vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+    vi.spyOn(service as never, 'resolveAccessiblePaths').mockReturnValue(['/mock/workspace'] as never)
+    vi.spyOn(service as never, 'validateAgentModels').mockResolvedValue(undefined as never)
+
+    const result = await service.initBuiltinAgent({
+      id: 'cherry-assistant-default',
+      builtinRole: 'assistant',
+      provisionWorkspace: vi.fn().mockResolvedValue({ configuration: { builtin_role: 'template-value' } })
+    })
+
+    expect(result).toEqual({ agentId: 'cherry-assistant-default' })
+    expect(insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configuration: expect.stringContaining('"builtin_role":"assistant"')
+      })
+    )
   })
 
   it('soft-deletes built-in agents while preserving the row', async () => {
@@ -127,9 +329,15 @@ describe('AgentService built-in agent lifecycle', () => {
 
     expect(deleted).toBe(true)
     expect(database.transaction).toHaveBeenCalledTimes(1)
-    expect(txDelete).toHaveBeenCalledTimes(3)
-    expect(txUpdate).toHaveBeenCalledTimes(2)
+    expect(txDelete).toHaveBeenCalledTimes(6)
+    expect(txDelete).toHaveBeenCalledWith(channelTaskSubscriptionsTable)
+    expect(txDelete).toHaveBeenCalledWith(taskRunLogsTable)
+    expect(txDelete).toHaveBeenCalledWith(scheduledTasksTable)
+    expect(txDelete).toHaveBeenCalledWith(sessionMessagesTable)
+    expect(txUpdate).toHaveBeenCalledTimes(3)
     expect(database.delete).not.toHaveBeenCalled()
+    expect(txUpdate).toHaveBeenCalledWith(channelsTable)
+    expect(txUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ sessionId: null }))
     expect(txUpdateSet).toHaveBeenCalledWith(expect.objectContaining({ agentId: null }))
     expect(txUpdateSet).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -137,5 +345,105 @@ describe('AgentService built-in agent lifecycle', () => {
         updated_at: expect.any(String)
       })
     )
+  })
+
+  it('deletes regular agents with their sessions and session messages', async () => {
+    const deleteWhere = vi.fn().mockResolvedValue({ rowsAffected: 1 })
+    const txDelete = vi.fn(() => ({ where: deleteWhere }))
+    const updateWhere = vi.fn().mockResolvedValue(undefined)
+    const txUpdateSet = vi.fn(() => ({ where: updateWhere }))
+    const txUpdate = vi.fn(() => ({ set: txUpdateSet }))
+    const database = {
+      select: vi.fn(() => createSelectQuery([{ id: 'agent-1', deleted_at: null }])),
+      transaction: vi.fn(async (callback: (tx: unknown) => Promise<{ rowsAffected: number }>) =>
+        callback({ delete: txDelete, update: txUpdate })
+      )
+    }
+
+    vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+
+    const deleted = await service.deleteAgent('agent-1')
+
+    expect(deleted).toBe(true)
+    expect(database.transaction).toHaveBeenCalledTimes(1)
+    expect(txDelete).toHaveBeenCalledWith(channelTaskSubscriptionsTable)
+    expect(txDelete).toHaveBeenCalledWith(taskRunLogsTable)
+    expect(txDelete).toHaveBeenCalledWith(scheduledTasksTable)
+    expect(txDelete).toHaveBeenCalledWith(sessionMessagesTable)
+    expect(txDelete).toHaveBeenCalledWith(sessionsTable)
+    expect(txDelete).toHaveBeenCalledWith(agentsTable)
+    expect(txUpdateSet).toHaveBeenCalledWith({ sessionId: null })
+    expect(txUpdateSet).toHaveBeenCalledWith({ agentId: null })
+  })
+})
+
+describe('AgentService data repair', () => {
+  const service = AgentService.getInstance()
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('leaves valid data untouched without opening a repair transaction', async () => {
+    const { cleanup, database } = await createAgentDatabase([createAgentRow()])
+    const transactionSpy = vi.spyOn(database, 'transaction')
+
+    try {
+      vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+
+      const result = await service.listAgents()
+
+      expect(result.agents[0].updated_at).toBe('2026-07-06T11:47:07.757Z')
+      expect(transactionSpy).not.toHaveBeenCalled()
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('persists normalized timestamps and valid MCP IDs', async () => {
+    const { cleanup, database } = await createAgentDatabase([
+      createAgentRow({ updated_at: '1784810600097Z', mcps: JSON.stringify(['server-id', { invalid: true }]) })
+    ])
+
+    try {
+      vi.spyOn(service as never, 'getDatabase').mockResolvedValue(database as never)
+
+      const result = await service.listAgents()
+      const stored = await database.select().from(agentsTable)
+
+      expect(result.agents[0].updated_at).toBe('2026-07-23T12:43:20.097Z')
+      expect(result.agents[0].mcps).toEqual(['server-id'])
+      expect(stored[0].updated_at).toBe('2026-07-23T12:43:20.097Z')
+      expect(stored[0].mcps).toBe(JSON.stringify(['server-id']))
+    } finally {
+      cleanup()
+    }
+  })
+
+  it('returns a schema-valid normalized list when repair persistence fails', async () => {
+    const { cleanup, database } = await createAgentDatabase([
+      createAgentRow({
+        updated_at: '1784810600097Z',
+        mcps: JSON.stringify([{ mcpServers: { obsidian: {} } }])
+      })
+    ])
+    const databaseWithFailedTransaction = {
+      select: database.select.bind(database),
+      transaction: vi.fn().mockRejectedValue(new Error('database is read-only'))
+    }
+
+    try {
+      vi.spyOn(service as never, 'getDatabase').mockResolvedValue(databaseWithFailedTransaction as never)
+
+      const result = await service.listAgents()
+      const response = { data: result.agents, total: result.total, limit: 20, offset: 0 }
+
+      expect(result.agents[0].updated_at).toBe('2026-07-23T12:43:20.097Z')
+      expect(result.agents[0].mcps).toEqual([])
+      expect(ListAgentsResponseSchema.safeParse(response).success).toBe(true)
+      expect(databaseWithFailedTransaction.transaction).toHaveBeenCalledOnce()
+    } finally {
+      cleanup()
+    }
   })
 })

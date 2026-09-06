@@ -15,10 +15,24 @@ interface PyodideOutput {
   image?: string
 }
 
+<<<<<<< HEAD
 const PYODIDE_VERSION = 'v0.28.0'
 // The Pyodide runtime is expected to be packaged with renderer public assets.
 const PYODIDE_INDEX_URL = `/pyodide/${PYODIDE_VERSION}/full/`
 const PYODIDE_MODULE_URL = `${PYODIDE_INDEX_URL}pyodide.mjs`
+=======
+/** Local Pyodide assets copied to renderer public dir (see scripts/copy-pyodide.js). */
+function resolvePyodideIndexUrl(): string {
+  const baseUrl = import.meta.env.BASE_URL ?? '/'
+  if (typeof self !== 'undefined' && 'location' in self && self.location.href) {
+    return new URL('pyodide/', new URL(baseUrl, self.location.href)).href
+  }
+  return '/pyodide/'
+}
+
+const PYODIDE_INDEX_URL = resolvePyodideIndexUrl()
+const PYODIDE_MODULE_URL = new URL('pyodide.mjs', PYODIDE_INDEX_URL).href
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 const MATPLOTLIB_SHIM_CODE = `
 def __cherry_studio_matplotlib_setup():
@@ -75,7 +89,7 @@ const pyodidePromise = (async () => {
   }
 
   try {
-    // 动态加载 Pyodide 脚本
+    // 动态加载 Pyodide 脚本（bundled under /pyodide/, not CDN）
     const pyodideModule = await import(/* @vite-ignore */ PYODIDE_MODULE_URL)
 
     // 加载 Pyodide 并捕获标准输出/错误

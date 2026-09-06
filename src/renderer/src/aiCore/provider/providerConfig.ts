@@ -29,7 +29,7 @@ import {
   isSupportStreamOptionsProvider,
   isVertexProvider
 } from '@renderer/utils/provider'
-import { defaultAppHeaders } from '@shared/utils'
+import { defaultAppHeaders, withoutTrailingApiVersion } from '@shared/utils'
 import { cloneDeep, isEmpty } from 'lodash'
 
 import type { ProviderConfig } from '../types'
@@ -388,7 +388,7 @@ function buildAiHubMixConfig(ctx: BuilderContext): ProviderConfig<'aihubmix'> {
 function formatNewApiBaseURL(baseURL: string, endpointType?: string): string {
   switch (endpointType) {
     case 'gemini':
-      return formatApiHost(baseURL, true, 'v1beta')
+      return formatApiHost(withoutTrailingApiVersion(baseURL), true, 'v1beta')
     case 'anthropic':
       return formatApiHost(baseURL, false)
     default:
@@ -397,7 +397,16 @@ function formatNewApiBaseURL(baseURL: string, endpointType?: string): string {
 }
 
 function buildNewApiConfig(ctx: BuilderContext): ProviderConfig<'newapi'> {
-  const baseURL = formatNewApiBaseURL(ctx.baseConfig.baseURL, ctx.model.endpoint_type)
+  const endpointType = ctx.model.endpoint_type
+  let rawBaseURL: string
+
+  if (endpointType === 'anthropic' && ctx.actualProvider.anthropicApiHost) {
+    rawBaseURL = ctx.actualProvider.anthropicApiHost
+  } else {
+    rawBaseURL = ctx.baseConfig.baseURL
+  }
+
+  const baseURL = formatNewApiBaseURL(rawBaseURL, endpointType)
 
   return {
     providerId: 'newapi',
@@ -405,7 +414,7 @@ function buildNewApiConfig(ctx: BuilderContext): ProviderConfig<'newapi'> {
     providerSettings: {
       ...ctx.baseConfig,
       baseURL,
-      endpointType: ctx.model.endpoint_type,
+      endpointType,
       headers: { ...defaultAppHeaders(), ...ctx.actualProvider.extra_headers }
     }
   }

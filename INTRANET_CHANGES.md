@@ -1,6 +1,6 @@
 # 内网版本修改总结
 
-> 最后更新: 2026-06-01
+> 最后更新: 2026-09-05
 > 用于跟踪内网版本相对于上游的修改，便于后续同步决策
 
 ---
@@ -115,6 +115,197 @@ const filteredSystemModels =
 
 `scripts/__tests__/upstream-sync.test.ts` 改为对照 `v1.9.8` 标签（不再对照 `upstream/main` 的 v2 线）。
 
+## 8. 上游同步记录 (2026-06-08)
+
+从 `CherryHQ/cherry-studio` 标签 `v1.9.11` cherry-pick 了 v1.9.8 之后尚未同步的修复，版本升至 **1.9.11**。
+
+| PR / 变更 | 说明 | 内网适用 | 备注 |
+|-----------|------|----------|------|
+| revert #15146 | 回滚小程序 URL 缓存刷新 | ✅ | |
+| — | 清理 analytics 测试无用 mock | ✅ | |
+| #15538 | OV OCR CPU 检测防护 | ✅ | |
+| #15533 | Agent 会话尊重话题命名设置 | ✅ | |
+| #15543 | MiniMax M3 模型注册 | ✅ | |
+| — | 隐私政策文案更新 | ✅ | 内网仍跳过 `PrivacyPolicyUpdateNotice` |
+| — | 初始 LLM 状态排除 ceplalon/tokenflux | ✅ | 与内网 `SYSTEM_PROVIDERS` 过滤合并 |
+| #15580 | 精简 legacy MiniMax 模型 | ✅ | |
+| #15575 | Gemini 模型列表 API Key 编码 | ✅ | |
+| #15577 | 自定义 Provider 模型分组推断 | ✅ | 保留内网 allowlist 单测 |
+| #15531 | 删除 Agent 会话时清理消息 | ✅ | 含单测 |
+| #15389 | Gemini 小程序 Electron UA 字号修复 | ✅ | |
+| #15513 | MiniMax M3 思考过程支持 | ✅ | |
+| #15532 | Opus 4.8 自适应思考 | ✅ | |
+| #15644 | HTML 产物用 openPath 打开 | ✅ | 更适合内网本地打开 |
+| #15727 | 避免 embedding dimensions 请求参数 | ✅ | 含单测 |
+| #15391 | Mermaid 11.15.0 修复中文流程图 | ✅ | |
+| #15358 | Agent 任务完成状态同步 | ✅ | |
+| #15410 | CherryIN OAuth 绑定 sender | ❌ | 内网不使用 CherryIN |
+| — | v1.9.9/10/11 release chore | ❌ | 由内网自行 bump 版本 |
+
+`scripts/__tests__/upstream-sync.test.ts` 改为对照 `v1.9.11` 标签。
+
+## 9. 上游同步记录 (2026-06-15)
+
+从 `CherryHQ/cherry-studio` 分支 `v1`（`v1.9.11` 标签之后）cherry-pick 了 10 个修复/功能提交：
+
+| PR | 说明 | 内网适用 | 备注 |
+|----|------|----------|------|
+| #15834 | DeepSeek V4+ reasoning_effort 转发 | ✅ | |
+| #15872 | Claude Fable 系列与 Opus 5 能力识别 | ✅ | |
+| #15779 | Anthropic 原生 /v1/models 拉取 | ✅ | |
+| #15839 | 折叠工具组审批按钮防误触折叠 | ✅ | |
+| #15934 | NewAPI provider 使用 anthropicApiHost | ✅ | |
+| #15978 | Agent 模式注入 Cherry Studio 身份 headers | ✅ | |
+| #15301 | SVG data URL 图片下载 CSP 修复 | ✅ | |
+| #14668 | 保存图片时恢复扩展名前导点 | ✅ | |
+| #15991 | MiniMax-M3 思考过程控制修复 | ✅ | 含单测 |
+| #16017 | Kimi K2.7 Code 模型支持 | ✅ | |
+
+`scripts/__tests__/upstream-sync.test.ts` 改为对照 `upstream/v1` 分支（不再仅对照 `v1.9.11` 标签）。
+
+---
+
+## 10. 上游同步记录 (2026-06-30)
+
+从 `CherryHQ/cherry-studio` 分支 `v1`（`v1.9.11` 标签之后，承接第 9 节未覆盖部分）cherry-pick 了 6 个修复提交，并内网化适配 1 个提交：
+
+| PR | 说明 | 内网适用 | 备注 |
+|----|------|----------|------|
+| #16079 | ai-core 异常 finish reason 转错误 chunk | ✅ | 9 个外语 translate 文件冲突手动合并（保留内网专属 key，取上游翻译） |
+| #15329 | ExaMCP 保留完整 URL + Highlights 解析 | ✅ | |
+| #16371 | AIHubMix 从配置 baseURL 推导 Gemini baseURL | ✅ | |
+| #16556 | `fs.statfs` 修 Windows PowerShell 进程泄漏 | ✅ | `main/ipc.ts` auto-merge |
+| #15369 | claude-code 原生二进制缺失时恢复安装 | ✅ | |
+| #16437 | Claude Code agents 使用第一个配置 key | ✅ | `claudecode/index.ts` 与第 9 节 #15978 auto-merge |
+| (无号) | CherryIN API host `.cc` → `.net` | ✅ | **内网化适配**（commit `48154e9b15`）：上游原 migration 207/208 撞内网体系（207=intranet provider 清理、208=StepFun backfill），改为新 migration 211，persist version 210→211 |
+
+**仍跳过**：
+- 🔴 release v1.9.12 chore（无 PR 号，内网自行 bump）、windows-2022 构建环境（无 PR 号，内网已在 `99093cf2b`/`70cc4ec97` pin）
+
+**版本号保持 1.9.11**（部分同步，未完整对齐 v1.9.12，故不改 `UPSTREAM_SYNC_TAG`/`package.json`）。
+
+`scripts/__tests__/upstream-sync.test.ts` 修复 `collectPrNumbers` 读取完整 commit body（`%B` 而非仅 `%s` subject），使第 9 节的 squash 合并提交（PR #16）body 里列举的 PR 号能被识别为已同步，消除假阳性误报。
+
+内网专属逻辑未受影响：网络守卫 / allowlist / provider 替换 / disabled surfaces 均保持不变。
+
+## 11. 上游同步记录 (2026-07-11)
+
+审计 `upstream/v1` 在上一轮同步后的 4 个 PR，并按内网适配性处理：
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #16789 | LongCat 2.0 思考与工具调用支持 | ✅ | 引入模型能力、provider options namespace 和思考参数映射，并补足测试 |
+| #16787 | 忽略本地 `AGENTS.override.md` | ✅ | 引入，避免个人 agent 指令污染工作区 |
+| #16606 | AIHubMix 遵循配置 baseURL，并切换公网品牌链接 | ⚠️ | 仅引入模型列表遵循配置 baseURL；跳过 inferera 等公网品牌跳转 |
+| #16703 | 隐藏 CherryIN 手动添加模型按钮 | ❌ | 跳过；内网版不使用 CherryIN，该 UI 变更没有适用对象 |
+
+同步保持内网 provider endpoint 配置方式不变：用户配置的内网地址仍是请求地址；其主机名/IP 还需由管理员加入运行时网络白名单，不引入固定公网跳转或自动放行。
+
+---
+
+## 12. 上游同步记录 (2026-07-30)
+
+以已合入内网 `main` 的第 11 节同步为基线，审计 `CherryHQ/cherry-studio` `v1`
+分支后续 8 个提交，引入并适配其中 6 个：
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #15241 | 修正 AI 错误分类并透传 provider 结构化错误 | ✅ 适配后引入 | 保留 402/429、region、MCP/OCR、safety 分类；地域和网络建议改为联系企业管理员、检查已配置 provider/allowlist，不建议通过公网代理绕过策略 |
+| #15832 | 长 fenced-code 流式响应使用轻量投影，避免 renderer OOM | ✅ | 增加 10,000 行代码块投影大小上界测试；完成或中止时恢复完整文本 |
+| #17005 | NewAPI Gemini endpoint 统一为 `/v1beta` | ✅ | 只影响运行时 URL 规范化；OpenAI endpoint 继续使用 `/v1`，不修改 provider 持久化结构 |
+| #17270 | 搜索改写内容作为 user content 发送 | ✅ | 修复 system/user 消息角色倒置，不新增公网请求路径 |
+| #17167 | 消息列表未撑满时自动加载历史记录 | ✅ | 使用精确原始消息游标；Agent 分页状态按 session 隔离 |
+| #17223 | Agent 会话接入已有 `Ctrl/Cmd+F` 内容搜索 | ✅ | 复用现有 DOM 搜索组件，不修改 Redux/数据库结构 |
+| #17174 | 更新 CherryIN 网站与 OAuth 公网域名 | ❌ | 内网版本不使用 CherryIN 公网网站/OAuth 流程；引入会扩大公网域名面 |
+| #17229 | updater 切换至 `releases.cherry-ai.com` 托管服务 | ❌ | 内网发布显式禁用 auto-update；托管公网更新服务违反运行时网络约束 |
+
+本轮没有 provider/model 数据迁移、Redux state shape、Dexie schema 或 persist version 变更。
+`scripts/__tests__/upstream-sync.test.ts` 对 #17174 与 #17229 做显式排除并验证本文件记录了排除原因，
+避免后续同步检查把经过审计的内网排除误报为遗漏。
+
+内网专属逻辑保持不变：provider 的 `apiHost` / `anthropicApiHost` 决定请求地址，
+运行时则由设置中的 hostname/IP 白名单与中央 network guard 独立执行放行策略。
+
+---
+
+## 13. 默认图片多模态模型与助手自动分流 ⭐ 可向上游评估
+
+以已批准的 v1 功能冻结例外新增图片理解 fallback。当普通聊天的主模型不支持 vision、且有效上下文含图片时，
+由用户明确设置的默认图片多模态模型先输出客观视觉信息与 OCR，再以不可信的隐藏 user context 交回原主模型回答。
+
+**主要约束**:
+
+- 辅助模型只负责图片理解；主模型、回复 model metadata、工具、搜索、知识库、记忆与推理设置不变。
+- 设置可空、可清除，只接受已启用 provider 中支持 vision 且非纯图片生成的模型。
+- 每次请求重新分析有效上下文图片，不把分析结果写入 Redux、消息或 Dexie。
+- 设置无效、分析为空或调用失败时 fail closed，不启动主模型，并保留用户消息及附件供重试。
+- 普通发送、多模型提及、重发与重新生成共用规则；Agent／Claude Code 与图片生成流程不改。
+- 沿用 provider endpoint、API key rotation、trace、token usage 与中央网络守卫，不自动增加 allowlist 例外。
+
+设计与安全边界见 `docs/default-vision-model-routing.md`。
+
+**同步建议**: 功能具通用价值，可向上游评估；本内网 v1 版本以明确批准的功能冻结例外先行落地。
+
+---
+
+## 14. 上游同步记录 (2026-08-20)
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #16458 | Doubao Seed 2.1 / Evolving 模型能力 | ✅ | 引入系统模型元数据、思考档位、视觉与工具调用识别；不新增 endpoint 或持久化迁移，自定义内网 provider 也可按模型 ID 复用能力判断 |
+| #17713 | Copilot 自定义 headers 保留 | ✅ 适配后引入 | 每次请求从默认 headers 重建，保留自定义 Authorization，但不跨请求残留；`Accept` / `Content-Type` 不允许被大小写变体覆盖 |
+| #17754 | PowerShell 支持与 native Claude runtime | ❌ 暂不引入 | 变更同时升级多项 SDK、改写打包及子进程启动链路；native 子进程未证明受 Electron 中央网络守卫覆盖，且缺少内网打包后的 Windows/Linux 回归证据。在补齐子进程网络约束和离线打包验证前显式排除。 |
+| (无号) | v1.9.13 release chore（commit `da22fb7973`） | ❌ | 内网版本独立发布，且未完整引入 #17754；保持 package version `1.9.11` |
+| #17728 | built-in Agent `builtin_role` | ✅ | 新建时写入权威角色；旧 Agent 保留配置后回填，损坏 JSON 可恢复，session 未同步时回退 Agent 配置；不改数据库 schema |
+| #17685 | 损坏 Agent / Session 数据恢复 | ✅ | 规范化 epoch/无效时间戳与 MCP ID；只对损坏行做条件回写，写失败仍返回 schema 合法数据，避免覆盖并发更新 |
+| #17798 | 知识库条目刷新崩溃 | ✅ | 去除重复 remove / 状态更新 / 队列调度，并以 hook 行为测试锁定一次性副作用 |
+| #16196 | 空 assistant 消息兼容（subject 同时引用 issue #16195） | ✅ | 空消息补 `...`，纯图片保留 `[Image]`，避免 Gemini/Anthropic 因 `content: []` 返回 400 |
+
+本轮没有 provider/model 参数迁移、Redux state shape、Dexie schema、Drizzle schema 或 persist version 变更。
+`scripts/__tests__/upstream-sync.test.ts` 现在取 subject 中最后一个 `(#N)`、收集完整 commit body 的全部 PR 号，
+并要求无 PR 号提交按完整 SHA 显式审计，避免 issue 号误判和 release chore 静默遗漏。
+
+运行时网络策略以 **设置 → 通用 → 内网网络白名单** 中的 hostname/IP 规则为准；provider endpoint 只决定请求地址，
+不会自动放行。`packages/shared/config/providerEndpoints.ts` 当前没有运行时调用方，本轮不做无关删除。
+
+---
+
+## 15. 上游同步审计与适配 (2026-09-05)
+
+核对远端 `upstream/v1` 至 `c76f529044ffa9c0a6596e2af81f01a374132d8e`，承接第 14 节。
+`origin/main` 为 `90141c37ca`；开始时工作区干净，已有未发布同步提交 `6de2dd0ffa`，本轮在其上新增聚焦提交。
+upstream `main` 已包含 v2 开发内容，不能用作 v1 的机械合并目标。
+
+| PR | 说明 | 内网适用 | 处理 |
+|----|------|----------|------|
+| #16245 | Agent 启动跳过不可达 MCP | ✅ 适配后引入 | 独立于被排除的 native runtime；沿用 MCPService 和已有 proxy，隔离同步抛错、异步拒绝及探测超时，不修改持久化 MCP 选择 |
+| #17743 | 修复旧 auto-install 包参数 | ✅ 适配后引入 | 内网模式与 marketplace disable 开关独立；管理员启用市场并配置企业 registry 时仍有价值。改为迁移 212，保留命令、registry、env、额外参数与 isActive，损坏条目不阻断后续修复；不会启用或恢复被禁用的入口 |
+| #19749 | v1 当前模型契约兼容 | ✅ 部分适配引入 | 引入模型识别、推理参数和配套 SDK 修复、Azure fetch、Ollama 轻量检查及 Qwen Image 3；以下子项逐项排除，不能将本记录解释为完整导入该 PR |
+
+### #19749 引入及内网适配
+
+- 模型族：DeepSeek V4 vision、GLM 5.2/5.3、Kimi K3、Qwen 3.8、Gemini 3.7/3.1 Flash Image、Grok 4.6，以及 LFM/Nemotron/Muse/Namazu/Solar/Voxtral 的适用能力分类。保留企业默认模型与 provider 过滤，元数据不会启用公网 provider。
+- 推理选项与序列化一起更新；新增已有字段的 `max` 取值，保留旧 `xhigh` 映射；区分原生、OpenRouter、DashScope、Anthropic-compatible 契约，不新增 Redux 字段或数据库 schema。
+- DeepSeek lockfile 固定至 `2.0.57`，撤销已被 SDK 取代的旧 patch，避免只改参数而被旧 SDK 丢弃。同步 Anthropic 无 signature 的兼容响应、Google/Vertex 工具组合、xAI xhigh、Ollama 显式 think 与默认省略 think 的协议补丁。
+- Azure Anthropic 透传自定义 fetch。Ollama 使用 `/api/show` 检查存在性，保留企业 host 前缀、headers、取消信号；超时清理定时器，不加载模型、不进行图片生成、不扩展持久化能力字段。
+- Qwen Image 3 使用 native multimodal endpoint；新 provider 的所有 fetch 包括结果图片下载均保留 renderer transport，由主进程 Electron session 中央 guard 调用 assertNetworkAllowed；renderer 不持有运行时白名单，不能在本地做预检查。其他图片模型保留原 OpenAI-compatible endpoint，避免协议回归。
+- Ollama inline reasoning extraction 与服务端默认思考语义配套保留。
+
+### #19749 不引入的子项与原因
+
+| 子项 | 决定 | 具体依据 |
+|------|------|----------|
+| Ollama `/api/show` 批量能力发现与 `Model.providerCapabilities` | 暂缓该实现 | 新字段进入持久化 Model，违反现行 state shape 冻结；无界并发 N+1 请求、吞 abort、空能力退回名字推断，不适合直接部署到共享内网模型服务。保留现有能力设置与名称推断 |
+| 全 provider tool schema 裁剪插件 | 排除该实现 | 无条件删除合法的数值/长度/唯一性约束；合法 `$ref` array 工具可能被整项删除，强制 toolChoice 未同步。企业网关没有统一的拒绝契约，不能默认降级所有工具 schema |
+| 通过真实图片生成执行健康检查 | 排除该实现 | 检查会消耗生成资源，timeout race 既不取消生成也不清 timer；本轮不把昂贵生成变成默认验证行为 |
+| upstream changeset/release 元数据 | 跳过 | 内网独立发布；仍有明确排除项，不宣称完整对齐新 release，package version 保持 1.9.11 |
+
+仍排除第 14 节 #17754 的 native runtime，以及既有公网 updater/OAuth 变更，未因本次适配间接引入。
+迁移 207 保留自定义 provider 的已选模型，修复旧升级路径中 provider 保留但模型被替换的不一致；不回溯恢复过去已经丢失的选择。迁移 208–211 保留，新增 212 且同步 persist version，不覆盖内网隐私迁移 209。
+同步测试现在区分“待适配”与“已引入”，并识别带 PR 号的 patch-equivalent 提交；不会将审计完成误写成全部同步。
+
+详细验证、已知限制及覆盖范围见 `docs/intranet-weekly-audit-2026-09-05.md`。
+
 ---
 
 ## 同步优先级
@@ -132,9 +323,9 @@ const filteredSystemModels =
 
 ### 内网/离线网络策略（2026-06-01）
 
-- 见根目录 `CONTEXT.md`：内网模式 **不是** 只能访问本机模型，可访问用户在 Provider 中配置的内网域名/API 地址。
-- 完全离线版默认 deny-all，仅按协议、主机、端口和路径前缀放行 **已启用模型 Provider** 上配置的 `apiHost` / `anthropicApiHost`。
-- 相关实现：`packages/shared/config/providerEndpoints.ts`、`packages/shared/config/intranet.ts`。
+- 见根目录 `CONTEXT.md`：内网模式 **不是** 只能访问本机模型，可访问管理员加入运行时白名单的内网域名/IP。
+- 完全离线版默认 deny-all；provider 的 `apiHost` / `anthropicApiHost` 只决定请求地址，其 hostname/IP 必须另行加入 **设置 → 通用 → 内网网络白名单**。
+- 运行时相关实现：`packages/shared/config/intranet.ts`、`packages/shared/network/networkAllowlist.ts`、`src/main/services/IntranetNetworkAllowlistService.ts`。
 
 已为项目启用 `CLAUDE_MEM_RUNTIME = server-beta` 以支持完整记忆功能：
 - 全局配置: `~/.claude.json`

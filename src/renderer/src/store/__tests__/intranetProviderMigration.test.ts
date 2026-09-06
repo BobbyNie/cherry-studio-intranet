@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('@shared/utils/pdf', () => ({
+  extractPdfText: vi.fn()
+}))
+
 describe('intranet provider migration', () => {
   it('removes blocked public providers and clears blocked default models in migration 207 for offline mode', async () => {
     vi.resetModules()
@@ -59,8 +63,8 @@ describe('intranet provider migration', () => {
     expect(migrated.assistants.assistants[0].defaultModel?.provider).toBe('intranet')
     expect(migrated.assistants.defaultAssistant.model).toBeUndefined()
     expect(migrated.assistants.defaultAssistant.defaultModel?.provider).toBe('ollama')
-    expect(migrated.settings.sidebarIcons.visible).not.toContain('openclaw')
-    expect(migrated.settings.sidebarIcons.disabled).not.toContain('openclaw')
+    expect(migrated.settings.sidebarIcons.visible).toContain('openclaw')
+    expect(migrated.settings.sidebarIcons.disabled).toContain('openclaw')
 
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_DISABLE_PUBLIC_NETWORK
@@ -97,6 +101,15 @@ describe('intranet provider migration', () => {
         proxyBypassRules: 'localhost',
         autoCheckUpdate: true
       },
+      websearch: {
+        providers: [
+          {
+            id: 'searxng',
+            name: 'Searxng',
+            apiHost: 'http://search.intranet.local'
+          }
+        ]
+      },
       assistants: {
         assistants: [
           {
@@ -125,7 +138,14 @@ describe('intranet provider migration', () => {
     expect(migrated.llm.defaultModel?.provider).toBe('intranet')
     expect(migrated.assistants.assistants[0].model?.provider).toBe('intranet')
     expect(migrated.settings.proxyMode).toBe('none')
-    expect(migrated.settings.autoCheckUpdate).toBe(false)
+    expect(migrated.settings.autoCheckUpdate).toBe(true)
+    expect(migrated.websearch.providers).toEqual([
+      {
+        id: 'searxng',
+        name: 'Searxng',
+        apiHost: 'http://search.intranet.local'
+      }
+    ])
 
     delete process.env.CHERRY_INTRANET_MODE
     delete process.env.CHERRY_DISABLE_PUBLIC_NETWORK

@@ -1,4 +1,4 @@
-import type { Model } from '@renderer/types'
+import { type Model, SystemProviderIds } from '@renderer/types'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { isEmbeddingModel, isRerankModel } from '../embedding'
@@ -16,11 +16,17 @@ import {
   isDoubaoThinkingAutoModel,
   isFixedReasoningModel,
   isGeminiReasoningModel,
+  isGLM52Model,
+  isGLM53Model,
   isGrok4FastReasoningModel,
   isHunyuanReasoningModel,
   isInterleavedThinkingModel,
+  isKimiK3FastModel,
+  isKimiK3Model,
+  isKimiK27CodeModel,
   isKimiReasoningModel,
   isLingReasoningModel,
+  isMiniMaxM3Model,
   isMiniMaxReasoningModel,
   isPerplexityReasoningModel,
   isQwenAlwaysThinkModel,
@@ -32,6 +38,7 @@ import {
   isSupportedThinkingTokenDoubaoModel,
   isSupportedThinkingTokenGeminiModel,
   isSupportedThinkingTokenKimiModel,
+  isSupportedThinkingTokenLongCatModel,
   isSupportedThinkingTokenMiMoModel,
   isSupportedThinkingTokenModel,
   isSupportedThinkingTokenQwenModel,
@@ -40,7 +47,7 @@ import {
   MODEL_SUPPORTED_OPTIONS,
   MODEL_SUPPORTED_REASONING_EFFORT
 } from '../reasoning'
-import { isGemini3ThinkingTokenModel } from '../utils'
+import { isGemini3ThinkingTokenModel, isGemini31FlashImageModel } from '../utils'
 import { isTextToImageModel } from '../vision'
 
 vi.mock('@renderer/store', () => ({
@@ -333,6 +340,14 @@ describe('Claude & regional providers', () => {
     expect(isClaudeReasoningModel(createModel({ id: 'claude-3-haiku' }))).toBe(false)
   })
 
+  it('treats the whole Claude Fable line as reasoning models', () => {
+    expect(isClaudeReasoningModel(createModel({ id: 'claude-fable-5' }))).toBe(true)
+    expect(isClaudeReasoningModel(createModel({ id: 'claude-fable-5.7' }))).toBe(true)
+    expect(isClaudeReasoningModel(createModel({ id: 'anthropic.claude-fable-5-v1:0' }))).toBe(true)
+    // Not pinned to major 5 — future Fable releases stay covered.
+    expect(isClaudeReasoningModel(createModel({ id: 'claude-fable-6' }))).toBe(true)
+  })
+
   it('covers hunyuan reasoning heuristics', () => {
     expect(isHunyuanReasoningModel(createModel({ id: 'hunyuan-a13b', provider: 'hunyuan' }))).toBe(true)
     expect(isHunyuanReasoningModel(createModel({ id: 'hunyuan-lite', provider: 'hunyuan' }))).toBe(false)
@@ -352,6 +367,39 @@ describe('Claude & regional providers', () => {
     expect(isMiniMaxReasoningModel(createModel({ id: 'minimax-m2-pro' }))).toBe(true)
     expect(isMiniMaxReasoningModel(createModel({ id: 'minimax-m2.7' }))).toBe(true)
     expect(isMiniMaxReasoningModel(createModel({ id: 'minimax-m2.7-highspeed' }))).toBe(true)
+    expect(isMiniMaxReasoningModel(createModel({ id: 'minimax-m3' }))).toBe(true)
+  })
+
+  it('identifies MiniMax-M3 variants for adaptive thinking', () => {
+    expect(isMiniMaxM3Model(createModel({ id: 'MiniMax-M3' }))).toBe(true)
+    expect(isMiniMaxM3Model(createModel({ id: 'minimax-m3' }))).toBe(true)
+    expect(isMiniMaxM3Model(createModel({ id: 'minimax-m3.1' }))).toBe(true)
+    expect(isMiniMaxM3Model(createModel({ id: 'minimax-m3.5-pro' }))).toBe(true)
+    expect(isMiniMaxM3Model(createModel({ id: 'minimax-m2.1' }))).toBe(false)
+    expect(isMiniMaxM3Model(createModel({ id: 'minimax-m30' }))).toBe(false)
+  })
+
+  it('exposes controllable reasoning options for MiniMax-M3', () => {
+    const model = createModel({ id: 'minimax-m3' })
+
+    expect(getThinkModelType(model)).toBe('minimax_m3')
+    expect(isSupportedThinkingTokenModel(model)).toBe(true)
+    expect(isFixedReasoningModel(model)).toBe(false)
+    expect(getModelSupportedReasoningEffortOptions(model)).toEqual(['default', 'none', 'auto'])
+  })
+
+  it('exposes controllable thinking options for LongCat-2.0 on any provider', () => {
+    const model = createModel({ id: 'LongCat-2.0', provider: 'longcat' })
+
+    expect(isSupportedThinkingTokenLongCatModel(model)).toBe(true)
+    expect(isSupportedThinkingTokenLongCatModel(createModel({ id: 'LongCat-2.0', provider: 'openrouter' }))).toBe(true)
+    expect(
+      isSupportedThinkingTokenLongCatModel(createModel({ id: 'LongCat-Flash-Thinking', provider: 'longcat' }))
+    ).toBe(false)
+    expect(getThinkModelType(model)).toBe('longcat')
+    expect(isSupportedThinkingTokenModel(model)).toBe(true)
+    expect(isFixedReasoningModel(model)).toBe(false)
+    expect(getModelSupportedReasoningEffortOptions(model)).toEqual(['default', 'none', 'auto'])
   })
 })
 
@@ -494,47 +542,95 @@ describe('DeepSeek V4+ Models', () => {
   })
 
   describe('reasoning effort configuration', () => {
-    it('exposes high and xhigh as the only effort levels', () => {
-      expect(MODEL_SUPPORTED_REASONING_EFFORT.deepseek_v4).toEqual(['high', 'xhigh'])
+    it('exposes the documented DeepSeek V4 effort levels', () => {
+      expect(MODEL_SUPPORTED_REASONING_EFFORT.deepseek_v4).toEqual(['low', 'high', 'max'])
     })
 
-    it('exposes default, none, high, xhigh as user-facing options', () => {
-      expect(MODEL_SUPPORTED_OPTIONS.deepseek_v4).toEqual(['default', 'none', 'high', 'xhigh'])
+    it('exposes the documented DeepSeek V4 user-facing options', () => {
+      expect(MODEL_SUPPORTED_OPTIONS.deepseek_v4).toEqual(['default', 'none', 'low', 'high', 'max'])
     })
 
     it('returns correct options from getModelSupportedReasoningEffortOptions for V4+ models', () => {
       expect(getModelSupportedReasoningEffortOptions(createModel({ id: 'deepseek-v4', provider: 'deepseek' }))).toEqual(
-        ['default', 'none', 'high', 'xhigh']
+        ['default', 'none', 'low', 'high', 'max']
       )
       expect(
         getModelSupportedReasoningEffortOptions(createModel({ id: 'deepseek-v4-flash', provider: 'deepseek' }))
-      ).toEqual(['default', 'none', 'high', 'xhigh'])
+      ).toEqual(['default', 'none', 'low', 'high', 'max'])
       expect(
         getModelSupportedReasoningEffortOptions(createModel({ id: 'deepseek-v4-pro', provider: 'openrouter' }))
-      ).toEqual(['default', 'none', 'high', 'xhigh'])
+      ).toEqual(['default', 'none', 'low', 'high', 'max'])
       expect(
         getModelSupportedReasoningEffortOptions(
           createModel({ id: 'deepseek/deepseek-v4-flash:deepseek', provider: 'deepseek' })
         )
-      ).toEqual(['default', 'none', 'high', 'xhigh'])
+      ).toEqual(['default', 'none', 'low', 'high', 'max'])
       expect(
         getModelSupportedReasoningEffortOptions(
           createModel({ id: 'deepseek/deepseek-v4-pro:fireworks', provider: 'deepseek' })
         )
-      ).toEqual(['default', 'none', 'high', 'xhigh'])
+      ).toEqual(['default', 'none', 'low', 'high', 'max'])
       expect(
         getModelSupportedReasoningEffortOptions(
           createModel({ id: 'deepseek/deepseek-v4-pro:deepseek:together', provider: 'deepseek' })
         )
-      ).toEqual(['default', 'none', 'high', 'xhigh'])
+      ).toEqual(['default', 'none', 'low', 'high', 'max'])
       expect(getModelSupportedReasoningEffortOptions(createModel({ id: 'deepseek-v5', provider: 'deepseek' }))).toEqual(
-        ['default', 'none', 'high', 'xhigh']
+        ['default', 'none', 'low', 'high', 'max']
       )
     })
   })
 })
 
+describe('GLM-5.3 Models', () => {
+  it('recognizes dotted, hyphenated, and provider-prefixed IDs', () => {
+    expect(isGLM53Model(createModel({ id: 'glm-5.3-flash' }))).toBe(true)
+    expect(isGLM53Model(createModel({ id: 'glm-5-3-flash' }))).toBe(true)
+    expect(isGLM53Model(createModel({ id: 'z-ai/glm-5.3-flash' }))).toBe(true)
+    expect(isGLM53Model(createModel({ id: 'glm-5.2-flash' }))).toBe(false)
+  })
+
+  it('exposes only the supported reasoning efforts', () => {
+    const model = createModel({ id: 'glm-5.3-flash', provider: 'zhipu' })
+
+    expect(getThinkModelType(model)).toBe('zhipu_glm_5_3')
+    expect(getModelSupportedReasoningEffortOptions(model)).toEqual(['default', 'low', 'high', 'max'])
+  })
+})
+
+describe('GLM-5.2 Models', () => {
+  it('recognizes official and provider-prefixed IDs without matching adjacent releases', () => {
+    expect(isGLM52Model(createModel({ id: 'glm-5.2' }))).toBe(true)
+    expect(isGLM52Model(createModel({ id: 'glm-5-2-fast' }))).toBe(true)
+    expect(isGLM52Model(createModel({ id: 'z-ai/glm-5.2:free' }))).toBe(true)
+    expect(isGLM52Model(createModel({ id: 'glm-5.3-flash' }))).toBe(false)
+  })
+
+  it('exposes provider-specific reasoning vocabularies', () => {
+    expect(
+      getModelSupportedReasoningEffortOptions(createModel({ id: 'glm-5.2', provider: SystemProviderIds.zhipu }))
+    ).toEqual(['default', 'none', 'high', 'max'])
+    expect(
+      getModelSupportedReasoningEffortOptions(
+        createModel({ id: 'z-ai/glm-5.2:free', provider: SystemProviderIds.openrouter })
+      )
+    ).toEqual(['default', 'high', 'xhigh'])
+    expect(
+      getModelSupportedReasoningEffortOptions(createModel({ id: 'glm-5.2', provider: SystemProviderIds.dashscope }))
+    ).toEqual(['default', 'none', 'high', 'max'])
+  })
+})
+
 describe('Qwen & Gemini thinking coverage', () => {
+  it('uses Nano Banana 2 reasoning levels from the current Gemini contract', () => {
+    const model = createModel({ id: 'gemini-3.1-flash-image', provider: 'gemini' })
+
+    expect(isGemini31FlashImageModel(model)).toBe(true)
+    expect(isSupportedThinkingTokenGeminiModel(model)).toBe(true)
+    expect(isGemini3ThinkingTokenModel(model)).toBe(true)
+    expect(getModelSupportedReasoningEffortOptions(model)).toEqual(['default', 'minimal', 'high'])
+  })
+
   it.each([
     'qwen-plus',
     'qwen-plus-2025-07-14',
@@ -753,6 +849,68 @@ describe('isReasoningModel', () => {
 
   it('should return true for grok-build-0.1', () => {
     expect(isReasoningModel(createModel({ id: 'grok-build-0.1' }))).toBe(true)
+  })
+
+  it.each([
+    'llama-3-1-nemotron-nano-8b-v1',
+    'nemotron-3-5-lightning',
+    'nemotron-3-super-120b-a12b',
+    'nemotron-3-ultra-550b-a55b',
+    'muse-glimmer-30b',
+    'solar-pro2',
+    'solar-pro-3',
+    'solar-pro4'
+  ])('recognizes provider-registry reasoning family %s', (id) => {
+    expect(isReasoningModel(createModel({ id }))).toBe(true)
+  })
+
+  it.each(['nemotron-3-5-content-safety', 'muse-embed-30b', 'solar-mini'])(
+    'does not widen reasoning detection to %s',
+    (id) => {
+      expect(isReasoningModel(createModel({ id }))).toBe(false)
+    }
+  )
+
+  it.each([
+    ['solar-pro2', ['default', 'minimal', 'high']],
+    ['solar-pro3', ['default', 'low', 'medium', 'high']],
+    ['solar-pro4', ['default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']]
+  ])('uses the curated reasoning vocabulary for %s', (id, expected) => {
+    expect(getModelSupportedReasoningEffortOptions(createModel({ id }))).toEqual(expected)
+    expect(isSupportedReasoningEffortOpenAIModel(createModel({ id }))).toBe(false)
+  })
+
+  it.each([
+    ['gemini-3.7-flash', undefined, ['default', 'low', 'medium', 'high']],
+    ['grok-4.6', undefined, ['default', 'low', 'medium', 'high', 'xhigh']],
+    ['qwen3.8-2.4t-a95b', undefined, ['default', 'low', 'medium', 'xhigh']],
+    ['qwen3.8-27b', undefined, ['default', 'none', 'low', 'medium', 'xhigh']],
+    ['qwen/qwen3.8-27b', 'openrouter', ['default', 'low', 'medium', 'xhigh']],
+    ['qwen3.8-flash', undefined, ['default', 'none', 'auto']],
+    ['qwen3.8-max', 'dashscope', ['default', 'none', 'low', 'medium', 'xhigh']],
+    ['qwen3.8-max-preview', 'dashscope', ['default', 'low', 'medium', 'xhigh']],
+    ['qwen/qwen3.8-max', 'openrouter', ['default', 'minimal', 'low', 'medium', 'high', 'xhigh']],
+    ['meta/muse-glimmer-30b', 'openrouter', ['default', 'low', 'medium', 'high', 'xhigh']],
+    ['meta/muse-spark-1.2', 'openrouter', ['default', 'minimal', 'low', 'medium', 'high', 'xhigh']],
+    ['sakana/sakana-namazu', 'openrouter', ['default', 'none', 'high']],
+    ['~z-ai/glm-latest', 'openrouter', ['default', 'low', 'high', 'max']]
+  ])('uses the current provider contract for %s on %s', (id, provider, expected) => {
+    expect(getModelSupportedReasoningEffortOptions(createModel({ id, provider }))).toEqual(expected)
+  })
+
+  it.each([
+    ['qwen/qwen3.8-flash', 'openrouter'],
+    ['qwen3.8-max-preview', 'gateway'],
+    ['liquid/lfm-2.5-2.6b:free', 'openrouter'],
+    ['meta/muse-spark-1.2', 'gateway'],
+    ['sakana/namazu', 'gateway'],
+    ['glm-latest', 'zhipu'],
+    ['meta/muse-glimmer-30b', 'nvidia']
+  ])('keeps fixed-reasoning contract for %s on %s', (id, provider) => {
+    const model = createModel({ id, provider })
+    expect(isReasoningModel(model)).toBe(true)
+    expect(getModelSupportedReasoningEffortOptions(model)).toBeUndefined()
+    expect(isFixedReasoningModel(model)).toBe(true)
   })
 
   it('excludes non-fixed reasoning models from isFixedReasoningModel', () => {
@@ -2695,6 +2853,23 @@ describe('Claude Models', () => {
       expect(getThinkModelType(createModel({ id: 'anthropic.claude-opus-4-6-v1' }))).toBe('claude46')
     })
 
+    it('should return claude46 for Claude Opus 4.7 and newer models', () => {
+      expect(getThinkModelType(createModel({ id: 'claude-opus-4-7' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-opus-4-8' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'anthropic.claude-opus-4-8-v1:0' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-opus-4-10' }))).toBe('claude46')
+    })
+
+    it('should return claude46 for the whole Claude Fable line (shares the 4.6 effort list)', () => {
+      expect(getThinkModelType(createModel({ id: 'claude-fable-5' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-fable-5-7' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-fable-5.7' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'anthropic.claude-fable-5-v1:0' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-fable-5-20260101' }))).toBe('claude46')
+      // Future Fable majors must keep working too (no hardcoded -5 anywhere in the chain).
+      expect(getThinkModelType(createModel({ id: 'claude-fable-6' }))).toBe('claude46')
+    })
+
     it('should return default for non-reasoning Claude models', () => {
       expect(getThinkModelType(createModel({ id: 'claude-3-opus' }))).toBe('default')
       expect(getThinkModelType(createModel({ id: 'claude-3-haiku' }))).toBe('default')
@@ -2762,17 +2937,22 @@ describe('Claude Models', () => {
     })
   })
 
-  describe('Claude 4.7 thinking model type and token limits', () => {
-    it('routes Opus 4.7 through the claude46 thinking type', () => {
+  describe('Claude Opus 4.7+ thinking model type and token limits', () => {
+    it('routes Opus 4.7+ through the claude46 thinking type', () => {
       expect(getThinkModelType(createModel({ id: 'claude-opus-4-7' }))).toBe('claude46')
       expect(getThinkModelType(createModel({ id: 'anthropic.claude-opus-4-7-v1' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-opus-4-8' }))).toBe('claude46')
+      expect(getThinkModelType(createModel({ id: 'claude-opus-4-10' }))).toBe('claude46')
     })
 
-    it('returns 128K max tokens for Opus 4.7 models', () => {
+    it('returns 128K max tokens for Opus 4.7+ models', () => {
       expect(findTokenLimit('claude-opus-4-7')).toEqual({ min: 1024, max: 128_000 })
       expect(findTokenLimit('claude-opus-4.7')).toEqual({ min: 1024, max: 128_000 })
       expect(findTokenLimit('anthropic.claude-opus-4-7-v1')).toEqual({ min: 1024, max: 128_000 })
       expect(findTokenLimit('claude-opus-4-7@20260401')).toEqual({ min: 1024, max: 128_000 })
+      expect(findTokenLimit('claude-opus-4-8')).toEqual({ min: 1024, max: 128_000 })
+      expect(findTokenLimit('anthropic.claude-opus-4-8-v1:0')).toEqual({ min: 1024, max: 128_000 })
+      expect(findTokenLimit('claude-opus-4-10')).toEqual({ min: 1024, max: 128_000 })
     })
   })
 })
@@ -2924,6 +3104,121 @@ describe('Kimi Models', () => {
       })
     })
   })
+
+  describe('isKimiK27CodeModel', () => {
+    describe('should return true for kimi-k2.7-code', () => {
+      it('should recognize bare kimi-k2.7-code id', () => {
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.7-code' }))).toBe(true)
+      })
+
+      it('should recognize moonshot/kimi-k2.7-code id with provider prefix', () => {
+        expect(isKimiK27CodeModel(createModel({ id: 'moonshot/kimi-k2.7-code' }))).toBe(true)
+      })
+
+      it('should recognize kimi-k2.7-code with trailing segment', () => {
+        // Some providers append a snapshot/qualifier suffix after the model id.
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.7-code-preview' }))).toBe(true)
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.7-code-2025-11-01' }))).toBe(true)
+      })
+
+      it('should handle case insensitivity', () => {
+        expect(isKimiK27CodeModel(createModel({ id: 'KIMI-K2.7-CODE' }))).toBe(true)
+        expect(isKimiK27CodeModel(createModel({ id: 'Kimi-K2.7-Code' }))).toBe(true)
+      })
+    })
+
+    describe('should return false for related but distinct models', () => {
+      it('should reject bare kimi-k2.7 (no -code suffix)', () => {
+        // k2.7 (hypothetical general-purpose variant) is a normal Kimi thinking
+        // model and supports 'none' reasoningEffort. The K2.7 Code-specific
+        // check must not classify it as always-think.
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.7' }))).toBe(false)
+      })
+
+      it('should reject kimi-k2.5 and kimi-k2.6 (they support disable)', () => {
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.5' }))).toBe(false)
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.6' }))).toBe(false)
+      })
+
+      it('should reject kimi-k2-thinking and kimi-k2-thinking-turbo', () => {
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2-thinking' }))).toBe(false)
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2-thinking-turbo' }))).toBe(false)
+      })
+
+      it('should reject ids that embed k2.7-code as a non-anchored substring', () => {
+        // The regex is anchored with `(?:-[\w-]+)?$`, so an id that contains
+        // 'k2.7-code' as a middle segment (e.g. a forked variant) must not match
+        // unless it follows the canonical `kimi-k2.7-code[-<segment>]` shape.
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.7-coder' }))).toBe(false)
+        expect(isKimiK27CodeModel(createModel({ id: 'k2.7-code-test' }))).toBe(false)
+      })
+
+      it('should reject models from other providers', () => {
+        expect(isKimiK27CodeModel(createModel({ id: 'gpt-4' }))).toBe(false)
+        expect(isKimiK27CodeModel(createModel({ id: 'claude-3-opus' }))).toBe(false)
+        expect(isKimiK27CodeModel(createModel({ id: 'kimi-k2.5-code' }))).toBe(false)
+      })
+    })
+
+    describe('edge cases', () => {
+      it('should return false for undefined', () => {
+        expect(isKimiK27CodeModel(undefined)).toBe(false)
+      })
+
+      it('should return false when both id and name are empty', () => {
+        expect(isKimiK27CodeModel(createModel({ id: '', name: '' }))).toBe(false)
+      })
+    })
+  })
+
+  describe('k2.7-code integration with thinking model type', () => {
+    it('should classify kimi-k2.7-code as kimi_always_think', () => {
+      expect(getThinkModelType(createModel({ id: 'kimi-k2.7-code' }))).toBe('kimi_always_think')
+    })
+
+    it('should fall back to kimi_k2_5 for non-code k2.x variants', () => {
+      expect(getThinkModelType(createModel({ id: 'kimi-k2.5' }))).toBe('kimi_k2_5')
+      expect(getThinkModelType(createModel({ id: 'kimi-k2.6' }))).toBe('kimi_k2_5')
+      expect(getThinkModelType(createModel({ id: 'kimi-k2.7' }))).toBe('kimi_k2_5')
+    })
+
+    it('should expose only [default, auto] for kimi_always_think (no none)', () => {
+      const options = getModelSupportedReasoningEffortOptions(createModel({ id: 'kimi-k2.7-code' }))
+      expect(options).toEqual(['default', 'auto'])
+      expect(options).not.toContain('none')
+    })
+  })
+})
+
+describe('Kimi K3 reasoning controls', () => {
+  it('distinguishes the standard and always-thinking fast variants', () => {
+    expect(isKimiK3Model(createModel({ id: 'kimi-k3' }))).toBe(true)
+    expect(isKimiK3Model(createModel({ id: 'moonshotai/kimi-k3-fast' }))).toBe(true)
+    expect(isKimiK3FastModel(createModel({ id: 'kimi-k3-fast' }))).toBe(true)
+    expect(isKimiK3FastModel(createModel({ id: 'kimi-k3' }))).toBe(false)
+  })
+
+  it('exposes the contract for each served provider', () => {
+    expect(getModelSupportedReasoningEffortOptions(createModel({ id: 'kimi-k3', provider: 'moonshot' }))).toEqual([
+      'default',
+      'none',
+      'low',
+      'high',
+      'max'
+    ])
+    expect(
+      getModelSupportedReasoningEffortOptions(createModel({ id: 'moonshotai/kimi-k3', provider: 'openrouter' }))
+    ).toEqual(['default', 'low', 'high', 'max'])
+    expect(getModelSupportedReasoningEffortOptions(createModel({ id: 'kimi/kimi-k3', provider: 'dashscope' }))).toEqual(
+      ['default', 'none', 'max']
+    )
+    expect(getModelSupportedReasoningEffortOptions(createModel({ id: 'kimi-k3-fast', provider: 'gateway' }))).toEqual([
+      'default',
+      'low',
+      'high',
+      'max'
+    ])
+  })
 })
 
 describe('isSupportedThinkingTokenZhipuModel', () => {
@@ -3048,6 +3343,20 @@ describe('Doubao Seed 2.0 Models', () => {
     }
     expect(isDoubaoSeedAfter251015(model)).toBe(true)
   })
+})
+
+describe('Doubao Seed 2.1 and Evolving Models', () => {
+  it.each(['doubao-seed-2-1-pro-260628', 'doubao-seed-2-1-turbo-260628', 'doubao-seed-evolving'])(
+    'recognizes %s as a configurable reasoning model',
+    (id) => {
+      const model: Model = { id, name: id, provider: 'doubao', group: 'Doubao-Seed-2.1' }
+
+      expect(isSupportedThinkingTokenDoubaoModel(model)).toBe(true)
+      expect(isDoubaoSeedAfter251015(model)).toBe(true)
+      expect(getThinkModelType(model)).toBe('doubao_after_251015')
+      expect(getModelSupportedReasoningEffortOptions(model)).toEqual(['default', 'minimal', 'low', 'medium', 'high'])
+    }
+  )
 })
 
 describe('Gemma 4 Models', () => {

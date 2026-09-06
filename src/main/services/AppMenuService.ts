@@ -1,7 +1,7 @@
 import { isMac } from '@main/constant'
 import { windowService } from '@main/services/WindowService'
 import { locales, t } from '@main/utils/locales'
-import { isIntranetMode } from '@shared/config/intranet'
+import { areExternalLinksDisabled } from '@shared/config/intranet'
 import { IpcChannel } from '@shared/IpcChannel'
 import type { MenuItemConstructorOptions } from 'electron'
 import { app, Menu, shell } from 'electron'
@@ -94,7 +94,7 @@ export class AppMenuService {
           { role: 'front', label: appMenu.front }
         ]
       },
-      isIntranetMode()
+      areExternalLinksDisabled()
         ? {
             label: appMenu.help,
             submenu: [

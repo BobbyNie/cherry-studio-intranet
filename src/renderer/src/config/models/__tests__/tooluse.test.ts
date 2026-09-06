@@ -115,6 +115,18 @@ describe('isFunctionCallingModel', () => {
     expect(isFunctionCallingModel(createModel({ id: 'gpt-5' }))).toBe(true)
   })
 
+  it.each([
+    'lfm-2.5-2.6b',
+    'muse-glimmer-30b',
+    'muse-spark-1.2',
+    'namazu',
+    'nemotron-3.5-lightning',
+    'solar-pro4',
+    'voxtral-small-latest'
+  ])('recognizes current main function-calling model %s', (id) => {
+    expect(isFunctionCallingModel(createModel({ id }))).toBe(true)
+  })
+
   it('excludes explicitly blocked ids', () => {
     expect(isFunctionCallingModel(createModel({ id: 'gemini-1.5-flash' }))).toBe(false)
     expect(isFunctionCallingModel(createModel({ id: 'deepseek-v3.2-speciale' }))).toBe(false)
@@ -145,10 +157,16 @@ describe('isFunctionCallingModel', () => {
     expect(isFunctionCallingModel(createModel({ id: 'claude-3-opus', provider: 'anthropic' }))).toBe(true)
   })
 
-  it('supports kimi models through kimi-k2 regex match', () => {
+  it('supports current Kimi chat models', () => {
     expect(isFunctionCallingModel(createModel({ id: 'kimi-k2-0711-preview', provider: 'moonshot' }))).toBe(true)
     expect(isFunctionCallingModel(createModel({ id: 'kimi-k2', provider: 'kimi' }))).toBe(true)
     expect(isFunctionCallingModel(createModel({ id: 'kimi-k2.6', provider: 'moonshot' }))).toBe(true)
+    expect(isFunctionCallingModel(createModel({ id: 'kimi-k3', provider: 'moonshot' }))).toBe(true)
+    expect(isFunctionCallingModel(createModel({ id: 'kimi-k3-fast', provider: 'gateway' }))).toBe(true)
+  })
+
+  it('does not advertise function calling for Nano Banana 2', () => {
+    expect(isFunctionCallingModel(createModel({ id: 'gemini-3.1-flash-image', provider: 'gemini' }))).toBe(false)
   })
 
   it('supports deepseek models through deepseek regex match', () => {
@@ -162,6 +180,10 @@ describe('isFunctionCallingModel', () => {
     expect(isFunctionCallingModel(createModel({ id: 'qwen3.5-plus', provider: 'dashscope' }))).toBe(true)
     expect(isFunctionCallingModel(createModel({ id: 'qwen3.5-plus-2026-02-15', provider: 'dashscope' }))).toBe(true)
     expect(isFunctionCallingModel(createModel({ id: 'qwen3.5-397b-a17b', provider: 'dashscope' }))).toBe(true)
+  })
+
+  it('supports LongCat-2.0 tool calling declared by LongCat model details', () => {
+    expect(isFunctionCallingModel(createModel({ id: 'LongCat-2.0', provider: 'longcat' }))).toBe(true)
   })
 
   describe('MiniMax M2.x Models', () => {
@@ -179,6 +201,11 @@ describe('isFunctionCallingModel', () => {
 
     it('supports minimax-m2.7-highspeed model with suffix', () => {
       expect(isFunctionCallingModel(createModel({ id: 'minimax-m2.7-highspeed', provider: 'minimax' }))).toBe(true)
+    })
+
+    it('supports minimax-m3 model', () => {
+      expect(isFunctionCallingModel(createModel({ id: 'minimax-m3', provider: 'minimax' }))).toBe(true)
+      expect(isFunctionCallingModel(createModel({ id: 'MiniMax-M3', provider: 'minimax' }))).toBe(true)
     })
 
     it('supports MiniMax-M2.7 with capital letters', () => {
@@ -249,6 +276,15 @@ describe('isFunctionCallingModel', () => {
       }
       expect(isFunctionCallingModel(model)).toBe(true)
     })
+  })
+
+  describe('Doubao Seed 2.1 and Evolving Models', () => {
+    it.each(['doubao-seed-2-1-pro-260628', 'doubao-seed-2-1-turbo-260628', 'doubao-seed-evolving'])(
+      'recognizes %s as a function calling model',
+      (id) => {
+        expect(isFunctionCallingModel({ id, name: id, provider: 'doubao', group: 'Doubao-Seed-2.1' })).toBe(true)
+      }
+    )
   })
 
   describe('Gemma 4 Models', () => {

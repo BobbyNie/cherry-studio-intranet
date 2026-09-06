@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest'
 
-import { isCherryInOfficialHost, isDeepSeekOfficialHost, isMiMoOfficialHost, with1mContextSuffix } from '../utils'
+import {
+  getFirstConfiguredApiKey,
+  isCherryInOfficialHost,
+  isDeepSeekOfficialHost,
+  isMiMoOfficialHost,
+  resolveBuiltinRole,
+  with1mContextSuffix
+} from '../utils'
+
+describe('resolveBuiltinRole', () => {
+  it('prefers the session role and falls back to the legacy agent configuration', () => {
+    expect(resolveBuiltinRole({ builtin_role: 'session-role' }, { builtin_role: 'agent-role' })).toBe('session-role')
+    expect(resolveBuiltinRole(undefined, { builtin_role: 'assistant' })).toBe('assistant')
+    expect(resolveBuiltinRole(undefined, undefined)).toBeUndefined()
+  })
+})
 
 describe('isDeepSeekOfficialHost', () => {
   it('matches the canonical DeepSeek Anthropic endpoint', () => {
@@ -24,6 +39,27 @@ describe('isDeepSeekOfficialHost', () => {
     expect(isDeepSeekOfficialHost('')).toBe(false)
     expect(isDeepSeekOfficialHost('   ')).toBe(false)
     expect(isDeepSeekOfficialHost('not a url')).toBe(false)
+  })
+})
+
+describe('getFirstConfiguredApiKey', () => {
+  it('returns the first configured API key from a comma-separated list', () => {
+    expect(getFirstConfiguredApiKey('sk-first,sk-second')).toBe('sk-first')
+    expect(getFirstConfiguredApiKey(' sk-first , sk-second ')).toBe('sk-first')
+  })
+
+  it('skips blank entries', () => {
+    expect(getFirstConfiguredApiKey(', sk-first, sk-second')).toBe('sk-first')
+    expect(getFirstConfiguredApiKey(' , , ')).toBe('')
+  })
+
+  it('keeps escaped commas inside a key', () => {
+    expect(getFirstConfiguredApiKey('sk\\,first,sk-second')).toBe('sk,first')
+  })
+
+  it('handles missing keys', () => {
+    expect(getFirstConfiguredApiKey(undefined)).toBe('')
+    expect(getFirstConfiguredApiKey('')).toBe('')
   })
 })
 
@@ -55,7 +91,6 @@ describe('isMiMoOfficialHost', () => {
 
 describe('isCherryInOfficialHost', () => {
   it('matches CherryIN official endpoints', () => {
-    expect(isCherryInOfficialHost('https://open.cherryin.cc')).toBe(true)
     expect(isCherryInOfficialHost('https://open.cherryin.net/anthropic')).toBe(true)
     expect(isCherryInOfficialHost('  https://open.cherryin.ai/v1  ')).toBe(true)
     expect(isCherryInOfficialHost('https://open.cherryin.dev')).toBe(true)
@@ -76,7 +111,7 @@ describe('isCherryInOfficialHost', () => {
 
 describe('with1mContextSuffix', () => {
   const deepSeekHost = 'https://api.deepseek.com/anthropic'
-  const cherryInHost = 'https://open.cherryin.cc'
+  const cherryInHost = 'https://open.cherryin.net'
   const mimoHost = 'https://api.xiaomimimo.com/anthropic'
   const thirdPartyHost = 'https://openrouter.ai/api/v1'
 

@@ -18,6 +18,7 @@ CHERRY_INTRANET_MODE=true
 CHERRY_NETWORK_ALLOWLIST=
 ```
 
+<<<<<<< HEAD
 `CHERRY_NETWORK_ALLOWLIST` 仅用于首次启动时种子化运行时配置 `intranetNetworkAllowlist`。如果用户在 Settings -> General 保存过白名单，即使保存为空表，也不会再被环境变量覆盖。
 
 **企业内网版网络策略**（`CHERRY_INTRANET_MODE=true`）：
@@ -29,6 +30,26 @@ CHERRY_NETWORK_ALLOWLIST=
 - 支持精确 IP literal，例如 `127.0.0.1`、`10.1.2.3`；不内置 localhost/私网段例外，不支持 CIDR。
 - 输入完整 URL 时仅保存 hostname。
 - 所有业务能力是否能联网，只由统一白名单 guard 判断；MCP、OAuth、备份、知识库、WebSearch、更新等功能本身不再因为 intranet mode 被直接禁用。
+=======
+`CHERRY_NETWORK_ALLOWLIST` 用于首次启动时种子化白名单（逗号或换行分隔主机名），运行期策略以 **设置 → 通用 → 内网网络白名单** 为准。
+如需产品级硬禁用，可额外设置 `CHERRY_DISABLE_AUTO_UPDATE=true`、`CHERRY_DISABLE_TELEMETRY=true`、`CHERRY_DISABLE_MARKETPLACE=true`、`CHERRY_DISABLE_EXTERNAL_LINKS=true`；这些开关不由 `CHERRY_INTRANET_MODE` 自动启用。
+
+**内网版网络策略**（`CHERRY_INTRANET_MODE`，或兼容的 `CHERRY_OFFLINE_MODE`）：
+
+- 默认 **deny-all**：拦截一切未明确放行的 HTTP(S)/WS(S) 请求。
+- **放行范围**：设置 → 通用 中配置的内网网络白名单（主机名或 URL，每行一条；支持 `*.corp.example.com` 等通配符）。
+- **不是 localhost-only**：内网模式不等于只能访问本机；允许访问白名单中的企业网关、SearXNG、WebDAV 等内网服务。
+- 未列入白名单的地址会被 App 层拦截；公网物理不可达由企业 DNS/防火墙保证。
+
+白名单规则示例：
+
+```text
+llm-gateway.intranet.local
+*.corp.example.com
+127.0.0.1
+searxng.intranet.local
+```
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 ## 默认内网服务
 
@@ -41,14 +62,24 @@ CHERRY_NETWORK_ALLOWLIST=
 
 Web Search：
 
+<<<<<<< HEAD
 - 保留上游 provider 行为。
 - 可配置企业内网 SearXNG 或其他搜索服务；未命中白名单的目标会被统一 guard 阻断。
+=======
+- 保留 upstream Web Search provider 列表
+- 是否可访问由统一网络白名单决定；如使用内网 SearXNG，将其主机名加入白名单
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 MCP：
 
 - 保留手动 MCP Server 配置
+<<<<<<< HEAD
 - 自动安装、Marketplace、远端 MCP transport 不再因 intranet mode 直接禁用
 - 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`，并把 registry hostname 加入白名单
+=======
+- Marketplace、自动安装、npx 搜索入口保留；是否可访问由统一网络白名单决定
+- 如需 npx/uvx/bunx，建议配置企业包仓库，例如 `http://npm-registry.intranet.local:4873`
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 ## 构建命令
 
@@ -60,6 +91,19 @@ corepack pnpm package:win:intranet
 ```
 
 `build:intranet`、`package:mac:intranet`、`package:win:intranet` 会先加载 `.env.intranet.example`，再加载可选 `.env.intranet` 覆盖，因此没有本地 env 文件时也会按内网模式构建。
+
+### 离线工具安装包（与 RTK 相同框架）
+
+内网 Release 打包时，`electron-builder` 的 `beforePack`（`scripts/before-pack.js`）会按目标平台把工具二进制写入 `resources/binaries/<platform>-<arch>/`，并随安装包分发（`asarUnpack` 已包含 `resources/**`）：
+
+| 构建期脚本 | 内容 | 运行时消费 |
+|---|---|---|
+| `scripts/download-rtk-binaries.js` | `rtk` / `rtk.exe` | `extractRtkBinaries()` |
+| `scripts/download-intranet-binaries.js`（需 `CHERRY_INTRANET_MODE=true`） | `uv` / `bun` / `openclaw` 对应平台压缩包；Windows x64 另含 OVMS 两个 zip | `resources/scripts/install-*.js` → `local-binary.js` |
+
+GitHub Actions `intranet-release.yml` 中的 `pnpm package:mac:intranet` / `pnpm package:win:intranet` 会触发上述流程；构建机需能访问 GitCode 等镜像（与原先 RTK 从 GitHub 下载类似，属于**构建期**外联，不是用户运行时策略）。
+
+若构建环境完全不能出网，可手动将同名归档文件放入 `resources/binaries/<platform>-<arch>/` 后再执行 `package:*:intranet`。
 
 如果内网没有完整 pnpm store，请先在联网构建机执行依赖缓存同步，再把 pnpm store 和项目 lockfile 带入内网。
 
@@ -99,6 +143,7 @@ corepack pnpm package:win:intranet
 
 ## 验收步骤
 
+<<<<<<< HEAD
 1. 启动应用，确认未配置模型时应用不崩溃，并提示配置内网模型。
 2. 使用抓包工具观察 5 分钟，确认未加入白名单的 HTTP/HTTPS/WS/WSS 目标被阻断。
 3. 保存空白名单，确认模型、WebSearch、MCP、备份等网络目标全部被阻断。
@@ -107,17 +152,34 @@ corepack pnpm package:win:intranet
 6. 验证非白名单公网 URL 仍由中心 guard 阻断。
 7. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
 8. 在断网 Windows 环境安装并启动。
+=======
+1. 启动应用，确认未配置白名单时网络请求被拦截，并提示配置内网网络白名单。
+2. 在 **设置 → 通用 → 内网网络白名单** 添加企业 LLM Gateway、SearXNG 等主机名并保存。
+3. 使用抓包工具观察 5 分钟，确认启动、设置、聊天等默认路径不会主动访问官方服务或第三方云服务。
+4. 配置 `http://127.0.0.1:8000/v1` 或企业 LLM Gateway 后验证聊天、流式输出、多轮上下文（Gateway 主机名须在白名单中）。
+5. 验证 Web Search / MCP / OAuth / auto updater 不因内网模式直接隐藏或 no-op；非白名单目标由中心 guard 阻断。
+6. 验证 MCP Marketplace、自动安装、npx 搜索入口不可见。
+7. 验证点击关于页外链不会打开浏览器。
+8. 验证知识库 embedding/rerank 使用用户配置的内网模型服务。
+9. 在断网 Windows 环境安装并启动。
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 ## 测试报告模板
 
 本次提交的自动化测试覆盖：
 
+<<<<<<< HEAD
 - 内网模式默认 deny-all，空白名单拒绝全部 HTTP/HTTPS/WS/WSS。
 - hostname/IP 白名单 matcher 覆盖精确域名、DNS 边界通配符、IP literal、URL 输入归一化。
 - 主进程 `session.webRequest`、`globalThis.fetch`、`electron.net.fetch` 共用同一白名单结果。
 - Settings -> General 读写 `intranetNetworkAllowlist`，`CHERRY_NETWORK_ALLOWLIST` 仅首次种子化。
 - MCP/OAuth/备份/知识库/WebSearch/Updater 不再因 intranet mode 直接禁用，连接由中心 guard 判断。
 - 启动/运行期公共 JS/CSS/wasm 资源使用本地打包资产。
+=======
+- 内网模式默认 deny-all，仅放行内网网络白名单中的主机名（HTTP/HTTPS/WS/WSS）
+- 主进程 `fetch`、`electron.net.fetch`、renderer/webview session 请求使用同一中心 guard
+- 内网 provider/Web Search/MCP/autoUpdater 不因内网模式直接隐藏或 no-op
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 人工验收需补充：
 

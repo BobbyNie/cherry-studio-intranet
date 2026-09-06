@@ -942,6 +942,8 @@
         "label": "Nỗ lực lý luận",
         "low": "Thấp",
         "low_description": "Lý luận cấp thấp",
+        "max": "Tối đa",
+        "max_description": "Mức độ suy luận tối đa",
         "medium": "Trung bình",
         "medium_description": "Lý luận mức độ trung bình",
         "minimal": "Tối thiểu",
@@ -1601,7 +1603,7 @@
     "copy_failed": "Sao chép thất bại",
     "current": "Hiện tại",
     "cut": "Cắt",
-    "decline": "[to be translated]:Decline",
+    "decline": "Từ chối",
     "default": "Mặc định",
     "delete": "Xóa",
     "delete_confirm": "Bạn có chắc chắn muốn xóa không?",
@@ -1763,6 +1765,7 @@
     "detail": "Chi tiết lỗi",
     "details": "Chi tiết",
     "diagnosis": {
+      "abnormal_finish": "Phản hồi đã kết thúc bất thường, vui lòng thử lại hoặc đổi mô hình",
       "ai_button": "Chẩn đoán bằng AI",
       "ai_done": "Chẩn đoán",
       "ai_loading": "Chẩn đoán",
@@ -1778,10 +1781,13 @@
       "model_conflict": "Mô hình chẩn đoán giống với mô hình đang gặp lỗi",
       "network": "Không thể kết nối đến máy chủ, hãy kiểm tra cài đặt mạng hoặc proxy",
       "ocr": "Công cụ OCR chưa được khởi tạo, hãy kiểm tra cài đặt OCR",
+      "output_truncated": "Phản hồi đã đạt độ dài tối đa và bị cắt bớt",
       "parse": "AI đã trả về phản hồi không hợp lệ, vui lòng thử lại hoặc chuyển sang mô hình khác",
       "payload": "Nội dung yêu cầu quá lớn, vui lòng giảm kích thước tệp hoặc văn bản",
       "proxy": "Lỗi proxy hoặc chứng chỉ SSL, hãy kiểm tra cài đặt proxy và mạng",
-      "quota": "Hạn mức tài khoản đã cạn kiệt, vui lòng nạp tiền hoặc chuyển đổi nhà cung cấp",
+      "quota": "Hạn mức tài khoản đã cạn. Hãy liên hệ quản trị viên nhà cung cấp hoặc chuyển sang nhà cung cấp khác đã cấu hình",
+      "rate_limit": "Quá nhiều yêu cầu trong thời gian ngắn. Hãy đợi một chút rồi thử lại, hoặc chuyển sang mô hình có giới hạn tốc độ cao hơn",
+      "region": "Nhà cung cấp đã cấu hình từ chối khu vực này. Hãy liên hệ quản trị viên doanh nghiệp hoặc chuyển sang nhà cung cấp đã cấu hình khác",
       "server": "Lỗi máy chủ, vui lòng thử lại sau",
       "stream": "Phản hồi bị gián đoạn, kiểm tra độ ổn định mạng hoặc thử lại",
       "unknown": "Đã xảy ra lỗi",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "Yêu cầu thất bại. Vui lòng kiểm tra xem các tham số yêu cầu có đúng không. Nếu bạn đã thay đổi cài đặt mô hình, hãy đặt lại chúng về cài đặt mặc định",
       "401": "Xác thực thất bại. Vui lòng kiểm tra lại xem khóa API của bạn có chính xác không",
+      "402": "Yêu cầu thanh toán. Hãy liên hệ quản trị viên nhà cung cấp để kiểm tra phân bổ tài khoản hoặc chuyển sang nhà cung cấp khác đã cấu hình",
       "403": "Truy cập bị từ chối. Vui lòng kiểm tra xem tài khoản của bạn đã được xác minh chưa, hoặc liên hệ với nhà cung cấp dịch vụ để biết thêm thông tin.",
       "404": "Không tìm thấy mô hình hoặc đường dẫn yêu cầu không chính xác",
       "429": "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
@@ -2923,7 +2930,7 @@
   },
   "onboarding": {
     "privacy": {
-      "accept_and_continue": "[to be translated]:Accept and Continue",
+      "accept_and_continue": "Chấp nhận và tiếp tục",
       "notice": "Bằng cách tiếp tục, bạn xác nhận rằng bạn đã đọc và đồng ý với",
       "period": ".",
       "policy": "Chính sách quyền riêng tư"
@@ -3407,12 +3414,12 @@
     "zoom_out": "Zum Herauszoomen"
   },
   "privacy_policy": {
-    "title": "[to be translated]:Privacy Policy"
+    "title": "Chính sách quyền riêng tư"
   },
   "privacy_policy_update": {
-    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
-    "policy": "[to be translated]:Privacy Policy",
-    "title": "[to be translated]:Privacy Policy Updated"
+    "description_before_link": "Chúng tôi đã cập nhật chính sách quyền riêng tư. Vui lòng xem lại bản mới nhất ",
+    "policy": "Chính sách quyền riêng tư",
+    "title": "Chính sách quyền riêng tư đã được cập nhật"
   },
   "prompts": {
     "explanation": "Giải thích khái niệm này cho tôi",
@@ -4757,6 +4764,15 @@
         "japanese": "Tiếng Nhật",
         "label": "Ngôn ngữ đích",
         "russian": "Tiếng Nga"
+      }
+    },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
       }
     },
     "launch": {

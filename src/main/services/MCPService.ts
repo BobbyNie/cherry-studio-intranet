@@ -35,7 +35,11 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import { nanoid } from '@reduxjs/toolkit'
 import { HOME_CHERRY_DIR } from '@shared/config/constant'
+<<<<<<< HEAD
 import { isRemoteMcpTransportEnabled } from '@shared/config/mcp'
+=======
+import { assertNetworkAllowed, isMarketplaceDisabled } from '@shared/config/intranet'
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 import type { MCPProgressEvent } from '@shared/config/types'
 import type { MCPServerLogEntry } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
@@ -116,9 +120,38 @@ function getServerLogger(server: MCPServer, extra?: Record<string, any>) {
   return loggerService.withContext('MCPService', { ...base, ...extra })
 }
 
+<<<<<<< HEAD
 function ensureRemoteMcpTransportEnabled(): void {
   if (!isRemoteMcpTransportEnabled()) {
     throw new Error('Remote MCP transports (SSE, StreamableHTTP) are disabled in offline mode')
+=======
+function ensureMcpCommandAllowed(server: MCPServer): void {
+  if (!server.command) {
+    return
+  }
+
+  if (server.registryUrl) {
+    assertNetworkAllowed(server.registryUrl)
+  }
+
+  if (!isMarketplaceDisabled()) {
+    return
+  }
+
+  const command = path.basename(server.command).toLowerCase()
+  const packageRunnerCommands = new Set(['npx', 'bunx', 'uvx', 'uv'])
+
+  if (server.name.includes('mcp-auto-install')) {
+    throw new Error('MCP 自动安装已禁用，请由管理员在内网仓库预置 MCP 服务。')
+  }
+
+  if (!packageRunnerCommands.has(command)) {
+    return
+  }
+
+  if (!server.registryUrl) {
+    throw new Error('企业内网版禁止使用默认公网包仓库启动 MCP。请配置企业内网 npm/pip registry。')
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
   }
 }
 
@@ -337,9 +370,6 @@ class McpService {
               [BuiltinMCPServerNames.flomo]: 'https://flomoapp.com/mcp'
             }
             const httpUrl = httpUrlMap[server.name]
-            if (server.name === BuiltinMCPServerNames.flomo) {
-              ensureRemoteMcpTransportEnabled()
-            }
             const options: StreamableHTTPClientTransportOptions = {
               fetch: async (url, init) => {
                 return net.fetch(typeof url === 'string' ? url : url.toString(), init)
@@ -371,7 +401,6 @@ class McpService {
             // set the client transport to the client
             return clientTransport
           } else if (server.baseUrl) {
-            ensureRemoteMcpTransportEnabled()
             if (server.type === 'streamableHttp') {
               const options: StreamableHTTPClientTransportOptions = {
                 fetch: async (url, init) => {
@@ -430,6 +459,11 @@ class McpService {
               }
             }
 
+<<<<<<< HEAD
+=======
+            ensureMcpCommandAllowed(server)
+
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
             if (server.command === 'npx') {
               // First, check if npx is available in user's shell environment
               const npxPath = await findCommandInShellEnv('npx', loginShellEnv)

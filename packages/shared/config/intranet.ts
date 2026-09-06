@@ -1,12 +1,27 @@
+<<<<<<< HEAD
 import * as ipaddr from 'ipaddr.js'
+=======
+import {
+  getNetworkAllowlistRules,
+  normalizeNetworkAllowlistRules,
+  urlMatchesNetworkAllowlist
+} from '../network/networkAllowlist'
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 
 export const INTRANET_EXTERNAL_LINK_BLOCKED_MESSAGE = '内网版已禁用外部链接'
 export const OFFLINE_NETWORK_BLOCKED_MESSAGE = '完全离线版已禁用网络访问'
+<<<<<<< HEAD
 export const NETWORK_ALLOWLIST_RULE_INVALID_MESSAGE = '内网域名白名单规则无效'
 
 let networkAllowlistRules: string[] = []
+=======
+export const OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE = '网络白名单为空，已禁止所有网络访问'
+
+/** @deprecated Use OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE */
+export const OFFLINE_PROVIDER_NOT_CONFIGURED_MESSAGE = OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 function getProcessEnv(): Record<string, string | undefined> {
   return (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}
@@ -44,21 +59,43 @@ export function isPublicNetworkDisabled(): boolean {
 }
 
 export function isAutoUpdateDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_AUTO_UPDATE')
+  return isFlagEnabled('CHERRY_DISABLE_AUTO_UPDATE')
 }
 
 export function isTelemetryDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_TELEMETRY')
+  return isFlagEnabled('CHERRY_DISABLE_TELEMETRY')
 }
 
 export function isMarketplaceDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_MARKETPLACE')
+  return isFlagEnabled('CHERRY_DISABLE_MARKETPLACE')
 }
 
 export function areExternalLinksDisabled(): boolean {
-  return isOfflineMode() || isFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
+  return isFlagEnabled('CHERRY_DISABLE_EXTERNAL_LINKS')
 }
 
+<<<<<<< HEAD
+=======
+export function parseNetworkAllowlistFromEnv(raw = readEnv('CHERRY_NETWORK_ALLOWLIST')): string[] {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return []
+  }
+
+  const parts = raw
+    .split(/[\n,]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return normalizeNetworkAllowlistRules(parts)
+}
+
+function getActiveNetworkAllowlistRules(): string[] {
+  return getNetworkAllowlistRules()
+}
+
+export { getNetworkAllowlistRules, setNetworkAllowlistRules } from '../network/networkAllowlist'
+
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 export class OfflineNetworkBlockedError extends Error {
   constructor(message: string) {
     super(message)
@@ -232,7 +269,16 @@ export function assertNetworkAllowed(url: string): void {
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
   }
 
+<<<<<<< HEAD
   if (!urlMatchesNetworkAllowlist(parsed, networkAllowlistRules)) {
+=======
+  const rules = getActiveNetworkAllowlistRules()
+  if (rules.length === 0) {
+    throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_ALLOWLIST_EMPTY_MESSAGE)
+  }
+
+  if (!urlMatchesNetworkAllowlist(parsed, rules)) {
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
     throw new OfflineNetworkBlockedError(OFFLINE_NETWORK_BLOCKED_MESSAGE)
   }
 }

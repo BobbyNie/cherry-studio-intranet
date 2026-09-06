@@ -4,8 +4,14 @@ const os = require('os')
 const https = require('https')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
+<<<<<<< HEAD
 const { assertNetworkAllowed, downloadWithRedirects } = require('./download')
 const { copyLocalBinaryPackage } = require('./local-binary')
+=======
+const { downloadWithRedirects } = require('./download')
+const { assertNetworkAllowed } = require('./network-guard')
+const { installFromBundledArchive } = require('./local-binary')
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 // Download sources
 const GITCODE_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/openclaw-releases/releases/download'
@@ -20,6 +26,13 @@ const API_TIMEOUT_MS = 5000
  * @returns {Promise<string>} The latest version tag or DEFAULT_VERSION on failure
  */
 async function getLatestVersion(timeoutMs = API_TIMEOUT_MS) {
+  try {
+    assertNetworkAllowed(GITHUB_API_LATEST_RELEASE)
+  } catch {
+    console.warn('GitHub API blocked by network policy, using default version')
+    return DEFAULT_VERSION
+  }
+
   return new Promise((resolve) => {
     try {
       assertNetworkAllowed(GITHUB_API_LATEST_RELEASE)
@@ -113,9 +126,10 @@ async function downloadWithFallback(version, packageName, tempFilename, preferMi
 
   for (const source of sources) {
     const downloadUrl = `${source.baseUrl}/${version}/${packageName}`
-    console.log(`Trying ${source.name}: ${downloadUrl}`)
 
     try {
+      assertNetworkAllowed(downloadUrl)
+      console.log(`Trying ${source.name}: ${downloadUrl}`)
       await downloadWithRedirects(downloadUrl, tempFilename)
       console.log(`Downloaded successfully from ${source.name}`)
       return
@@ -246,12 +260,18 @@ async function downloadOpenClawBinary(platform, arch, version = DEFAULT_VERSION,
  * Main function to install openclaw
  */
 async function installOpenClaw() {
-  const version = await getLatestVersion()
   const platform = os.platform()
   const arch = os.arch()
+  const platformKey = `${platform}-${arch}`
+  const packageName = OPENCLAW_PACKAGES[platformKey]
+
+  if (packageName && (await installFromBundledArchive(platformKey, packageName, platform))) {
+    return 0
+  }
 
   // Check for mirror flag from environment variable
   const useMirror = process.env.OPENCLAW_USE_MIRROR === '1'
+  const version = packageName ? await getLatestVersion() : DEFAULT_VERSION
 
   console.log(`Installing openclaw ${version} for ${platform}-${arch}${useMirror ? ' (mirror)' : ''}...`)
 

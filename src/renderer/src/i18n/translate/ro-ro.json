@@ -942,6 +942,8 @@
         "label": "Efort de raționament",
         "low": "Scăzut",
         "low_description": "Raționament de nivel scăzut",
+        "max": "Max",
+        "max_description": "Efort maxim de raționament",
         "medium": "Mediu",
         "medium_description": "Raționament de nivel mediu",
         "minimal": "Minim",
@@ -1601,7 +1603,7 @@
     "copy_failed": "Copiere eșuată",
     "current": "Curent",
     "cut": "Decupează",
-    "decline": "[to be translated]:Decline",
+    "decline": "Refuză",
     "default": "Implicit",
     "delete": "Șterge",
     "delete_confirm": "Ești sigur că vrei să ștergi?",
@@ -1763,6 +1765,7 @@
     "detail": "Detalii eroare",
     "details": "Detalii",
     "diagnosis": {
+      "abnormal_finish": "Răspunsul s-a încheiat anormal, încearcă din nou sau schimbă modelul",
       "ai_button": "Diagnostic IA",
       "ai_done": "Diagnosticat",
       "ai_loading": "Se diagnostichează",
@@ -1778,10 +1781,13 @@
       "model_conflict": "Modelul de diagnostic este identic cu modelul cu eroare",
       "network": "Nu se poate conecta la server, verificați setările de rețea sau proxy",
       "ocr": "Motorul OCR nu este inițializat, verificați setările OCR",
+      "output_truncated": "Răspunsul a atins lungimea maximă și a fost trunchiat",
       "parse": "IA a returnat un răspuns invalid, vă rugăm să reîncercați sau să schimbați modelul",
       "payload": "Conținutul cererii este prea mare, reduceți dimensiunea fișierului sau a textului.",
       "proxy": "Eroare de proxy sau certificat SSL, verificați setările de proxy și de rețea",
-      "quota": "Cota contului epuizată, reîncărcați sau schimbați furnizorul",
+      "quota": "Cota contului este epuizată. Contactați administratorul furnizorului sau treceți la alt furnizor configurat",
+      "rate_limit": "Prea multe cereri într-un timp scurt. Așteptați un moment și încercați din nou, sau treceți la un model cu o limită de rată mai mare",
+      "region": "Furnizorul configurat a respins această regiune. Contactați administratorul companiei sau treceți la alt furnizor configurat",
       "server": "Eroare de server, reîncercați mai târziu",
       "stream": "Răspuns întrerupt, verificați stabilitatea rețelei sau reîncercați",
       "unknown": "A apărut o eroare",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "Cererea a eșuat. Te rugăm să verifici dacă parametrii cererii sunt corecți. Dacă ai modificat setările modelului, te rugăm să le resetezi la valorile implicite",
       "401": "Autentificarea a eșuat. Te rugăm să verifici dacă cheia API este corectă",
+      "402": "Plată necesară. Contactați administratorul furnizorului pentru a verifica alocarea contului sau treceți la alt furnizor configurat",
       "403": "Acces refuzat. Te rugăm să verifici dacă contul tău este verificat sau contactează furnizorul de servicii pentru mai multe informații",
       "404": "Modelul nu a fost găsit sau calea cererii este incorectă",
       "429": "Prea multe cereri. Te rugăm să încerci din nou mai târziu",
@@ -2923,7 +2930,7 @@
   },
   "onboarding": {
     "privacy": {
-      "accept_and_continue": "[to be translated]:Accept and Continue",
+      "accept_and_continue": "Acceptă și continuă",
       "notice": "Continuând, confirmi că ai citit și ești de acord cu",
       "period": ".",
       "policy": "Politica de confidențialitate"
@@ -3407,12 +3414,12 @@
     "zoom_out": "Micșorează"
   },
   "privacy_policy": {
-    "title": "[to be translated]:Privacy Policy"
+    "title": "Politica de confidențialitate"
   },
   "privacy_policy_update": {
-    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
-    "policy": "[to be translated]:Privacy Policy",
-    "title": "[to be translated]:Privacy Policy Updated"
+    "description_before_link": "Am actualizat politica de confidențialitate. Te rugăm să consulți cea mai recentă ",
+    "policy": "Politica de confidențialitate",
+    "title": "Politica de confidențialitate a fost actualizată"
   },
   "prompts": {
     "explanation": "Explică-mi acest concept",
@@ -4757,6 +4764,15 @@
         "japanese": "Japoneză",
         "label": "Limba țintă",
         "russian": "Rusă"
+      }
+    },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
       }
     },
     "launch": {

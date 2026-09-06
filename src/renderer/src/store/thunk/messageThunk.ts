@@ -154,7 +154,8 @@ const buildAgentBaseURL = (apiServer: ApiServerConfig) => {
 export const renameAgentSessionIfNeeded = async (
   agentSession: AgentSessionContext,
   topicId: string,
-  getState: () => RootState
+  getState: () => RootState,
+  options: { force?: boolean } = {}
 ): Promise<void> => {
   const lockId = `${agentSession.agentId}:${agentSession.sessionId}`
   if (agentSessionRenameLocks.has(lockId)) {
@@ -165,6 +166,10 @@ export const renameAgentSessionIfNeeded = async (
     const state = getState()
     const apiServer = state.settings.apiServer
     if (!apiServer?.apiKey) {
+      return
+    }
+
+    if (!options.force && !state.settings.enableTopicNaming) {
       return
     }
 
@@ -2195,6 +2200,7 @@ export const setupChannelStream = (
   })
 
   let streamController: ReadableStreamDefaultController<TextStreamPart<Record<string, any>>> | null = null
+  let hasTerminalChunk = false
   const stream = new ReadableStream<TextStreamPart<Record<string, any>>>({
     start(controller) {
       streamController = controller
@@ -2243,12 +2249,20 @@ export const setupChannelStream = (
   return {
     assistantMessageId: assistantMessage.id,
     pushChunk(chunk: TextStreamPart<Record<string, any>>) {
+      if (chunk.type === 'finish' || chunk.type === 'abort' || chunk.type === 'error') {
+        hasTerminalChunk = true
+      }
       streamController?.enqueue(chunk)
     },
     complete() {
+      if (!hasTerminalChunk) {
+        streamController?.enqueue({ type: 'finish' } as TextStreamPart<Record<string, any>>)
+        hasTerminalChunk = true
+      }
       streamController?.close()
     },
     error(err: Error) {
+      hasTerminalChunk = true
       streamController?.error(err)
     }
   }

@@ -120,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-2022]
     env:
       CI: true
       NODE_OPTIONS: --max-old-space-size=8192
@@ -199,22 +199,23 @@ jobs:
 
           run_package_with_retry() {
             local attempt
-            local status
 
             for attempt in 1 2 3; do
               if run_package; then
                 return 0
               fi
 
-              status=$?
               if [ "$attempt" = "3" ]; then
-                return "$status"
+                echo "::error::Intranet package build failed after 3 attempts."
+                return 1
               fi
 
               echo "::warning::Intranet package build failed on attempt $attempt. Cleaning outputs and retrying."
               rm -rf dist out
               sleep $((attempt * 30))
             done
+
+            return 1
           }
 
           run_package_with_retry
@@ -243,7 +244,7 @@ jobs:
             fi
           }
 
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          if [ "${{ matrix.os }}" != "macos-latest" ]; then
             copy_first "*-x64-setup.exe" "${PREFIX}-windows-x64-setup.exe"
             copy_first "*-arm64-setup.exe" "${PREFIX}-windows-arm64-setup.exe"
             copy_first "*-x64-portable.exe" "${PREFIX}-windows-x64-portable.exe"

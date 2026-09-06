@@ -11,23 +11,32 @@ import {
   GEMINI_FLASH_MODEL_REGEX,
   getModelSupportedReasoningEffortOptions,
   isClaude46SeriesModel,
-  isClaude47SeriesModel,
   isDeepSeekHybridInferenceModel,
   isDeepSeekV4PlusModel,
   isDoubaoSeed18Model,
   isDoubaoSeedAfter251015,
   isDoubaoThinkingAutoModel,
   isGemini3ThinkingTokenModel,
+  isGLM52Model,
+  isGLM53Model,
   isGrok4FastReasoningModel,
+  isGrok46Model,
   isHostedGemma4ThinkingModel,
+  isKimiK3FastModel,
+  isKimiK3Model,
+  isKimiK27CodeModel,
+  isMiniMaxM3Model,
+  isMiniMaxReasoningModel,
   isOpenAIDeepResearchModel,
   isOpenAIModel,
   isOpenAIOpenWeightModel,
   isOpenAIReasoningModel,
   isQwen35to39Model,
+  isQwen38EffortModel,
   isQwenAlwaysThinkModel,
   isQwenReasoningModel,
   isReasoningModel,
+  isSupportAdaptiveThinkingClaudeModel,
   isSupportedReasoningEffortGrokModel,
   isSupportedReasoningEffortModel,
   isSupportedReasoningEffortOpenAIModel,
@@ -36,6 +45,7 @@ import {
   isSupportedThinkingTokenGeminiModel,
   isSupportedThinkingTokenHunyuanModel,
   isSupportedThinkingTokenKimiModel,
+  isSupportedThinkingTokenLongCatModel,
   isSupportedThinkingTokenMiMoModel,
   isSupportedThinkingTokenModel,
   isSupportedThinkingTokenQwenModel,
@@ -55,7 +65,7 @@ import type { OllamaProviderOptions } from 'ollama-ai-provider-v2'
 const logger = loggerService.withContext('reasoning')
 
 type ReasoningEffortOptionalParams = {
-  thinking?: { type: 'disabled' | 'enabled' | 'auto'; budget_tokens?: number }
+  thinking?: { type: 'disabled' | 'enabled' | 'auto' | 'adaptive'; budget_tokens?: number }
   reasoning?: { max_tokens?: number; exclude?: boolean; effort?: string; enabled?: boolean } | OpenAI.Reasoning
   reasoningEffort?: OpenAIReasoningEffort
   // WARN: This field will be overwrite to undefined by aisdk if the provider is openai-compatible. Use reasoningEffort instead.
@@ -99,6 +109,19 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
     return {}
   }
 
+  // MiniMax models need explicit thinking control. M3 only accepts 'adaptive' | 'disabled'
+  // on the OpenAI-compatible endpoint; M1/M2.x use 'enabled'. Without this, M3 cannot be turned off.
+  if (isMiniMaxReasoningModel(model)) {
+    const reasoningEffort = assistant?.settings?.reasoning_effort
+    if (reasoningEffort === 'none') {
+      return { thinking: { type: 'disabled' } }
+    }
+    if (isMiniMaxM3Model(model)) {
+      return { thinking: { type: 'adaptive' } }
+    }
+    return { thinking: { type: 'enabled' } }
+  }
+
   if (isOpenAIDeepResearchModel(model)) {
     return {
       reasoning_effort: 'medium'
@@ -113,11 +136,43 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
     return {}
   }
 
+  // GLM-5.3 always reasons and rejects the legacy none/auto selections.
+  if ((isGLM52Model(model) || isGLM53Model(model)) && reasoningEffort === 'auto') {
+    return {}
+  }
+  if (isGLM53Model(model) && reasoningEffort === 'none') {
+    return {}
+  }
+
+  if (isSupportedThinkingTokenLongCatModel(model)) {
+    return { thinking: { type: reasoningEffort === 'none' ? 'disabled' : 'enabled' } }
+  }
+
   // Handle 'none' reasoningEffort. It's explicitly off.
   if (reasoningEffort === 'none') {
+    if (isKimiK3FastModel(model)) {
+      return {}
+    }
+    if (isKimiK3Model(model)) {
+      if (provider.id === SystemProviderIds.openrouter) return {}
+      if (provider.id !== SystemProviderIds.dashscope) return { reasoningEffort: 'none' }
+    }
+    if (isGLM52Model(model) && provider.id === SystemProviderIds.openrouter) {
+      return {}
+    }
+    if (isQwen38EffortModel(model)) {
+      if (getLowerBaseModelName(model.id).includes('max-preview')) return {}
+      if (provider.id === SystemProviderIds.openrouter) return {}
+      return { reasoningEffort: 'none' }
+    }
+
     // openrouter: use reasoning
     if (model.provider === SystemProviderIds.openrouter) {
-      if (isSupportNoneReasoningEffortModel(model) && reasoningEffort === 'none') {
+      const supportsNoneEffort =
+        isSupportNoneReasoningEffortModel(model) ||
+        (isSupportedReasoningEffortModel(model) &&
+          getModelSupportedReasoningEffortOptions(model)?.includes('none') === true)
+      if (supportsNoneEffort) {
         return { reasoning: { effort: 'none' } }
       }
       return { reasoning: { enabled: false, exclude: true } }
@@ -132,6 +187,9 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
       } else if (isDeepSeekHybridInferenceModel(model)) {
         return { chat_template_kwargs: { thinking: false } }
       } else if (isSupportedThinkingTokenKimiModel(model)) {
+        // kimi-k2.7-code is always-think: skipping the disable branch keeps the
+        // upstream call's default thinking on, which the model requires.
+        if (isKimiK27CodeModel(model)) return {}
         return { chat_template_kwargs: { thinking: false } }
       } else if (isSupportedThinkingTokenZhipuModel(model)) {
         return { chat_template_kwargs: { enable_thinking: false } }
@@ -145,7 +203,8 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
       (provider.id === SystemProviderIds.dashscope &&
         (isDeepSeekHybridInferenceModel(model) ||
           isSupportedThinkingTokenZhipuModel(model) ||
-          isSupportedThinkingTokenKimiModel(model))) ||
+          // kimi-k2.7-code is always-think: never emit enable_thinking: false for it.
+          (isSupportedThinkingTokenKimiModel(model) && !isKimiK27CodeModel(model)))) ||
       // SiliconFlow uses enable_thinking for DeepSeek and Zhipu models, same as positive path
       (provider.id === SystemProviderIds.silicon &&
         (isDeepSeekHybridInferenceModel(model) || isSupportedThinkingTokenZhipuModel(model)))
@@ -181,7 +240,10 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
       isSupportedThinkingTokenDoubaoModel(model) ||
       isSupportedThinkingTokenZhipuModel(model) ||
       isSupportedThinkingTokenMiMoModel(model) ||
-      isSupportedThinkingTokenKimiModel(model)
+      // kimi-k2.7-code is always-think: cannot be disabled, so skip the
+      // "send {type:'disabled'}" branch. Same rationale as the k2.7-code
+      // exclusion in the nvidia / dashscope / anthropic paths below.
+      (isSupportedThinkingTokenKimiModel(model) && !isKimiK27CodeModel(model))
     ) {
       if (provider.id === SystemProviderIds.cerebras) {
         return {
@@ -293,6 +355,25 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
 
   // OpenRouter models
   if (model.provider === SystemProviderIds.openrouter) {
+    if (isKimiK3Model(model)) {
+      return ['low', 'high', 'max'].includes(reasoningEffort) ? { reasoning: { effort: reasoningEffort } } : {}
+    }
+    if (isGLM52Model(model)) {
+      return ['high', 'xhigh'].includes(reasoningEffort) ? { reasoning: { effort: reasoningEffort } } : {}
+    }
+    if (isDeepSeekV4PlusModel(model) || isGLM53Model(model)) {
+      const effortMap = {
+        minimal: 'low',
+        low: 'low',
+        medium: 'high',
+        high: 'high',
+        xhigh: 'max',
+        max: 'max'
+      } as const
+      const effort = effortMap[reasoningEffort as keyof typeof effortMap]
+      return effort ? { reasoning: { effort } } : {}
+    }
+
     // Grok 4 Fast doesn't support effort levels, always use enabled: true
     if (isGrok4FastReasoningModel(model)) {
       return {
@@ -357,12 +438,59 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
     return {}
   }
 
-  // DeepSeek V4+ models support reasoning_effort: "high" | "max" alongside thinking control
-  // UI uses "xhigh" which maps to API's "max"; all other effort levels map to "high"
-  if (isDeepSeekV4PlusModel(model)) {
+  if (isKimiK3Model(model)) {
+    const effort = reasoningEffort === 'auto' ? 'medium' : reasoningEffort
+    if (provider.id === SystemProviderIds.dashscope) {
+      return effort === 'max' ? { reasoningEffort: 'max' } : {}
+    }
+    return ['low', 'medium', 'high', 'max'].includes(effort) ? { reasoningEffort: effort as OpenAIReasoningEffort } : {}
+  }
+
+  if (isQwen38EffortModel(model)) {
+    const supportedOptions = getModelSupportedReasoningEffortOptions(model)
+    if (!supportedOptions?.includes(reasoningEffort)) return {}
+    if (provider.id === SystemProviderIds.openrouter) {
+      return { reasoning: { effort: reasoningEffort } }
+    }
+    return { reasoningEffort }
+  }
+
+  if (isGLM52Model(model)) {
+    if (!['high', 'max'].includes(reasoningEffort)) return {}
+    if (provider.id === SystemProviderIds.dashscope) {
+      return { reasoningEffort }
+    }
     return {
       thinking: { type: 'enabled' as const },
-      reasoning_effort: reasoningEffort === 'xhigh' ? ('max' as OpenAIReasoningEffort) : 'high'
+      reasoningEffort
+    }
+  }
+
+  // Both DeepSeek and OpenAI-compatible SDKs accept camelCase provider options
+  // and serialize this field as `reasoning_effort` on the wire.
+  if (isDeepSeekV4PlusModel(model)) {
+    const effortMap = {
+      minimal: 'low',
+      low: 'low',
+      medium: 'high',
+      high: 'high',
+      xhigh: 'max',
+      max: 'max'
+    } as const
+    const effort = effortMap[reasoningEffort as keyof typeof effortMap]
+    if (!effort) return {}
+    return {
+      thinking: { type: 'enabled' as const },
+      reasoningEffort: effort as OpenAIReasoningEffort
+    }
+  }
+
+  if (isGLM53Model(model)) {
+    const effort = reasoningEffort === 'xhigh' ? 'max' : reasoningEffort
+    if (!['low', 'high', 'max'].includes(effort)) return {}
+    return {
+      thinking: { type: 'enabled' as const },
+      reasoningEffort: effort as OpenAIReasoningEffort
     }
   }
 
@@ -442,6 +570,10 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
       isSupportedThinkingTokenZhipuModel(model) ||
       isSupportedThinkingTokenKimiModel(model)
     ) {
+      // kimi-k2.7-code is always-think: skip enable_thinking/thinking_budget shape,
+      // which Moonshot's upstream does not accept. Falls through to the
+      // generic positive branch at line ~630 which emits {thinking:{type:'enabled'}}.
+      if (isKimiK27CodeModel(model)) return {}
       return {
         enable_thinking: true,
         thinking_budget: budgetTokens
@@ -457,6 +589,7 @@ export function getReasoningEffort(assistant: Assistant, model: Model): Reasonin
         adjustedReasoningEffort = 'low'
         break
       case 'xhigh':
+      case 'max':
         adjustedReasoningEffort = 'high'
         break
       case 'auto':
@@ -692,6 +825,8 @@ function getFallbackBudgetTokens(reasoningEffort: string | undefined): number {
  * Extracted from AnthropicAPIClient logic.
  *
  * Returns different parameter shapes depending on the model:
+ * - **Claude Opus 4.7+**: `{ thinking: { type: 'adaptive', display: 'summarized' }, effort?: 'low' | 'medium' | 'high' | 'xhigh' }`
+ *   Uses the new adaptive thinking API with effort-based control.
  * - **Claude 4.6**: `{ thinking: { type: 'adaptive' }, effort: 'low' | 'medium' | 'high' | 'max' }`
  *   Uses the new adaptive thinking API with effort-based control.
  * - **Other Claude models** (4.0, 4.1, 4.5, etc.): `{ thinking: { type: 'enabled', budgetTokens: number } }`
@@ -699,7 +834,7 @@ function getFallbackBudgetTokens(reasoningEffort: string | undefined): number {
  * - **Non-Anthropic models served via the Claude-compatible endpoint** (Kimi, MiniMax,
  *   DeepSeek V4+, etc.): `{ thinking: { type: 'enabled', budgetTokens: number }, sendReasoning: true, effort? }`
  *   `sendReasoning: true` ensures reasoning output is streamed back to the UI.
- *   `effort` is only added for DeepSeek V4+ (`high` | `xhigh` → `high` | `max`).
+ *   `effort` is only added for DeepSeek V4+ (`low` | `high` | `max`).
  */
 export function getAnthropicReasoningParams(
   assistant: Assistant,
@@ -720,6 +855,9 @@ export function getAnthropicReasoningParams(
   }
 
   if (reasoningEffort === 'none') {
+    // kimi-k2.7-code is always-think: cannot be disabled, so skip the generic
+    // {type:'disabled'} early-return and let the default-on branch below handle it.
+    if (isKimiK27CodeModel(model)) return {}
     return {
       thinking: {
         type: 'disabled'
@@ -729,10 +867,10 @@ export function getAnthropicReasoningParams(
 
   // Claude reasoning parameters
   if (isSupportedThinkingTokenClaudeModel(model)) {
-    // Claude 4.7: adaptive thinking + native 'xhigh' effort.
+    // Claude Opus 4.7+: adaptive thinking + native 'xhigh' effort.
     // Also requires thinking.display: 'summarized' — API defaults to 'omitted'
     // (no reasoning text in response), which would break Cherry's thinking UI.
-    if (isClaude47SeriesModel(model)) {
+    if (isSupportAdaptiveThinkingClaudeModel(model)) {
       const effort47Map = {
         default: undefined,
         auto: undefined,
@@ -740,7 +878,8 @@ export function getAnthropicReasoningParams(
         low: 'low',
         medium: 'medium',
         high: 'high',
-        xhigh: 'xhigh'
+        xhigh: 'xhigh',
+        max: 'xhigh'
       } as const satisfies Record<Exclude<ReasoningEffortOption, 'none'>, AnthropicProviderOptions['effort']>
       const effort = effort47Map[reasoningEffort]
       const thinking = { type: 'adaptive', display: 'summarized' } as const
@@ -763,7 +902,8 @@ export function getAnthropicReasoningParams(
         low: 'low',
         medium: 'medium',
         high: 'high',
-        xhigh: 'max'
+        xhigh: 'max',
+        max: 'max'
       } as const satisfies Record<Exclude<ReasoningEffortOption, 'none'>, AnthropicProviderOptions['effort']>
       const effort = effortMap[reasoningEffort]
       return effort ? { thinking: { type: 'adaptive' }, effort } : { thinking: { type: 'adaptive' } }
@@ -780,8 +920,22 @@ export function getAnthropicReasoningParams(
       }
     }
   } else {
-    // 其他使用claude端點的模型，比如Kimi,Minimax等等
+    // MiniMax M3 via Anthropic endpoint: adaptive / disabled, no budgetTokens.
+    // reasoningEffort === 'none' is already handled by the early return above.
+    if (isMiniMaxM3Model(model)) {
+      return { thinking: { type: 'adaptive' }, sendReasoning: true }
+    }
+    if (isMiniMaxReasoningModel(model)) {
+      // M2.x: thinking cannot be turned off per official docs.
+      return {}
+    }
+    // 其他使用claude端點的模型，比如Kimi等等
     const { maxTokens } = getAssistantSettings(assistant)
+    // kimi-k2.7-code is always-think: per official docs, only `{type:'enabled'}`
+    // is accepted — no `budget_tokens`. Skip the budget-emitting path.
+    if (isKimiK27CodeModel(model)) {
+      return { thinking: { type: 'enabled' }, sendReasoning: true }
+    }
     const budgetTokens = getThinkingBudget(maxTokens, reasoningEffort, model.id)
     const params: Partial<ReturnType<typeof getAnthropicReasoningParams>> = {
       thinking: {
@@ -791,15 +945,13 @@ export function getAnthropicReasoningParams(
       sendReasoning: true
     }
     // https://api-docs.deepseek.com/guides/thinking_mode
-    // DeepSeek V4+ exposes only 'high' and 'xhigh' as user-facing effort levels
-    // (see MODEL_SUPPORTED_REASONING_EFFORT.deepseek_v4); default/none are already
-    // short-circuited earlier in this function. The explicit map avoids silently
-    // downgrading future levels (low/medium/auto) to 'high' — unmapped values are
-    // simply omitted so callers fall back to API defaults instead.
+    // Keep the Claude-compatible endpoint aligned with DeepSeek's native effort values.
     if (isDeepSeekV4PlusModel(model)) {
       const deepSeekV4EffortMap = {
+        low: 'low',
         high: 'high',
-        xhigh: 'max'
+        xhigh: 'max',
+        max: 'max'
       } as const
       const effort = deepSeekV4EffortMap[reasoningEffort as keyof typeof deepSeekV4EffortMap]
       if (effort) {
@@ -830,6 +982,7 @@ function mapToGeminiThinkingLevel(reasoningEffort: ReasoningEffortOption): Googl
       return 'medium'
     case 'high':
     case 'xhigh':
+    case 'max':
       return 'high'
     default:
       // Enforce all possible values are handled
@@ -939,8 +1092,9 @@ export function getXAIReasoningParams(
 ): Pick<XaiResponsesProviderOptions, 'reasoningEffort'> {
   const isGrok43 =
     getLowerBaseModelName(model.id).includes('grok-4.3') && !getLowerBaseModelName(model.id).includes('non-reasoning')
+  const isGrok46 = isGrok46Model(model)
 
-  if (!isSupportedReasoningEffortGrokModel(model) && !isGrok43) {
+  if (!isSupportedReasoningEffortGrokModel(model) && !isGrok43 && !isGrok46) {
     return {}
   }
 
@@ -959,6 +1113,18 @@ export function getXAIReasoningParams(
     }
   }
 
+  if (isGrok46) {
+    switch (reasoningEffort) {
+      case 'low':
+      case 'medium':
+      case 'high':
+      case 'xhigh':
+        return { reasoningEffort }
+      default:
+        return {}
+    }
+  }
+
   // Legacy grok models (grok-3-mini, openrouter/grok-4-fast): constrained effort mapping
   switch (reasoningEffort) {
     case 'auto':
@@ -969,6 +1135,7 @@ export function getXAIReasoningParams(
     case 'high':
       return { reasoningEffort }
     case 'xhigh':
+    case 'max':
       return { reasoningEffort: 'high' }
     default:
       return {}
@@ -1005,17 +1172,18 @@ export function getBedrockReasoningParams(
     return {}
   }
 
-  // Claude 4.6 / 4.7 use adaptive thinking + maxReasoningEffort.
-  // Bedrock's maxReasoningEffort enum doesn't yet include 'xhigh', so 4.7 xhigh
+  // Claude 4.6 / Opus 4.7+ use adaptive thinking + maxReasoningEffort.
+  // Bedrock's maxReasoningEffort enum doesn't yet include 'xhigh', so Opus 4.7+ xhigh
   // falls back to 'max' here (matches the 4.6 mapping).
-  if (isClaude46SeriesModel(model) || isClaude47SeriesModel(model)) {
+  if (isClaude46SeriesModel(model) || isSupportAdaptiveThinkingClaudeModel(model)) {
     const effortMap = {
       auto: undefined,
       minimal: 'low',
       low: 'low',
       medium: 'medium',
       high: 'high',
-      xhigh: 'max'
+      xhigh: 'max',
+      max: 'max'
     } as const satisfies Record<
       Exclude<ReasoningEffortOption, 'none' | 'default'>,
       NonNullable<BedrockProviderOptions['reasoningConfig']>['maxReasoningEffort']

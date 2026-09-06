@@ -4,7 +4,11 @@ const os = require('os')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
 const { downloadWithRedirects } = require('./download')
+<<<<<<< HEAD
 const { copyLocalBinaryPackage } = require('./local-binary')
+=======
+const { installFromBundledArchive } = require('./local-binary')
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 // Base URL for downloading bun binaries
 const BUN_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/bun/releases/download'
@@ -158,6 +162,15 @@ async function installBun() {
   console.log(`Using bun version: ${version}`)
 
   const { platform, arch, isMusl, isBaseline } = detectPlatformAndArch()
+  let platformKey = isMusl ? `${platform}-musl-${arch}` : `${platform}-${arch}`
+  if (isBaseline) {
+    platformKey += '-baseline'
+  }
+  const packageName = BUN_PACKAGES[platformKey]
+
+  if (packageName && (await installFromBundledArchive(platformKey, packageName, platform))) {
+    return 0
+  }
 
   console.log(
     `Installing bun ${version} for ${platform}-${arch}${isMusl ? ' (MUSL)' : ''}${isBaseline ? ' (baseline)' : ''}...`

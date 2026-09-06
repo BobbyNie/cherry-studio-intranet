@@ -52,7 +52,7 @@ describe('intranet release workflow', () => {
     const publishJob = workflow.jobs['publish-intranet-release']
 
     expect(workflow.permissions.contents).toBe('write')
-    expect(buildJob.strategy?.matrix.os).toEqual(['macos-latest', 'windows-latest'])
+    expect(buildJob.strategy?.matrix.os).toEqual(['macos-latest', 'windows-2022'])
     expect(publishJob.steps.some((step) => step.uses?.startsWith('ncipollo/release-action'))).toBe(true)
 
     const buildStep = buildJob.steps.find((step) => step.name === 'Build intranet package')
@@ -66,6 +66,12 @@ describe('intranet release workflow', () => {
     expect(buildStep?.run).toContain('rm -rf dist out')
     expect(buildStep?.run).toContain('pnpm package:mac:intranet')
     expect(buildStep?.run).toContain('pnpm package:win:intranet')
+    // The collect step must branch on `macos-latest` (positive), not a hardcoded
+    // `windows-latest` value — otherwise pinning the matrix (e.g. windows-2022)
+    // silently routes Windows builds into the macOS copy_first branch.
+    const collectStep = buildJob.steps.find((step) => step.name === 'Collect release artifacts')
+    expect(collectStep?.run).not.toMatch(/"windows-latest"/)
+    expect(collectStep?.run).toContain('copy_first "*-x64-setup.exe"')
   })
 
   it('runs tests before compiling release packages', () => {
@@ -142,6 +148,13 @@ describe('intranet release workflow', () => {
     expect(buildStep?.env).not.toHaveProperty('CSC_KEY_PASSWORD')
     expect(buildStep?.env).not.toHaveProperty('APPLE_ID')
     expect(buildStep?.env?.CSC_IDENTITY_AUTO_DISCOVERY).toBe('false')
+  })
+
+  it('bundles offline tool binaries during electron-builder beforePack', () => {
+    const beforePack = readFileSync(resolve(root, 'scripts/before-pack.js'), 'utf8')
+    expect(beforePack).toContain('download-rtk-binaries.js')
+    expect(beforePack).toContain('download-intranet-binaries.js')
+    expect(beforePack).toContain('resources/binaries')
   })
 
   it('keeps Windows portable target available for release users', () => {

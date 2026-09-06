@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { isOfflineMode } from './intranet'
 
 /**
@@ -5,17 +6,24 @@ import { isOfflineMode } from './intranet'
  * network allowlist guard decides whether the configured URL is reachable.
  */
 
+=======
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 /**
  * WebLoader (remote URL) status
  */
 export function isWebLoaderEnabled(): boolean {
+<<<<<<< HEAD
   return !isOfflineMode()
+=======
+  return true
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 }
 
 /**
  * SitemapLoader status
  */
 export function isSitemapLoaderEnabled(): boolean {
+<<<<<<< HEAD
   return !isOfflineMode()
 }
 
@@ -24,4 +32,14 @@ export function isSitemapLoaderEnabled(): boolean {
  */
 export function isRemoteLoaderEnabled(): boolean {
   return !isOfflineMode()
+=======
+  return true
+}
+
+/**
+ * Generic check: remote loaders enabled
+ */
+export function isRemoteLoaderEnabled(): boolean {
+  return true
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 }

@@ -123,4 +123,10 @@ describe('SettingsPage', () => {
     expect(locale.offline.chat).not.toHaveProperty('configure_local_model')
     expect(Object.keys(locale.offline.settings).sort()).toEqual(['audit', 'check_update', 'edition_tag'])
   })
+
+  it('has finalized zh-tw intranet allowlist translations', () => {
+    const allowlistTranslations = Object.values(zhTW.settings.intranet.allowlist)
+
+    expect(allowlistTranslations).not.toContainEqual(expect.stringContaining('[to be translated]'))
+  })
 })

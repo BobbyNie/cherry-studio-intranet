@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { isOfflineMode } from './intranet'
 
 /**
@@ -5,17 +6,24 @@ import { isOfflineMode } from './intranet'
  * network allowlist guard decides whether the configured endpoint is reachable.
  */
 
+=======
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 /**
  * SSE transport status
  */
 export function isSseTransportEnabled(): boolean {
+<<<<<<< HEAD
   return !isOfflineMode()
+=======
+  return true
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 }
 
 /**
  * StreamableHTTP transport status
  */
 export function isStreamableHttpTransportEnabled(): boolean {
+<<<<<<< HEAD
   return !isOfflineMode()
 }
 
@@ -24,4 +32,14 @@ export function isStreamableHttpTransportEnabled(): boolean {
  */
 export function isRemoteMcpTransportEnabled(): boolean {
   return !isOfflineMode()
+=======
+  return true
+}
+
+/**
+ * Generic check: remote MCP transports enabled
+ */
+export function isRemoteMcpTransportEnabled(): boolean {
+  return true
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 }

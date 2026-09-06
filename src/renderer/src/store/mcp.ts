@@ -17,6 +17,10 @@
 import { loggerService } from '@logger'
 import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit'
 import { type BuiltinMCPServer, BuiltinMCPServerNames, type MCPConfig, type MCPServer } from '@renderer/types'
+<<<<<<< HEAD
+=======
+import { isMarketplaceDisabled } from '@shared/config/intranet'
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 const logger = loggerService.withContext('Store:MCP')
 const filesystemManualApprovalTools = ['write', 'edit', 'delete'] as const
@@ -246,7 +250,31 @@ const publicBuiltinMCPServers: BuiltinMCPServer[] = [
   }
 ] as const
 
+<<<<<<< HEAD
 export const builtinMCPServers: BuiltinMCPServer[] = publicBuiltinMCPServers
+=======
+const INTRANET_BUILTIN_MCP_NAMES = new Set<string>([
+  BuiltinMCPServerNames.memory,
+  BuiltinMCPServerNames.sequentialThinking,
+  BuiltinMCPServerNames.fetch,
+  BuiltinMCPServerNames.filesystem,
+  BuiltinMCPServerNames.python,
+  BuiltinMCPServerNames.browser
+])
+
+export const builtinMCPServers: BuiltinMCPServer[] = isMarketplaceDisabled()
+  ? publicBuiltinMCPServers
+      .filter((server) => INTRANET_BUILTIN_MCP_NAMES.has(server.name))
+      .map((server) => ({
+        ...server,
+        isActive:
+          server.name === BuiltinMCPServerNames.memory || server.name === BuiltinMCPServerNames.sequentialThinking
+            ? server.isActive
+            : false,
+        reference: undefined
+      }))
+  : publicBuiltinMCPServers
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 /**
  * Utility function to add servers to the MCP store during app initialization

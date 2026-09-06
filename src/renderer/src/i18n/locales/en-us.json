@@ -942,6 +942,8 @@
         "label": "Reasoning effort",
         "low": "Low",
         "low_description": "Low level reasoning",
+        "max": "Max",
+        "max_description": "Maximum reasoning effort",
         "medium": "Medium",
         "medium_description": "Medium level reasoning",
         "minimal": "Minimal",
@@ -1763,6 +1765,7 @@
     "detail": "Error Details",
     "details": "Details",
     "diagnosis": {
+      "abnormal_finish": "Response ended abnormally, please retry or switch model",
       "ai_button": "AI Diagnosis",
       "ai_done": "Diagnosed",
       "ai_loading": "Diagnosing",
@@ -1778,10 +1781,13 @@
       "model_conflict": "Diagnosis model is the same as the failing model",
       "network": "Cannot connect to server, check network or proxy settings",
       "ocr": "OCR engine not initialized, check OCR settings",
+      "output_truncated": "Response reached the maximum length and was truncated",
       "parse": "AI returned an invalid response, please retry or switch model",
       "payload": "Request content too large, please reduce file or text size",
       "proxy": "Proxy or SSL certificate error, check proxy and network settings",
-      "quota": "Account quota exhausted, please recharge or switch provider",
+      "quota": "Account quota exhausted. Contact the provider administrator or switch to another configured provider",
+      "rate_limit": "Too many requests in a short time. Wait a moment and retry, or switch to a model with a higher rate limit",
+      "region": "The configured provider rejected this region. Contact your enterprise administrator or switch to another configured provider",
       "server": "Server error, please retry later",
       "stream": "Response interrupted, check network stability or retry",
       "unknown": "An error occurred",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "Request failed. Please check if the request parameters are correct. If you have changed the model settings, please reset them to the default settings",
       "401": "Authentication failed. Please check if your API key is correct",
+      "402": "Payment required. Contact the provider administrator to check the account allocation, or switch to another configured provider",
       "403": "Access denied. Please check if your account is verified, or contact the service provider for more information",
       "404": "Model not found or request path is incorrect",
       "429": "Too many requests. Please try again later",
@@ -1938,6 +1945,7 @@
       "to_file": "Save as Image"
     },
     "code": "Code",
+    "code_block_progress": "Generating {{language}} · {{lines}} lines · {{characters}} chars",
     "empty_preview": "No content to display",
     "generating": "Generating",
     "preview": "Preview",
@@ -2365,6 +2373,10 @@
         "invalid": "Unable to retrieve valid table data"
       },
       "unknown": "Unknown error",
+      "vision_routing": {
+        "analysis_failed": "Image analysis failed. Check the default vision model and provider configuration, then retry.",
+        "not_configured": "The primary model cannot read images. Configure an enabled vision model in Settings > Models, then retry."
+      },
       "yuque": {
         "export": "Failed to export to Yuque. Please check connection status and configuration according to documentation",
         "no_config": "Yuque Token or Yuque Url is not configured"
@@ -4759,6 +4771,15 @@
         "russian": "Russian"
       }
     },
+    "intranet": {
+      "allowlist": {
+        "description": "When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "Invalid allowlist rule: {{rule}}",
+        "placeholder": "llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "Network allowlist saved",
+        "title": "Intranet network allowlist"
+      }
+    },
     "launch": {
       "onboot": "Start Automatically on Boot",
       "title": "Launch",
@@ -5182,6 +5203,8 @@
       },
       "default_assistant_model": "Default Assistant Model",
       "default_assistant_model_description": "Model used when creating a new assistant, if the assistant is not set, this model will be used",
+      "default_vision_model": "Default Vision Model",
+      "default_vision_model_description": "Analyzes images for assistants whose primary model does not support image input",
       "empty": "No models found",
       "manage": {
         "add_listed": {

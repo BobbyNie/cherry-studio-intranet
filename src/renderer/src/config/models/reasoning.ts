@@ -23,12 +23,13 @@ import {
 import {
   GEMINI_FLASH_MODEL_REGEX,
   isClaude46SeriesModel,
-  isClaude47SeriesModel,
   isGemini3FlashModel,
   isGemini3ProModel,
+  isGemini31FlashImageModel,
   isGemini31FlashLiteModel,
   isGemini31ProModel,
   isKimi25OrNewerModel,
+  isSupportAdaptiveThinkingClaudeModel,
   withModelIdAndNameAsId
 } from './utils'
 import { isTextToImageModel } from './vision'
@@ -65,28 +66,54 @@ export const MODEL_SUPPORTED_REASONING_EFFORT = {
   grok: ['low', 'high'] as const,
   grok4_fast: ['auto'] as const,
   grok_4_3: ['none', 'low', 'medium', 'high'] as const,
+  grok_4_6: ['low', 'medium', 'high', 'xhigh'] as const,
   gemini2_flash: ['low', 'medium', 'high', 'auto'] as const,
   gemini2_pro: ['low', 'medium', 'high', 'auto'] as const,
   // Also Gemini 3.1 Flash(-lite)
   gemini3_flash: ['minimal', 'low', 'medium', 'high'] as const,
   gemini3_pro: ['low', 'high'] as const,
   gemini3_1_pro: ['low', 'medium', 'high'] as const,
+  gemini3_7_flash: ['low', 'medium', 'high'] as const,
+  gemini3_image: ['minimal', 'high'] as const,
   // Google-hosted Gemma 4 documents `minimal` as the closest supported near-off
   // setting for most requests, but does not guarantee thinking is fully disabled.
   // Keep the formal UI options aligned with the API guarantee and omit `none`.
   gemma4_hosted: ['minimal', 'high'] as const,
   qwen: ['low', 'medium', 'high'] as const,
   qwen_thinking: ['low', 'medium', 'high'] as const,
+  qwen3_8_large: ['low', 'medium', 'xhigh'] as const,
+  qwen3_8_hybrid: ['none', 'low', 'medium', 'xhigh'] as const,
+  qwen3_8_flash: ['auto'] as const,
+  qwen3_8_max_preview: ['low', 'medium', 'xhigh'] as const,
+  qwen3_8_openrouter_max: ['minimal', 'low', 'medium', 'high', 'xhigh'] as const,
   doubao: ['auto', 'high'] as const,
   doubao_no_auto: ['high'] as const,
   doubao_after_251015: ['minimal', 'low', 'medium', 'high'] as const,
+  minimax_m3: ['auto'] as const,
   hunyuan: ['auto'] as const,
   mimo: ['auto'] as const,
   zhipu: ['auto'] as const,
+  zhipu_glm_5_2: ['high', 'max'] as const,
+  zhipu_glm_5_2_openrouter: ['high', 'xhigh'] as const,
+  zhipu_glm_5_3: ['low', 'high', 'max'] as const,
   perplexity: ['low', 'medium', 'high'] as const,
   deepseek_hybrid: ['auto'] as const,
-  deepseek_v4: ['high', 'xhigh'] as const,
+  deepseek_v4: ['low', 'high', 'max'] as const,
   kimi_k2_5: ['none', 'auto'] as const,
+  kimi_k3: ['low', 'high', 'max'] as const,
+  kimi_k3_openrouter: ['low', 'high', 'max'] as const,
+  kimi_k3_dashscope: ['max'] as const,
+  kimi_k3_fast: ['low', 'high', 'max'] as const,
+  kimi_always_think: ['auto'] as const,
+  longcat: ['auto'] as const,
+  solar_pro2: ['minimal', 'high'] as const,
+  solar_pro3: ['low', 'medium', 'high'] as const,
+  solar_pro4: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const,
+  muse_glimmer: ['none', 'minimal', 'low', 'medium', 'high', 'max'] as const,
+  muse_glimmer_openrouter: ['low', 'medium', 'high', 'xhigh'] as const,
+  muse_spark_openrouter: ['minimal', 'low', 'medium', 'high', 'xhigh'] as const,
+  namazu_openrouter: ['none', 'high'] as const,
+  zhipu_glm_latest_openrouter: ['low', 'high', 'max'] as const,
   // Claude 3.7, 4.0, 4.5 reasoning models
   claude: ['low', 'medium', 'high'] as const,
   // Claude 4.6 supports low, medium, high, xhigh (xhigh is mapped to max in API)
@@ -112,40 +139,118 @@ export const MODEL_SUPPORTED_OPTIONS: ThinkingOptionConfig = {
   grok: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.grok] as const,
   grok4_fast: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.grok4_fast] as const,
   grok_4_3: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.grok_4_3] as const,
+  grok_4_6: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.grok_4_6] as const,
   gemini2_flash: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini2_flash] as const,
   gemini2_pro: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini2_pro] as const,
   gemini3_flash: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini3_flash] as const,
   gemini3_pro: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini3_pro] as const,
   gemini3_1_pro: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini3_1_pro] as const,
+  gemini3_7_flash: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini3_7_flash] as const,
+  gemini3_image: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemini3_image] as const,
   gemma4_hosted: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.gemma4_hosted] as const,
   qwen: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen] as const,
   qwen_thinking: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen_thinking] as const,
+  qwen3_8_large: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen3_8_large] as const,
+  qwen3_8_hybrid: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen3_8_hybrid] as const,
+  qwen3_8_flash: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen3_8_flash] as const,
+  qwen3_8_max_preview: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen3_8_max_preview] as const,
+  qwen3_8_openrouter_max: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.qwen3_8_openrouter_max] as const,
   doubao: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.doubao] as const,
   doubao_no_auto: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.doubao_no_auto] as const,
   doubao_after_251015: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.doubao_after_251015] as const,
+  minimax_m3: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.minimax_m3] as const,
   mimo: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.mimo] as const,
   hunyuan: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.hunyuan] as const,
   zhipu: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.zhipu] as const,
+  zhipu_glm_5_2: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.zhipu_glm_5_2] as const,
+  zhipu_glm_5_2_openrouter: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.zhipu_glm_5_2_openrouter] as const,
+  zhipu_glm_5_3: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.zhipu_glm_5_3] as const,
   perplexity: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.perplexity] as const,
   deepseek_hybrid: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.deepseek_hybrid] as const,
   deepseek_v4: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.deepseek_v4] as const,
   kimi_k2_5: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.kimi_k2_5] as const,
+  kimi_k3: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.kimi_k3] as const,
+  kimi_k3_openrouter: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.kimi_k3_openrouter] as const,
+  kimi_k3_dashscope: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.kimi_k3_dashscope] as const,
+  kimi_k3_fast: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.kimi_k3_fast] as const,
+  kimi_always_think: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.kimi_always_think] as const,
+  longcat: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.longcat] as const,
+  solar_pro2: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.solar_pro2] as const,
+  solar_pro3: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.solar_pro3] as const,
+  solar_pro4: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.solar_pro4] as const,
+  muse_glimmer: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.muse_glimmer] as const,
+  muse_glimmer_openrouter: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.muse_glimmer_openrouter] as const,
+  muse_spark_openrouter: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.muse_spark_openrouter] as const,
+  namazu_openrouter: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.namazu_openrouter] as const,
+  zhipu_glm_latest_openrouter: ['default', ...MODEL_SUPPORTED_REASONING_EFFORT.zhipu_glm_latest_openrouter] as const,
   claude: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.claude] as const,
   claude46: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.claude46] as const,
   mistral: ['default', 'none', ...MODEL_SUPPORTED_REASONING_EFFORT.mistral] as const
 } as const
 
+function getCurrentCatalogThinkingType(model: Model): ThinkingModelType | undefined {
+  const modelId = getLowerBaseModelName(model.id)
+  const providerId = model.provider?.toLowerCase()
+
+  if (/^gemini-3[.-]7-flash(?:-|$)/.test(modelId)) return 'gemini3_7_flash'
+  if (/^grok-4[.-]6(?:-|$)/.test(modelId)) return 'grok_4_6'
+
+  if (/^qwen3[.-]8-2[.-]4t-a95b(?:-|$)/.test(modelId)) return 'qwen3_8_large'
+  if (/^qwen3[.-]8-27b(?:-|$)/.test(modelId)) {
+    return providerId === 'openrouter' ? 'qwen3_8_large' : 'qwen3_8_hybrid'
+  }
+  if (/^qwen3[.-]8-flash(?:-|$)/.test(modelId) && providerId !== 'openrouter') return 'qwen3_8_flash'
+  if (/^qwen3[.-]8-max-preview(?:-|$)/.test(modelId) && providerId === 'dashscope') {
+    return 'qwen3_8_max_preview'
+  }
+  if (/^qwen3[.-]8-max(?!-preview)(?:-|$)/.test(modelId)) {
+    return providerId === 'openrouter' ? 'qwen3_8_openrouter_max' : 'qwen3_8_hybrid'
+  }
+
+  if (/^muse-glimmer(?:-|$)/.test(modelId)) {
+    if (providerId === 'nvidia') return undefined
+    return providerId === 'openrouter' ? 'muse_glimmer_openrouter' : 'muse_glimmer'
+  }
+  if (/^muse-spark(?:-|$)/.test(modelId) && ['openrouter', 'opencode'].includes(providerId)) {
+    return 'muse_spark_openrouter'
+  }
+  if (/^(?:sakana-)?namazu(?:-|$)/.test(modelId) && providerId === 'openrouter') return 'namazu_openrouter'
+  if (modelId === 'glm-latest' && providerId === 'openrouter') return 'zhipu_glm_latest_openrouter'
+
+  return undefined
+}
+
+function isCurrentCatalogFixedReasoningModel(model: Model): boolean {
+  const modelId = getLowerBaseModelName(model.id)
+  const providerId = model.provider?.toLowerCase()
+
+  return (
+    /^lfm-2[.-]5-2[.-]6b(?:-|$)/.test(modelId) ||
+    (/^qwen3[.-]8-flash(?:-|$)/.test(modelId) && providerId === 'openrouter') ||
+    (/^qwen3[.-]8-max-preview(?:-|$)/.test(modelId) && providerId !== 'dashscope') ||
+    (/^muse-spark(?:-|$)/.test(modelId) && !['openrouter', 'opencode'].includes(providerId)) ||
+    (/^(?:sakana-)?namazu(?:-|$)/.test(modelId) && providerId !== 'openrouter') ||
+    (modelId === 'glm-latest' && providerId !== 'openrouter')
+  )
+}
+
 // TODO: add ut
 const _getThinkModelType = (model: Model): ThinkingModelType => {
   let thinkingModelType: ThinkingModelType = 'default'
   const modelId = getLowerBaseModelName(model.id)
-  if (isClaudeReasoningModel(model)) {
+  const solarProType = getSolarProReasoningType(model)
+  const currentCatalogType = getCurrentCatalogThinkingType(model)
+  if (currentCatalogType) {
+    thinkingModelType = currentCatalogType
+  } else if (isClaudeReasoningModel(model)) {
     thinkingModelType = 'claude'
-    // 4.7 reuses the 4.6 effort list (low/medium/high/xhigh); provider-level
-    // mapping still distinguishes them (4.7 sends native 'xhigh', 4.6 sends 'max').
-    if (isClaude46SeriesModel(model) || isClaude47SeriesModel(model)) {
+    // Opus 4.7+ reuses the 4.6 effort list (low/medium/high/xhigh); provider-level
+    // mapping still distinguishes them (Opus 4.7+ sends native 'xhigh', 4.6 sends 'max').
+    if (isClaude46SeriesModel(model) || isSupportAdaptiveThinkingClaudeModel(model)) {
       thinkingModelType = 'claude46'
     }
+  } else if (solarProType) {
+    thinkingModelType = solarProType
   } else if (isOpenAIDeepResearchModel(model)) {
     return 'openai_deep_research'
   } else if (isGPT5FamilyModel(model)) {
@@ -188,6 +293,8 @@ const _getThinkModelType = (model: Model): ThinkingModelType => {
   } else if (isSupportedThinkingTokenGeminiModel(model)) {
     if (isHostedGemma4ThinkingModel(model)) {
       thinkingModelType = 'gemma4_hosted'
+    } else if (isGemini31FlashImageModel(model)) {
+      thinkingModelType = 'gemini3_image'
     } else if (isGemini3FlashModel(model) || isGemini31FlashLiteModel(model)) {
       thinkingModelType = 'gemini3_flash'
     } else if (isGemini3ProModel(model)) {
@@ -214,12 +321,20 @@ const _getThinkModelType = (model: Model): ThinkingModelType => {
     } else {
       thinkingModelType = 'doubao_no_auto'
     }
+  } else if (isMiniMaxM3Model(model)) {
+    thinkingModelType = 'minimax_m3'
   } else if (isSupportedThinkingTokenHunyuanModel(model)) {
     thinkingModelType = 'hunyuan'
   } else if (isSupportedReasoningEffortPerplexityModel(model)) {
     thinkingModelType = 'perplexity'
   } else if (isSupportedThinkingTokenZhipuModel(model)) {
-    thinkingModelType = 'zhipu'
+    if (isGLM53Model(model)) {
+      thinkingModelType = 'zhipu_glm_5_3'
+    } else if (isGLM52Model(model)) {
+      thinkingModelType = model.provider === 'openrouter' ? 'zhipu_glm_5_2_openrouter' : 'zhipu_glm_5_2'
+    } else {
+      thinkingModelType = 'zhipu'
+    }
   } else if (isDeepSeekV4PlusModel(model)) {
     thinkingModelType = 'deepseek_v4'
   } else if (isDeepSeekHybridInferenceModel(model)) {
@@ -227,7 +342,20 @@ const _getThinkModelType = (model: Model): ThinkingModelType => {
   } else if (isSupportedThinkingTokenMiMoModel(model)) {
     thinkingModelType = 'mimo'
   } else if (isSupportedThinkingTokenKimiModel(model)) {
-    thinkingModelType = 'kimi_k2_5'
+    if (isKimiK3FastModel(model)) {
+      thinkingModelType = 'kimi_k3_fast'
+    } else if (isKimiK3Model(model)) {
+      thinkingModelType =
+        model.provider === 'openrouter'
+          ? 'kimi_k3_openrouter'
+          : model.provider === 'dashscope'
+            ? 'kimi_k3_dashscope'
+            : 'kimi_k3'
+    } else {
+      thinkingModelType = isKimiK27CodeModel(model) ? 'kimi_always_think' : 'kimi_k2_5'
+    }
+  } else if (isSupportedThinkingTokenLongCatModel(model)) {
+    thinkingModelType = 'longcat'
   } else if (isMistralReasoningModel(model)) {
     thinkingModelType = 'mistral'
   }
@@ -317,8 +445,10 @@ function _isSupportedThinkingTokenModel(model: Model): boolean {
     isSupportedThinkingTokenDoubaoModel(model) ||
     isSupportedThinkingTokenHunyuanModel(model) ||
     isSupportedThinkingTokenZhipuModel(model) ||
+    isMiniMaxM3Model(model) ||
     isSupportedThinkingTokenMiMoModel(model) ||
     isSupportedThinkingTokenKimiModel(model) ||
+    isSupportedThinkingTokenLongCatModel(model) ||
     isSupportedThinkingTokenDeepSeekModel(model)
   )
 }
@@ -338,11 +468,35 @@ export function isSupportedReasoningEffortModel(model?: Model): boolean {
   }
 
   return (
+    !!getCurrentCatalogThinkingType(model) ||
     isSupportedReasoningEffortOpenAIModel(model) ||
     isSupportedReasoningEffortGrokModel(model) ||
     isSupportedReasoningEffortPerplexityModel(model) ||
+    isSolarProReasoningEffortModel(model) ||
     isMistralReasoningModel(model)
   )
+}
+
+function getSolarProReasoningType(model: Model): 'solar_pro2' | 'solar_pro3' | 'solar_pro4' | undefined {
+  const version = getLowerBaseModelName(model.id).match(/^solar-pro([234])(?:[-_.]|$)/)?.[1]
+  return version ? (`solar_pro${version}` as 'solar_pro2' | 'solar_pro3' | 'solar_pro4') : undefined
+}
+
+function isSolarProReasoningEffortModel(model?: Model): boolean {
+  if (!model) return false
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, (candidate) => !!getSolarProReasoningType(candidate))
+  return idResult || nameResult
+}
+
+function isProviderRegistryReasoningFamily(model: Model): boolean {
+  const matches = (candidate: Model) => {
+    const modelId = getLowerBaseModelName(candidate.id)
+    return /^(?:(?:llama-3-1-)?nemotron-(?:\d+(?:-\d+)*-)?(?:nano|super|ultra|lightning)|muse-glimmer|solar-pro-?[2-9])/.test(
+      modelId
+    )
+  }
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, matches)
+  return idResult || nameResult
 }
 
 export function isSupportedReasoningEffortGrokModel(model?: Model): boolean {
@@ -350,7 +504,7 @@ export function isSupportedReasoningEffortGrokModel(model?: Model): boolean {
     return false
   }
 
-  if (isGrok43Model(model)) {
+  if (isGrok43Model(model) || isGrok46Model(model)) {
     return true
   }
 
@@ -410,6 +564,13 @@ export function isGrok43Model(model?: Model): boolean {
   return modelId.includes('grok-4.3') && !modelId.includes('non-reasoning')
 }
 
+export function isGrok46Model(model?: Model): boolean {
+  if (!model) return false
+  const matches = (candidate: Model) => /^grok-4[.-]6(?:-|$)/.test(getLowerBaseModelName(candidate.id))
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, matches)
+  return idResult || nameResult
+}
+
 export function isGrokReasoningModel(model?: Model): boolean {
   if (!model) {
     return false
@@ -461,6 +622,9 @@ export const isSupportedThinkingTokenGeminiModel = (model: Model): boolean => {
   if (isHostedGemma4ThinkingModel(model)) {
     return true
   }
+  if (isGemini31FlashImageModel(model)) {
+    return true
+  }
 
   if (GEMINI_THINKING_MODEL_REGEX.test(modelId)) {
     // ref: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/3-pro-image
@@ -509,6 +673,10 @@ export function isSupportedThinkingTokenQwenModel(model?: Model): boolean {
 
   const modelId = getLowerBaseModelName(model.id, '/')
 
+  if (isCurrentCatalogFixedReasoningModel(model) && /^qwen3[.-]8-/.test(modelId)) {
+    return false
+  }
+
   // Filter specific qwen3 variants
   if (
     ['coder', 'asr', 'tts', 'reranker', 'embedding', 'instruct', 'thinking'].some((field) => modelId.includes(field))
@@ -544,6 +712,12 @@ export function isSupportedThinkingTokenQwenModel(model?: Model): boolean {
   )
 }
 
+export function isQwen38EffortModel(model?: Model): boolean {
+  if (!model) return false
+  const type = getCurrentCatalogThinkingType(model)
+  return type === 'qwen3_8_large' || type === 'qwen3_8_hybrid' || type === 'qwen3_8_max_preview'
+}
+
 /** 是否为不支持思考控制的Qwen推理模型 */
 export function isQwenAlwaysThinkModel(model?: Model): boolean {
   if (!model) {
@@ -559,7 +733,7 @@ export function isQwenAlwaysThinkModel(model?: Model): boolean {
 
 // Doubao 支持思考模式的模型正则
 export const DOUBAO_THINKING_MODEL_REGEX =
-  /doubao-(?:1[.-]5-thinking-vision-pro|1[.-]5-thinking-pro-m|seed-1[.-][68](?:-flash)?(?!-(?:thinking)(?:-|$))|seed-code(?:-preview)?(?:-\d+)?|seed-2[.-]0(?:-[\w-]+)?)(?:-[\w-]+)*/i
+  /doubao-(?:1[.-]5-thinking-vision-pro|1[.-]5-thinking-pro-m|seed-1[.-][68](?:-flash)?(?!-(?:thinking)(?:-|$))|seed-code(?:-preview)?(?:-\d+)?|seed-2[.-]0(?:-[\w-]+)?|seed-2[.-]1(?:-[\w-]+)?|seed-evolving)(?:-[\w-]+)*/i
 
 // 支持 auto 的 Doubao 模型 doubao-seed-1.6-xxx doubao-seed-1-6-xxx  doubao-1-5-thinking-pro-m-xxx
 // Auto thinking is no longer supported after version 251015, see https://console.volcengine.com/ark/region:ark+cn-beijing/model/detail?Id=doubao-seed-1-6
@@ -572,7 +746,7 @@ export function isDoubaoThinkingAutoModel(model: Model): boolean {
 }
 
 export function isDoubaoSeedAfter251015(model: Model): boolean {
-  const pattern = /doubao-seed-1-6-(?:lite-)?251015|doubao-seed-2[.-]0/i
+  const pattern = /doubao-seed-1-6-(?:lite-)?251015|doubao-seed-2[.-]0|doubao-seed-2[.-]1|doubao-seed-evolving/i
   return pattern.test(model.id) || pattern.test(model.name)
 }
 
@@ -617,7 +791,8 @@ export function isClaudeReasoningModel(model?: Model): boolean {
     modelId.includes('claude-3.7-sonnet') ||
     modelId.includes('claude-sonnet-4') ||
     modelId.includes('claude-opus-4') ||
-    modelId.includes('claude-haiku-4')
+    modelId.includes('claude-haiku-4') ||
+    modelId.includes('claude-fable')
   )
 }
 
@@ -672,6 +847,22 @@ export const isSupportedThinkingTokenZhipuModel = (model: Model): boolean => {
   return /glm-?5|glm-4\.[567]/.test(modelId)
 }
 
+export const isGLM53Model = (model: Model): boolean => {
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, (candidate) => {
+    const modelId = getLowerBaseModelName(candidate.id, '/')
+    return /^glm-5[.-]3(?:-|$)/i.test(modelId)
+  })
+  return idResult || nameResult
+}
+
+export const isGLM52Model = (model: Model): boolean => {
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, (candidate) => {
+    const modelId = getLowerBaseModelName(candidate.id, '/')
+    return /^glm-5[.-]2(?:[-:]|$)/i.test(modelId)
+  })
+  return idResult || nameResult
+}
+
 export const isSupportedThinkingTokenMiMoModel = (model: Model): boolean => {
   const modelId = getLowerBaseModelName(model.id, '/')
   return ['mimo-v2-flash', 'mimo-v2-pro', 'mimo-v2-omni', 'mimo-v2.5', 'mimo-v2.5-pro'].includes(modelId)
@@ -696,8 +887,59 @@ export const isSupportedThinkingTokenKimiModel = (model: Model): boolean => {
 }
 
 /**
+ * Detects whether the model is the Kimi K2.7 Code variant.
+ *
+ * Per Moonshot's official docs, `kimi-k2.7-code` is an "always-think" model:
+ *   - Only accepts `{ type: 'enabled' }` for the `thinking` parameter
+ *   - Rejects `{ type: 'disabled' }` and any other value with an API error
+ *   - Does not accept `budget_tokens` (the default `{"type": "enabled"}` shape only)
+ *
+ * Use this helper to short-circuit thinking-control branches that would otherwise
+ * emit unsupported parameters for this model. Mirrors the `isMiniMaxM3Model` /
+ * `isQwenAlwaysThinkModel` pattern (always-think variants get their own predicate
+ * rather than ad-hoc string checks at every call site).
+ */
+const _isKimiK27CodeModel = (model: Model): boolean => {
+  const modelId = getLowerBaseModelName(model.id, '/')
+  // Anchored: matches `kimi-k2.7-code` with optional trailing `-<segment>`.
+  // Avoids accidentally matching future variants like `kimi-k2.7-coder` or
+  // model ids that embed `k2.7-code` as a substring (e.g. `k2.7-coder-preview`).
+  return /^kimi-k2\.7-code(?:-[\w-]+)?$/i.test(modelId)
+}
+
+export const isKimiK27CodeModel = (model?: Model): boolean => {
+  if (!model) return false
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, _isKimiK27CodeModel)
+  return idResult || nameResult
+}
+
+export const isKimiK3Model = (model?: Model): boolean => {
+  if (!model) return false
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, (candidate) => {
+    const modelId = getLowerBaseModelName(candidate.id, '/')
+    return /^kimi-k3(?:[-:]|$)/i.test(modelId)
+  })
+  return idResult || nameResult
+}
+
+export const isKimiK3FastModel = (model?: Model): boolean => {
+  if (!model) return false
+  const { idResult, nameResult } = withModelIdAndNameAsId(model, (candidate) => {
+    const modelId = getLowerBaseModelName(candidate.id, '/')
+    return /^kimi-k3-fast(?:[-:]|$)/i.test(modelId)
+  })
+  return idResult || nameResult
+}
+
+export const isSupportedThinkingTokenLongCatModel = (model?: Model): boolean => {
+  if (!model) return false
+  const modelId = getLowerBaseModelName(model.id, '/')
+  return /^longcat-2\.0(?:-[\w-]+)?$/i.test(modelId)
+}
+
+/**
  * Matches DeepSeek V4+ models (e.g., deepseek-v4-flash, deepseek-v4-pro, deepseek-v5-xxx).
- * V4+ models default to thinking enabled and support reasoning_effort: "high" | "max".
+ * V4+ models default to thinking enabled and support reasoning_effort: "low" | "high" | "max".
  */
 export const isDeepSeekV4PlusModel = (model: Model) => {
   const { idResult, nameResult } = withModelIdAndNameAsId(model, (model) => {
@@ -762,7 +1004,19 @@ export const isMiniMaxReasoningModel = (model?: Model): boolean => {
     return false
   }
   const modelId = getLowerBaseModelName(model.id, '/')
-  return (['minimax-m1', 'minimax-m2', 'minimax-m2.1'] as const).some((id) => modelId.includes(id))
+  return (['minimax-m1', 'minimax-m2', 'minimax-m2.1', 'minimax-m2.5', 'minimax-m2.7', 'minimax-m3'] as const).some(
+    (id) => modelId.includes(id)
+  )
+}
+
+// MiniMax-M3 only accepts thinking.type 'adaptive' | 'disabled' on the OpenAI-compatible
+// endpoint, unlike M1/M2.x which use 'enabled'.
+export const isMiniMaxM3Model = (model?: Model): boolean => {
+  if (!model) {
+    return false
+  }
+  const modelId = getLowerBaseModelName(model.id, '/')
+  return /^minimax-m3(?:\.\d+)?(?:-[\w-]+)?$/i.test(modelId)
 }
 
 export const isBaichuanReasoningModel = (model?: Model): boolean => {
@@ -837,6 +1091,9 @@ export function isReasoningModel(model?: Model): boolean {
     isMiMoReasoningModel(model) ||
     isBaichuanReasoningModel(model) ||
     isKimiReasoningModel(model) ||
+    isSupportedThinkingTokenLongCatModel(model) ||
+    isProviderRegistryReasoningFamily(model) ||
+    isCurrentCatalogFixedReasoningModel(model) ||
     modelId.includes('magistral') ||
     modelId.includes('mistral-small-2603') ||
     modelId.includes('pangu-pro-moe') ||
@@ -877,9 +1134,9 @@ const THINKING_TOKEN_MAP: Record<string, { min: number; max: number }> = {
   'qwen3-(?!max).*$': { min: 1024, max: 38_912 },
 
   // Claude models (supports AWS Bedrock 'anthropic.' prefix, GCP Vertex AI '@' separator, and '-v1:0' suffix)
-  // Opus 4.7 supports 128K output tokens. Uses adaptive thinking (no budgetTokens sent),
+  // Opus 4.7+ supports 128K output tokens. Uses adaptive thinking (no budgetTokens sent),
   // but the limit entry is still consulted for the Poe / openai-compatible fallback paths.
-  '(?:anthropic\\.)?claude-opus-4[.-]7(?:[@\\-:][\\w\\-:]+)?$': { min: 1024, max: 128_000 },
+  '(?:anthropic\\.)?claude-opus-4[.-](?:[7-9]|[1-9]\\d)(?:[@\\-:][\\w\\-:]+)?$': { min: 1024, max: 128_000 },
   // Opus 4.6 supports 128K output tokens
   '(?:anthropic\\.)?claude-opus-4[.-]6(?:[@\\-:][\\w\\-:]+)?$': { min: 1024, max: 128_000 },
   // Sonnet 4.6, and Haiku is assumed to be also 64k

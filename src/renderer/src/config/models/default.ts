@@ -334,6 +334,18 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
   ],
   gemini: [
     {
+      id: 'gemini-3.7-flash',
+      provider: 'gemini',
+      name: 'Gemini 3.7 Flash',
+      group: 'Gemini 3'
+    },
+    {
+      id: 'gemini-3.1-flash-image',
+      provider: 'gemini',
+      name: 'Nano Banana 2',
+      group: 'Gemini 3'
+    },
+    {
       id: 'gemini-2.5-flash',
       provider: 'gemini',
       name: 'Gemini 2.5 Flash',
@@ -409,6 +421,13 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
     }
   ],
   deepseek: [
+    {
+      id: 'deepseek-v4-flash-vision-exp',
+      provider: 'deepseek',
+      name: 'deepseek-v4-flash-vision-exp',
+      group: 'DeepSeek',
+      capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }]
+    },
     {
       id: 'deepseek-v4-flash',
       provider: 'deepseek',
@@ -622,6 +641,25 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
   ],
   zhipu: [
     {
+      id: 'glm-5.2',
+      provider: 'zhipu',
+      name: 'GLM-5.2',
+      group: 'GLM-5.2'
+    },
+    {
+      id: 'glm-5.2-fast',
+      provider: 'zhipu',
+      name: 'GLM-5.2-Fast',
+      group: 'GLM-5.2'
+    },
+    {
+      id: 'glm-5.3-flash',
+      provider: 'zhipu',
+      name: 'GLM-5.3-Flash',
+      group: 'GLM-5.3',
+      capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }]
+    },
+    {
       id: 'glm-5',
       provider: 'zhipu',
       name: 'GLM-5',
@@ -708,25 +746,12 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
   ],
   moonshot: [
     {
-      id: 'moonshot-v1-auto',
-      name: 'moonshot-v1-auto',
+      id: 'kimi-k3',
       provider: 'moonshot',
-      group: 'moonshot-v1',
+      name: 'Kimi K3',
+      group: 'Kimi K3',
       owned_by: 'moonshot',
-      capabilities: [{ type: 'text' }, { type: 'function_calling' }]
-    },
-    {
-      id: 'kimi-k2-0711-preview',
-      name: 'kimi-k2-0711-preview',
-      provider: 'moonshot',
-      group: 'kimi-k2',
-      owned_by: 'moonshot',
-      capabilities: [{ type: 'text' }, { type: 'function_calling' }],
-      pricing: {
-        input_per_million_tokens: 0.6,
-        output_per_million_tokens: 2.5,
-        currencySymbol: 'USD'
-      }
+      capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }]
     },
     {
       id: 'kimi-k2.5',
@@ -745,36 +770,12 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
       capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }]
     },
     {
-      id: 'kimi-k2-0905-Preview',
+      id: 'kimi-k2.7-code',
       provider: 'moonshot',
-      name: 'Kimi K2 0905 Preview',
-      group: 'Kimi K2',
+      name: 'Kimi K2.7 Code',
+      group: 'Kimi K2.7',
       owned_by: 'moonshot',
-      capabilities: [{ type: 'text' }, { type: 'function_calling' }]
-    },
-    {
-      id: 'kimi-k2-turbo-preview',
-      provider: 'moonshot',
-      name: 'Kimi K2 Turbo Preview',
-      group: 'Kimi K2',
-      owned_by: 'moonshot',
-      capabilities: [{ type: 'text' }, { type: 'function_calling' }]
-    },
-    {
-      id: 'kimi-k2-thinking',
-      provider: 'moonshot',
-      name: 'Kimi K2 Thinking',
-      group: 'Kimi K2 Thinking',
-      owned_by: 'moonshot',
-      capabilities: [{ type: 'text' }, { type: 'function_calling' }]
-    },
-    {
-      id: 'kimi-k2-thinking-turbo',
-      provider: 'moonshot',
-      name: 'Kimi K2 Thinking Turbo',
-      group: 'Kimi K2 Thinking',
-      owned_by: 'moonshot',
-      capabilities: [{ type: 'text' }, { type: 'function_calling' }]
+      capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }]
     }
   ],
   baichuan: [
@@ -866,6 +867,10 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
     }
   ],
   dashscope: [
+    { id: 'qwen-image-3.0', name: 'Qwen Image 3.0', provider: 'dashscope', group: 'Qwen Image' },
+    { id: 'qwen-image-3.0-pro', name: 'Qwen Image 3.0 Pro', provider: 'dashscope', group: 'Qwen Image' },
+    { id: 'qwen3.8-max', name: 'Qwen3.8 Max', provider: 'dashscope', group: 'Qwen' },
+    { id: 'qwen3.8-max-preview', name: 'Qwen3.8 Max Preview', provider: 'dashscope', group: 'Qwen' },
     { id: 'qwen3.5-plus', name: 'Qwen3.5-Plus', provider: 'dashscope', group: 'Qwen' },
     { id: 'qwen3.5-flash', name: 'Qwen3.5-Flash', provider: 'dashscope', group: 'Qwen' },
     { id: 'qwen3-max', name: 'Qwen3-Max', provider: 'dashscope', group: 'Qwen' },
@@ -1044,10 +1049,34 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
       provider: 'doubao',
       name: 'Doubao-Seed-2.0-Mini',
       group: 'Doubao-Seed-2.0'
+    },
+    {
+      id: 'doubao-seed-2-1-pro-260628',
+      provider: 'doubao',
+      name: 'Doubao-Seed-2.1-Pro',
+      group: 'Doubao-Seed-2.1'
+    },
+    {
+      id: 'doubao-seed-2-1-turbo-260628',
+      provider: 'doubao',
+      name: 'Doubao-Seed-2.1-Turbo',
+      group: 'Doubao-Seed-2.1'
+    },
+    {
+      id: 'doubao-seed-evolving',
+      provider: 'doubao',
+      name: 'Doubao-Seed-Evolving',
+      group: 'Doubao-Seed-Evolving'
     }
   ],
   minimax: [
     {
+      id: 'MiniMax-M3',
+      provider: 'minimax',
+      name: 'MiniMax-M3',
+      group: 'M3'
+    },
+    {
       id: 'MiniMax-M2.7',
       provider: 'minimax',
       name: 'MiniMax-M2.7',
@@ -1058,52 +1087,16 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
       provider: 'minimax',
       name: 'MiniMax-M2.7-highspeed',
       group: 'M2.7'
-    },
-    {
-      id: 'MiniMax-M2.5',
-      provider: 'minimax',
-      name: 'MiniMax-M2.5',
-      group: 'M2.5'
-    },
-    {
-      id: 'MiniMax-M2.5-highspeed',
-      provider: 'minimax',
-      name: 'MiniMax-M2.5-highspeed',
-      group: 'M2.5'
-    },
-    {
-      id: 'MiniMax-M2.5-lightning',
-      provider: 'minimax',
-      name: 'MiniMax-M2.5-lightning',
-      group: 'M2.5'
-    },
-    {
-      id: 'MiniMax-M2.1',
-      provider: 'minimax',
-      name: 'MiniMax-M2.1',
-      group: 'M2.1'
-    },
-    {
-      id: 'MiniMax-M2.1-lightning',
-      provider: 'minimax',
-      name: 'MiniMax-M2.1-lightning',
-      group: 'M2.1'
-    },
-    {
-      id: 'MiniMax-M2',
-      provider: 'minimax',
-      name: 'MiniMax-M2',
-      group: 'M2'
-    },
-    {
-      id: 'M2-her',
-      provider: 'minimax',
-      name: 'M2-her',
-      group: 'M2'
     }
   ],
   'minimax-global': [
     {
+      id: 'MiniMax-M3',
+      provider: 'minimax-global',
+      name: 'MiniMax-M3',
+      group: 'M3'
+    },
+    {
       id: 'MiniMax-M2.7',
       provider: 'minimax-global',
       name: 'MiniMax-M2.7',
@@ -1114,48 +1107,6 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
       provider: 'minimax-global',
       name: 'MiniMax-M2.7-highspeed',
       group: 'M2.7'
-    },
-    {
-      id: 'MiniMax-M2.5',
-      provider: 'minimax-global',
-      name: 'MiniMax-M2.5',
-      group: 'M2.5'
-    },
-    {
-      id: 'MiniMax-M2.5-highspeed',
-      provider: 'minimax-global',
-      name: 'MiniMax-M2.5-highspeed',
-      group: 'M2.5'
-    },
-    {
-      id: 'MiniMax-M2.5-lightning',
-      provider: 'minimax-global',
-      name: 'MiniMax-M2.5-lightning',
-      group: 'M2.5'
-    },
-    {
-      id: 'MiniMax-M2.1',
-      provider: 'minimax-global',
-      name: 'MiniMax-M2.1',
-      group: 'M2.1'
-    },
-    {
-      id: 'MiniMax-M2.1-lightning',
-      provider: 'minimax-global',
-      name: 'MiniMax-M2.1-lightning',
-      group: 'M2.1'
-    },
-    {
-      id: 'MiniMax-M2',
-      provider: 'minimax-global',
-      name: 'MiniMax-M2',
-      group: 'M2'
-    },
-    {
-      id: 'M2-her',
-      provider: 'minimax-global',
-      name: 'M2-her',
-      group: 'M2'
     }
   ],
   hyperbolic: [
@@ -1185,6 +1136,12 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
     }
   ],
   grok: [
+    {
+      id: 'grok-4.6',
+      provider: 'grok',
+      name: 'Grok 4.6',
+      group: 'Grok'
+    },
     {
       id: 'grok-4.3',
       provider: 'grok',
@@ -2012,16 +1969,11 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
   ],
   longcat: [
     {
-      id: 'LongCat-Flash-Chat',
-      name: 'LongCat Flash Chat',
+      id: 'LongCat-2.0',
+      name: 'LongCat 2.0',
       provider: 'longcat',
-      group: 'LongCat'
-    },
-    {
-      id: 'LongCat-Flash-Thinking',
-      name: 'LongCat Flash Thinking',
-      provider: 'longcat',
-      group: 'LongCat'
+      group: 'LongCat',
+      capabilities: [{ type: 'text' }, { type: 'reasoning' }, { type: 'function_calling' }]
     }
   ],
   huggingface: [],
@@ -2073,6 +2025,25 @@ export const SYSTEM_MODELS: Record<SystemProviderId | 'defaultModel', Model[]> =
     }
   ],
   zai: [
+    {
+      id: 'glm-5.2',
+      provider: 'zai',
+      name: 'GLM-5.2',
+      group: 'GLM-5.2'
+    },
+    {
+      id: 'glm-5.2-fast',
+      provider: 'zai',
+      name: 'GLM-5.2-Fast',
+      group: 'GLM-5.2'
+    },
+    {
+      id: 'glm-5.3-flash',
+      provider: 'zai',
+      name: 'GLM-5.3-Flash',
+      group: 'GLM-5.3',
+      capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }]
+    },
     {
       id: 'glm-5',
       provider: 'zai',

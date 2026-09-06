@@ -2,6 +2,7 @@ const https = require('https')
 const fs = require('fs')
 const path = require('path')
 const { execSync } = require('child_process')
+<<<<<<< HEAD
 const net = require('net')
 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
@@ -104,6 +105,9 @@ function assertNetworkAllowed(url) {
     throw new Error(NETWORK_BLOCKED_MESSAGE)
   }
 }
+=======
+const { assertNetworkAllowed } = require('./network-guard')
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 /**
  * Downloads a file from a URL with redirect handling
@@ -120,15 +124,25 @@ async function downloadWithRedirects(url, destinationPath) {
         reject(error)
         return
       }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
       https
         .get(url, (response) => {
           if (response.statusCode == 301 || response.statusCode == 302) {
             if (!response.headers.location) {
+<<<<<<< HEAD
               reject(new Error('Download redirect missing location header'))
               return
             }
             request(new URL(response.headers.location, url).toString())
+=======
+              reject(new Error('Download redirect missing Location header'))
+              return
+            }
+            request(response.headers.location)
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
             return
           }
           if (response.statusCode !== 200) {
@@ -154,6 +168,7 @@ async function downloadWithRedirects(url, destinationPath) {
  * @returns {Promise<boolean>} Promise that resolves to true if download succeeds
  */
 async function downloadWithPowerShell(url, destinationPath) {
+  assertNetworkAllowed(url)
   return new Promise((resolve, reject) => {
     try {
       // Only support windows platform for PowerShell download

@@ -68,8 +68,13 @@ export default defineConfig([
       'src/main/integration/nutstore/sso/lib/**',
       'src/renderer/src/ui/**',
       'packages/**/dist',
+<<<<<<< HEAD
       'src/renderer/public/**',
       'resources/skills/skill-creator/eval-viewer/assets/**'
+=======
+      'resources/**/vendor/**',
+      'src/renderer/public/pyodide/**'
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
     ]
   },
   // turn off oxlint supported rules.

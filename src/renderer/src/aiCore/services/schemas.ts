@@ -50,6 +50,7 @@ export const OllamaTagsResponseSchema = z.object({
 })
 
 // === Gemini ===
+export const OllamaShowResponseSchema = z.looseObject({})
 
 export const GeminiModelsResponseSchema = z.object({
   models: z.array(
@@ -65,6 +66,22 @@ export const GeminiModelsResponseSchema = z.object({
     })
   ),
   nextPageToken: z.string().optional()
+})
+
+// === Anthropic ===
+
+export const AnthropicModelsResponseSchema = z.object({
+  data: z.array(
+    z.looseObject({
+      id: z.string(),
+      display_name: z.string().optional(),
+      created_at: z.string().optional(),
+      type: z.string().optional()
+    })
+  ),
+  has_more: z.boolean().optional().default(false),
+  first_id: z.string().nullable().optional(),
+  last_id: z.string().nullable().optional()
 })
 
 // === Vertex AI Model Garden ===

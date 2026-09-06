@@ -46,7 +46,11 @@ import { runAsyncFunction } from './utils'
 import { isOvmsSupported } from './services/OvmsManager'
 import { extractRtkBinaries } from './utils/rtk'
 import { installMainIntranetNetworkGuard, installSessionIntranetNetworkGuard } from './network/intranetNetworkGuard'
+<<<<<<< HEAD
 import { loadNetworkAllowlistFromStore } from './services/NetworkAllowlistConfigService'
+=======
+import { loadIntranetNetworkAllowlistFromStore } from './services/IntranetNetworkAllowlistService'
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 const logger = loggerService.withContext('MainEntry')
 
@@ -147,6 +151,11 @@ if (!app.requestSingleInstanceLock()) {
   // Some APIs can only be used after this event occurs.
 
   void app.whenReady().then(async () => {
+<<<<<<< HEAD
+=======
+    loadIntranetNetworkAllowlistFromStore()
+
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
     // Record current version for tracking
     // A preparation for v2 data refactoring
     versionService.recordCurrentVersion()

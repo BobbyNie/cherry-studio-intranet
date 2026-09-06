@@ -942,6 +942,8 @@
         "label": "思考連鎖の長さ",
         "low": "少しの思考",
         "low_description": "低レベル推論",
+        "max": "マックス",
+        "max_description": "最大限の推論",
         "medium": "普通の思考",
         "medium_description": "中レベル推論",
         "minimal": "最小限の思考",
@@ -1601,7 +1603,7 @@
     "copy_failed": "コピーに失敗しました",
     "current": "現在",
     "cut": "切り取り",
-    "decline": "[to be translated]:Decline",
+    "decline": "拒否",
     "default": "デフォルト",
     "delete": "削除",
     "delete_confirm": "削除してもよろしいですか？",
@@ -1763,6 +1765,7 @@
     "detail": "エラーの詳細",
     "details": "詳細",
     "diagnosis": {
+      "abnormal_finish": "応答が異常終了しました。再試行するかモデルを変更してください",
       "ai_button": "AI 診断",
       "ai_done": "診断完了",
       "ai_loading": "診断中",
@@ -1778,10 +1781,13 @@
       "model_conflict": "診断モデルとエラーモデルが同一のため、診断できません",
       "network": "サーバーに接続できません。ネットワークまたはプロキシの設定を確認してください",
       "ocr": "OCR エンジンが初期化されていません。OCR 設定を確認してください",
+      "output_truncated": "応答が最大長に達したため切り詰められました",
       "parse": "AIが無効な応答を返しました。再試行するか、別のモデルに切り替えてください。",
       "payload": "リクエスト内容が大きすぎます。ファイルまたはテキストのサイズを減らしてください。",
       "proxy": "プロキシまたはSSL証明書エラー、プロキシとネットワーク設定を確認してください",
-      "quota": "アカウントの利用枠が不足しています。チャージするかプロバイダーを変更してください",
+      "quota": "アカウントの利用枠が不足しています。プロバイダー管理者に連絡するか、設定済みの別のプロバイダーに切り替えてください",
+      "rate_limit": "短時間にリクエストが多すぎます。しばらく待ってから再試行するか、より高いレート制限のモデルに切り替えてください",
+      "region": "設定済みプロバイダーがこの地域を拒否しました。企業管理者に連絡するか、別の設定済みプロバイダーに切り替えてください",
       "server": "サーバーエラーが発生しました。しばらくしてから再試行してください",
       "stream": "応答が中断されました。ネットワークの安定性を確認するか、再試行してください。",
       "unknown": "エラーが発生しました",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "リクエストに失敗しました。リクエストパラメータが正しいか確認してください。モデルの設定を変更した場合は、デフォルトの設定にリセットしてください",
       "401": "認証に失敗しました。APIキーが正しいか確認してください",
+      "402": "支払いが必要です。プロバイダー管理者にアカウント割り当ての確認を依頼するか、設定済みの別のプロバイダーに切り替えてください",
       "403": "アクセスが拒否されました。アカウントが実名認証されているか確認してください。またはサービスプロバイダーに問い合わせてください",
       "404": "モデルが見つからないか、リクエストパスが間違っています",
       "429": "リクエストが多すぎます。後でもう一度試してください",
@@ -2923,7 +2930,7 @@
   },
   "onboarding": {
     "privacy": {
-      "accept_and_continue": "[to be translated]:Accept and Continue",
+      "accept_and_continue": "同意して続行",
       "notice": "続行することで、あなたは以下を読み、同意したことを確認します。",
       "period": "。",
       "policy": "プライバシーポリシー"
@@ -3407,12 +3414,12 @@
     "zoom_out": "縮小"
   },
   "privacy_policy": {
-    "title": "[to be translated]:Privacy Policy"
+    "title": "プライバシーポリシー"
   },
   "privacy_policy_update": {
-    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
-    "policy": "[to be translated]:Privacy Policy",
-    "title": "[to be translated]:Privacy Policy Updated"
+    "description_before_link": "プライバシーポリシーを更新しました。最新の ",
+    "policy": "プライバシーポリシー",
+    "title": "プライバシーポリシーが更新されました"
   },
   "prompts": {
     "explanation": "この概念を説明してください",
@@ -4757,6 +4764,15 @@
         "japanese": "日本語",
         "label": "目標言語",
         "russian": "ロシア語"
+      }
+    },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
       }
     },
     "launch": {

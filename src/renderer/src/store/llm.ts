@@ -56,6 +56,7 @@ type LlmSettings = {
 export interface LlmState {
   providers: Provider[]
   defaultModel: Model
+  defaultVisionModel?: Model
   /** @deprecated */
   topicNamingModel: Model
   quickModel: Model
@@ -66,6 +67,7 @@ export interface LlmState {
 
 export const initialState: LlmState = {
   defaultModel: SYSTEM_MODELS.defaultModel[0],
+  defaultVisionModel: undefined,
   topicNamingModel: SYSTEM_MODELS.defaultModel[1],
   quickModel: SYSTEM_MODELS.defaultModel[1],
   translateModel: SYSTEM_MODELS.defaultModel[2],
@@ -194,6 +196,9 @@ const llmSlice = createSlice({
     setDefaultModel: (state, action: PayloadAction<{ model: Model }>) => {
       state.defaultModel = action.payload.model
     },
+    setDefaultVisionModel: (state, action: PayloadAction<{ model?: Model }>) => {
+      state.defaultVisionModel = action.payload.model
+    },
     setQuickModel: (state, action: PayloadAction<{ model: Model }>) => {
       state.quickModel = action.payload.model
     },
@@ -284,6 +289,7 @@ export const {
   addModel,
   removeModel,
   setDefaultModel,
+  setDefaultVisionModel,
   setQuickModel,
   setTranslateModel,
   setQuickAssistantId,

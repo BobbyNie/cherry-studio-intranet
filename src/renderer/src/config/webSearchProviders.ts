@@ -1,5 +1,8 @@
 import type { WebSearchProvider, WebSearchProviderId } from '@renderer/types'
+<<<<<<< HEAD
 import { isOfflineMode } from '@shared/config/intranet'
+=======
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 type WebSearchProviderConfig = {
   websites: {
@@ -126,6 +129,10 @@ export const PUBLIC_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = [
   }
 ]
 
+<<<<<<< HEAD
 export const INTRANET_WEB_SEARCH_PROVIDERS: WebSearchProvider[] = []
 
 export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = isOfflineMode() ? [] : PUBLIC_WEB_SEARCH_PROVIDERS
+=======
+export const WEB_SEARCH_PROVIDERS: WebSearchProvider[] = PUBLIC_WEB_SEARCH_PROVIDERS
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508

@@ -3445,8 +3445,13 @@ const migrateConfig = {
           (!provider.isSystem || allowedProviderIds.has(provider.id as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number]))
       )
 
+      const retainedProviderIds = new Set(state.llm.providers.map((provider) => provider.id))
       const ensureAllowedModel = (model?: Model) => {
-        if (!model || allowedProviderIds.has(model.provider as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])) {
+        if (
+          !model ||
+          retainedProviderIds.has(model.provider) ||
+          allowedProviderIds.has(model.provider as (typeof INTRANET_VISIBLE_PROVIDER_IDS)[number])
+        ) {
           return model ?? intranetFallbackModel
         }
         return intranetFallbackModel
@@ -3513,7 +3518,6 @@ const migrateConfig = {
       state.settings.proxyMode = 'none'
       state.settings.proxyUrl = undefined
       state.settings.proxyBypassRules = undefined
-      state.settings.autoCheckUpdate = false
 
       state.llm.providers = state.llm.providers.map((provider) => {
         if (provider.id !== 'intranet') {
@@ -3562,13 +3566,47 @@ const migrateConfig = {
         )
       }
 
-      if (state.websearch) {
-        state.websearch.providers = []
-      }
       logger.info('migrate 210 success')
       return state
     } catch (error) {
       logger.error('migrate 210 error', error as Error)
+      return state
+    }
+  },
+  '211': (state: RootState) => {
+    try {
+      state.llm.providers.forEach((provider) => {
+        if (provider.id === 'cherryin') {
+          if (provider.apiHost === 'https://open.cherryin.cc') {
+            provider.apiHost = 'https://open.cherryin.net'
+          }
+          if (provider.anthropicApiHost === 'https://open.cherryin.cc') {
+            provider.anthropicApiHost = 'https://open.cherryin.net'
+          }
+        }
+      })
+
+      logger.info('migrate 211 success')
+      return state
+    } catch (error) {
+      logger.error('migrate 211 error', error as Error)
+      return state
+    }
+  },
+  '212': (state: RootState) => {
+    try {
+      // Keep historical package names literal; preserve enterprise launch options.
+      const legacyPackage = '@cherry/mcp-auto-install'
+      const currentPackage = '@mcpmarket/mcp-auto-install'
+      state.mcp?.servers?.forEach((server) => {
+        if (server?.name === legacyPackage && Array.isArray(server.args) && server.args.includes(legacyPackage)) {
+          server.args = server.args.map((arg) => (arg === legacyPackage ? currentPackage : arg))
+        }
+      })
+      logger.info('migrate 212 success')
+      return state
+    } catch (error) {
+      logger.error('migrate 212 error', error as Error)
       return state
     }
   }

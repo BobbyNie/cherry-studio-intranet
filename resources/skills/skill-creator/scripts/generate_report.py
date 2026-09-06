@@ -45,7 +45,11 @@ def generate_html(data: dict, auto_refresh: bool = False, skill_name: str = "") 
             background: #faf9f5;
             color: #141413;
         }
+<<<<<<< HEAD
         h1 { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #141413; }
+=======
+        h1 { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #141413; }
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
         .explainer {
             background: white;
             padding: 15px;
@@ -85,7 +89,11 @@ def generate_html(data: dict, auto_refresh: bool = False, skill_name: str = "") 
             word-wrap: break-word;
         }
         th {
+<<<<<<< HEAD
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+=======
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
             background: #141413;
             color: #faf9f5;
             font-weight: 500;
@@ -133,7 +141,11 @@ def generate_html(data: dict, auto_refresh: bool = False, skill_name: str = "") 
         th.negative-col { border-bottom: 3px solid #c44; }
         th.test-col.positive-col { border-bottom: 3px solid #788c5d; }
         th.test-col.negative-col { border-bottom: 3px solid #c44; }
+<<<<<<< HEAD
         .legend { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; gap: 20px; margin-bottom: 10px; font-size: 13px; align-items: center; }
+=======
+        .legend { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; gap: 20px; margin-bottom: 10px; font-size: 13px; align-items: center; }
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .legend-swatch { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
         .swatch-positive { background: #141413; border-bottom: 3px solid #788c5d; }

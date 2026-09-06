@@ -18,7 +18,6 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { createSlice } from '@reduxjs/toolkit'
 import { WEB_SEARCH_PROVIDERS } from '@renderer/config/webSearchProviders'
 import type { Model, WebSearchProvider } from '@renderer/types'
-import { isIntranetMode } from '@shared/config/intranet'
 export interface SubscribeSource {
   key: number
   url: string
@@ -62,7 +61,7 @@ export interface WebSearchState {
 export type CherryWebSearchConfig = Pick<WebSearchState, 'searchWithTime' | 'maxResults' | 'excludeDomains'>
 
 export const initialState: WebSearchState = {
-  defaultProvider: isIntranetMode() ? 'searxng' : 'local-bing',
+  defaultProvider: 'local-bing',
   providers: WEB_SEARCH_PROVIDERS,
   searchWithTime: true,
   maxResults: 5,

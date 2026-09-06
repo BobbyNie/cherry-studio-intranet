@@ -5,7 +5,7 @@ import { getLowerBaseModelName, isUserSelectedModelType } from '@renderer/utils'
 import { isEmbeddingModel, isRerankModel } from './embedding'
 import { isFunctionCallingModel } from './tooluse'
 
-// Vision models
+// Vision models, used as regex
 const visionAllowedModels = [
   'llava',
   'moondream',
@@ -20,6 +20,7 @@ const visionAllowedModels = [
   'claude-haiku-4',
   'claude-sonnet-4',
   'claude-opus-4',
+  'claude-fable',
   'vision',
   'glm-4(?:\\.\\d+)?v(?:-[\\w-]+)?',
   'qwen-vl',
@@ -45,12 +46,17 @@ const visionAllowedModels = [
   'o3(?:-[\\w-]+)?',
   'o4(?:-[\\w-]+)?',
   'deepseek-vl(?:[\\w-]+)?',
-  'kimi-k2\\.[56](?:-[\\w-]+)?',
+  'deepseek-v4-flash-vision-exp',
+  'glm-5[.-]3-flash(?:-[\\w-]+)?',
+  'kimi-k(?:2\\.[5-9]\\d*|[3-9]\\d*(?:[.-]\\d+)?)(?:-[\\w-]+)?',
   'kimi-latest',
   'gemma-?[3-4](?:[-.\\w]+)?',
   'doubao-seed-1[.-][68](?:-[\\w-]+)?',
   'doubao-seed-2[.-]0(?:-[\\w-]+)?',
+  'doubao-seed-2[.-]1(?:-[\\w-]+)?',
+  'doubao-seed-evolving(?:-[\\w-]+)?',
   'doubao-seed-code(?:-[\\w-]+)?',
+  'minimax-m3(?:-[\\w-]+)?',
   'kimi-thinking-preview',
   `gemma3(?:[-:\\w]+)?`,
   'kimi-vl-a3b-thinking(?:-[\\w-]+)?',
@@ -64,7 +70,9 @@ const visionAllowedModels = [
   'mistral-small',
   'mimo-v2\\.5$',
   'mimo-v2-omni(?:-[\\w-]+)?',
-  'glm-5v-turbo'
+  'glm-5v-turbo',
+  'muse-(?:glimmer|spark)(?:-[\\w-]+)?',
+  '(?:sakana-)?namazu(?:-[\\w-]+)?'
 ]
 
 const visionExcludedModels = [
@@ -94,6 +102,7 @@ const DEDICATED_IMAGE_MODELS = [
   'gpt-image(?:-[\\w-]+)?',
   // xAI
   'grok-2-image(?:-[\\w-]+)?',
+  'grok-imagine-image(?:-[\\w-]+)?',
   // Google
   'imagen(?:-[\\w-]+)?',
   // Stable Diffusion series
@@ -106,6 +115,8 @@ const DEDICATED_IMAGE_MODELS = [
   'cogview(?:-[\\w-]+)?',
   // Alibaba
   'qwen-image(?:-[\\w-]+)?',
+  'recraft(?:-[\\w-]+)?',
+  'muse-image(?:-[\\w-]+)?',
   // Others
   'janus(?:-[\\w-]+)?',
   'midjourney(?:-[\\w-]+)?',
@@ -120,6 +131,10 @@ const DEDICATED_IMAGE_MODELS = [
 const IMAGE_ENHANCEMENT_MODELS = [
   'grok-2-image(?:-[\\w-]+)?',
   'qwen-image-edit',
+  'qwen-image-3(?:[.-][\\w-]+)?',
+  'grok-imagine-image(?:-[\\w-]+)?',
+  'recraft(?:-[\\w-]+)?',
+  'muse-image(?:-[\\w-]+)?',
   'gpt-image-1',
   'gpt-image-2',
   'gemini-2.5-flash-image(?:-[\\w-]+)?',

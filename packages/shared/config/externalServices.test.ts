@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { isExternalBackupEnabled, isNutstoreBackupEnabled, isS3BackupEnabled, isWebDavBackupEnabled } from './backup'
 import { isRemoteLoaderEnabled, isSitemapLoaderEnabled, isWebLoaderEnabled } from './knowledge'
@@ -6,19 +6,7 @@ import { isRemoteMcpTransportEnabled, isSseTransportEnabled, isStreamableHttpTra
 import { isCherryINEnabled, isCopilotEnabled, isOAuthEnabled } from './oauth'
 
 describe('external service feature gates', () => {
-  const originalEnv = { ...process.env }
-
-  beforeEach(() => {
-    process.env = { ...originalEnv }
-    delete process.env.CHERRY_INTRANET_MODE
-    delete process.env.CHERRY_OFFLINE_MODE
-  })
-
-  afterEach(() => {
-    process.env = { ...originalEnv }
-  })
-
-  it('keeps external integrations enabled outside intranet and offline modes', () => {
+  it('keeps external integrations enabled', () => {
     expect(isWebDavBackupEnabled()).toBe(true)
     expect(isS3BackupEnabled()).toBe(true)
     expect(isNutstoreBackupEnabled()).toBe(true)
@@ -33,6 +21,7 @@ describe('external service feature gates', () => {
     expect(isCherryINEnabled()).toBe(true)
     expect(isOAuthEnabled()).toBe(true)
   })
+<<<<<<< HEAD
 
   it('keeps external integrations enabled in intranet mode', () => {
     process.env.CHERRY_INTRANET_MODE = 'true'
@@ -51,4 +40,6 @@ describe('external service feature gates', () => {
     expect(isRemoteMcpTransportEnabled()).toBe(false)
     expect(isOAuthEnabled()).toBe(false)
   })
+=======
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 })

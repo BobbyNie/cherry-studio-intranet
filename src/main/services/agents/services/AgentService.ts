@@ -1,6 +1,7 @@
 import { loggerService } from '@logger'
 import { modelsService } from '@main/apiServer/services/models'
 import type {
+  AgentConfiguration,
   AgentEntity,
   CreateAgentRequest,
   CreateAgentResponse,
@@ -10,7 +11,7 @@ import type {
   UpdateAgentResponse
 } from '@types'
 import { AgentBaseSchema } from '@types'
-import { and, asc, count, desc, eq, isNull, min } from 'drizzle-orm'
+import { and, asc, count, desc, eq, isNull, min, sql } from 'drizzle-orm'
 
 import { BaseService } from '../BaseService'
 import {
@@ -18,16 +19,23 @@ import {
   agentSkillsTable,
   agentsTable,
   channelsTable,
+  channelTaskSubscriptionsTable,
   type InsertAgentRow,
   scheduledTasksTable,
-  sessionsTable
+  sessionMessagesTable,
+  sessionsTable,
+  taskRunLogsTable
 } from '../database/schema'
 import type { AgentModelField } from '../errors'
 import { skillService } from '../skills/SkillService'
+import { type AgentDataRepair, normalizeAgentDataRow } from './agentDataNormalization'
 import { CHERRY_CLAW_AGENT_ID, isBuiltinAgentId } from './builtin/BuiltinAgentIds'
 import { seedWorkspaceTemplates } from './cherryclaw/seedWorkspace'
 
 const logger = loggerService.withContext('AgentService')
+
+type AgentDatabase = Awaited<ReturnType<BaseService['getDatabase']>>
+type AgentTransaction = Parameters<Parameters<AgentDatabase['transaction']>[0]>[0]
 
 export type BuiltinAgentInitResult =
   | { agentId: string; skippedReason?: undefined }
@@ -126,18 +134,76 @@ export class AgentService extends BaseService {
     return result[0]
   }
 
+  private parseConfiguration(configuration: string | null): AgentConfiguration {
+    if (!configuration) return {} as AgentConfiguration
+
+    try {
+      const parsed = JSON.parse(configuration)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as AgentConfiguration)
+        : ({} as AgentConfiguration)
+    } catch (error) {
+      logger.warn('Failed to parse agent configuration JSON', error as Error)
+      return {} as AgentConfiguration
+    }
+  }
+
   async getAgent(id: string): Promise<GetAgentResponse | null> {
     const row = await this.findAgentRow(id)
     if (!row) {
       return null
     }
 
-    const agent = this.deserializeJsonFields(row) as GetAgentResponse
+    const normalization = normalizeAgentDataRow(row, new Date().toISOString())
+    const database = await this.getDatabase()
+    await this.persistAgentRepairs(database, normalization.repair ? [normalization.repair] : [])
+
+    const agent = this.deserializeJsonFields(normalization.normalizedRow) as GetAgentResponse
     const { tools, legacyIdMap } = await this.listMcpTools(agent.type, agent.mcps)
     agent.tools = tools
     agent.allowed_tools = this.normalizeAllowedTools(agent.allowed_tools, agent.tools, legacyIdMap)
 
     return agent
+  }
+
+  private async persistAgentRepairs(database: AgentDatabase, repairs: AgentDataRepair[]): Promise<void> {
+    if (repairs.length === 0) return
+
+    try {
+      await database.transaction(async (tx) => {
+        for (const repair of repairs) {
+          const conditions = [eq(agentsTable.id, repair.id)]
+
+          if (repair.updates.created_at !== undefined) {
+            conditions.push(eq(agentsTable.created_at, repair.original.created_at))
+          }
+          if (repair.updates.updated_at !== undefined) {
+            conditions.push(eq(agentsTable.updated_at, repair.original.updated_at))
+          }
+          if (repair.updates.mcps !== undefined) {
+            conditions.push(
+              repair.original.mcps === null ? isNull(agentsTable.mcps) : eq(agentsTable.mcps, repair.original.mcps)
+            )
+          }
+
+          await tx
+            .update(agentsTable)
+            .set(repair.updates)
+            .where(and(...conditions))
+        }
+      })
+
+      logger.warn('Repaired invalid agent fields', {
+        count: repairs.length,
+        repairs: repairs.map((repair) => ({ id: repair.id, fields: Object.keys(repair.updates) }))
+      })
+    } catch (error) {
+      logger.warn('Failed to persist repaired agent fields', {
+        count: repairs.length,
+        agentIds: repairs.map((repair) => repair.id),
+        error: error instanceof Error ? error.message : String(error)
+      })
+    }
   }
 
   async listAgents(options: ListOptions = {}): Promise<{ agents: AgentEntity[]; total: number }> {
@@ -169,7 +235,15 @@ export class AgentService extends BaseService {
           : await baseQuery.limit(options.limit)
         : await baseQuery
 
-    const agents = result.map((row) => this.deserializeJsonFields(row)) as GetAgentResponse[]
+    const fallbackTimestamp = new Date().toISOString()
+    const normalizedResults = result.map((row) => normalizeAgentDataRow(row, fallbackTimestamp))
+    const repairs = normalizedResults.flatMap(({ repair }) => (repair ? [repair] : []))
+
+    await this.persistAgentRepairs(database, repairs)
+
+    const agents = normalizedResults.map(({ normalizedRow }) =>
+      this.deserializeJsonFields(normalizedRow)
+    ) as GetAgentResponse[]
 
     await Promise.all(
       agents.map(async (agent) => {
@@ -217,10 +291,14 @@ export class AgentService extends BaseService {
         const resolvedPaths = this.resolveAccessiblePaths([], id)
         const workspace = resolvedPaths[0]
         const agentConfig = workspace ? await provisionWorkspace(workspace, builtinRole) : undefined
-        if (agentConfig && (agentConfig.description || agentConfig.instructions)) {
-          const updateData: UpdateAgentRequest = {}
-          if (agentConfig.description) updateData.description = agentConfig.description
-          if (agentConfig.instructions) updateData.instructions = agentConfig.instructions
+        const updateData: UpdateAgentRequest = {}
+        if (agentConfig?.description) updateData.description = agentConfig.description
+        if (agentConfig?.instructions) updateData.instructions = agentConfig.instructions
+        const existingConfig = this.parseConfiguration(existing.configuration)
+        if (existingConfig.builtin_role !== builtinRole) {
+          updateData.configuration = { ...existingConfig, builtin_role: builtinRole }
+        }
+        if (Object.keys(updateData).length > 0) {
           await this.updateAgent(id, updateData)
         }
         return { agentId: id }
@@ -245,7 +323,8 @@ export class AgentService extends BaseService {
         permission_mode: 'default',
         max_turns: 100,
         env_vars: {},
-        ...agentConfig?.configuration
+        ...agentConfig?.configuration,
+        builtin_role: builtinRole
       }
 
       const req: CreateAgentRequest = {
@@ -548,6 +627,35 @@ export class AgentService extends BaseService {
     logger.info('Agents reordered', { count: orderedIds.length })
   }
 
+  private async deleteAgentRelations(tx: AgentTransaction, id: string): Promise<void> {
+    // Agent DB migrations did not always create FK constraints, so clean child rows explicitly.
+    await tx.delete(agentSkillsTable).where(eq(agentSkillsTable.agent_id, id))
+    await tx
+      .delete(channelTaskSubscriptionsTable)
+      .where(
+        sql`${channelTaskSubscriptionsTable.taskId} IN (SELECT ${scheduledTasksTable.id} FROM ${scheduledTasksTable} WHERE ${scheduledTasksTable.agent_id} = ${id})`
+      )
+    await tx
+      .delete(taskRunLogsTable)
+      .where(
+        sql`${taskRunLogsTable.task_id} IN (SELECT ${scheduledTasksTable.id} FROM ${scheduledTasksTable} WHERE ${scheduledTasksTable.agent_id} = ${id})`
+      )
+    await tx.delete(scheduledTasksTable).where(eq(scheduledTasksTable.agent_id, id))
+    await tx
+      .delete(sessionMessagesTable)
+      .where(
+        sql`${sessionMessagesTable.session_id} IN (SELECT ${sessionsTable.id} FROM ${sessionsTable} WHERE ${sessionsTable.agent_id} = ${id})`
+      )
+    await tx
+      .update(channelsTable)
+      .set({ sessionId: null })
+      .where(
+        sql`${channelsTable.sessionId} IN (SELECT ${sessionsTable.id} FROM ${sessionsTable} WHERE ${sessionsTable.agent_id} = ${id})`
+      )
+    await tx.delete(sessionsTable).where(eq(sessionsTable.agent_id, id))
+    await tx.update(channelsTable).set({ agentId: null }).where(eq(channelsTable.agentId, id))
+  }
+
   async deleteAgent(id: string): Promise<boolean> {
     const database = await this.getDatabase()
     const agent = await this.findAgentRow(id)
@@ -560,19 +668,26 @@ export class AgentService extends BaseService {
       const now = new Date().toISOString()
 
       await database.transaction(async (tx) => {
-        await tx.delete(agentSkillsTable).where(eq(agentSkillsTable.agent_id, id))
-        await tx.delete(scheduledTasksTable).where(eq(scheduledTasksTable.agent_id, id))
-        await tx.delete(sessionsTable).where(eq(sessionsTable.agent_id, id))
-        await tx.update(channelsTable).set({ agentId: null }).where(eq(channelsTable.agentId, id))
+        await this.deleteAgentRelations(tx, id)
         await tx.update(agentsTable).set({ deleted_at: now, updated_at: now }).where(eq(agentsTable.id, id))
       })
 
+      logger.info('Agent deleted', { id, soft: true })
       return true
     }
 
-    const result = await database.delete(agentsTable).where(eq(agentsTable.id, id))
+    const result = await database.transaction(async (tx) => {
+      await this.deleteAgentRelations(tx, id)
 
-    return result.rowsAffected > 0
+      return await tx.delete(agentsTable).where(eq(agentsTable.id, id))
+    })
+
+    const deleted = result.rowsAffected > 0
+    if (deleted) {
+      logger.info('Agent deleted', { id, soft: false })
+    }
+
+    return deleted
   }
 
   async agentExists(id: string): Promise<boolean> {

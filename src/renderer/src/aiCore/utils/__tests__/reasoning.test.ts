@@ -79,6 +79,7 @@ vi.mock('@renderer/config/models', async (importOriginal) => {
     isSupportedThinkingTokenDoubaoModel: vi.fn(() => false),
     isSupportedThinkingTokenZhipuModel: vi.fn(() => false),
     isSupportedThinkingTokenMiMoModel: vi.fn(() => false),
+    isSupportedThinkingTokenLongCatModel: vi.fn(() => false),
     isSupportedReasoningEffortModel: vi.fn(() => false),
     isDeepSeekHybridInferenceModel: vi.fn(() => false),
     isDeepSeekV4PlusModel: vi.fn(() => false),
@@ -91,10 +92,16 @@ vi.mock('@renderer/config/models', async (importOriginal) => {
     isOpenAIReasoningModel: vi.fn(() => false),
     isQwenAlwaysThinkModel: vi.fn(() => false),
     isHostedGemma4ThinkingModel: vi.fn(() => false),
+    isMiniMaxM3Model: vi.fn(() => false),
+    isMiniMaxReasoningModel: vi.fn(() => false),
     isSupportedThinkingTokenHunyuanModel: vi.fn(() => false),
     isSupportedThinkingTokenModel: vi.fn(() => false),
     isGPT51SeriesModel: vi.fn(() => false),
     isGemini3ThinkingTokenModel: vi.fn(() => false),
+    isGLM52Model: vi.fn(() => false),
+    isGLM53Model: vi.fn(() => false),
+    isKimiK3Model: vi.fn(() => false),
+    isQwen38EffortModel: vi.fn(() => false),
     findTokenLimit: vi.fn(actual.findTokenLimit)
   }
 })
@@ -192,6 +199,89 @@ describe('reasoning utils', () => {
 
       const result = getReasoningEffort(assistant, model)
       expect(result).toEqual({ reasoning: { enabled: false, exclude: true } })
+    })
+
+    it('should use the explicit none effort when the OpenRouter model contract supports it', async () => {
+      const { isReasoningModel, isSupportedReasoningEffortModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedReasoningEffortModel).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        { id: 'test', name: 'Test', settings: { reasoning_effort: 'none' } } as Assistant,
+        { id: 'sakana/sakana-namazu', name: 'Namazu', provider: SystemProviderIds.openrouter } as Model
+      )
+
+      expect(result).toEqual({ reasoning: { effort: 'none' } })
+    })
+
+    it('should use adaptive thinking for MiniMax-M3 on OpenAI-compatible endpoints', async () => {
+      const { isMiniMaxM3Model, isMiniMaxReasoningModel, isReasoningModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isMiniMaxReasoningModel).mockReturnValue(true)
+      vi.mocked(isMiniMaxM3Model).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'minimax-m3',
+        name: 'MiniMax-M3',
+        provider: 'minimax'
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'auto'
+        }
+      } as Assistant
+
+      const result = getReasoningEffort(assistant, model)
+      expect(result).toEqual({ thinking: { type: 'adaptive' } })
+    })
+
+    it('should disable MiniMax-M3 thinking when reasoning effort is none', async () => {
+      const { isMiniMaxM3Model, isMiniMaxReasoningModel, isReasoningModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isMiniMaxReasoningModel).mockReturnValue(true)
+      vi.mocked(isMiniMaxM3Model).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'minimax-m3',
+        name: 'MiniMax-M3',
+        provider: 'minimax'
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'none'
+        }
+      } as Assistant
+
+      const result = getReasoningEffort(assistant, model)
+      expect(result).toEqual({ thinking: { type: 'disabled' } })
+    })
+
+    it.each([
+      ['auto', 'enabled'],
+      ['none', 'disabled']
+    ] as const)('should map LongCat reasoning effort %s to thinking %s', async (reasoningEffort, thinkingType) => {
+      const { isReasoningModel, isSupportedThinkingTokenLongCatModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedThinkingTokenLongCatModel).mockReturnValue(true)
+
+      const model = { id: 'LongCat-2.0', name: 'LongCat 2.0', provider: 'longcat' } as Model
+      const assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: { reasoning_effort: reasoningEffort }
+      } as Assistant
+
+      expect(getReasoningEffort(assistant, model)).toEqual({ thinking: { type: thinkingType } })
     })
 
     it('should handle Qwen models with enable_thinking', async () => {
@@ -478,6 +568,198 @@ describe('reasoning utils', () => {
 
       const result = getReasoningEffort(assistant, model)
       expect(result).toEqual({ enable_thinking: false })
+    })
+
+    it('should emit camelCase reasoning effort for DeepSeek V4+ with high', async () => {
+      const { isReasoningModel, isDeepSeekV4PlusModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isDeepSeekV4PlusModel).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'deepseek-v4-pro',
+        name: 'DeepSeek V4 Pro',
+        provider: 'my-openai-compatible'
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'high'
+        }
+      } as Assistant
+
+      const result = getReasoningEffort(assistant, model)
+      expect(result).toEqual({
+        thinking: { type: 'enabled' },
+        reasoningEffort: 'high'
+      })
+    })
+
+    it('should preserve low reasoning effort for DeepSeek V4+', async () => {
+      const { isReasoningModel, isDeepSeekV4PlusModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isDeepSeekV4PlusModel).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        {
+          id: 'test',
+          name: 'Test',
+          settings: { reasoning_effort: 'low' }
+        } as Assistant,
+        {
+          id: 'deepseek-v4-flash',
+          name: 'DeepSeek V4 Flash',
+          provider: SystemProviderIds.deepseek
+        } as Model
+      )
+
+      expect(result).toEqual({
+        thinking: { type: 'enabled' },
+        reasoningEffort: 'low'
+      })
+    })
+
+    it('should serialize GLM-5.3 effort for the official provider', async () => {
+      const { isReasoningModel, isGLM53Model } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isGLM53Model).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        {
+          id: 'test',
+          name: 'Test',
+          settings: { reasoning_effort: 'max' }
+        } as Assistant,
+        { id: 'glm-5.3-flash', name: 'GLM-5.3-Flash', provider: SystemProviderIds.zhipu } as Model
+      )
+
+      expect(result).toEqual({
+        thinking: { type: 'enabled' },
+        reasoningEffort: 'max'
+      })
+    })
+
+    it('should omit a stale Auto effort for GLM-5.3 on OpenRouter', async () => {
+      const { isReasoningModel, isGLM53Model } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isGLM53Model).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        {
+          id: 'test',
+          name: 'Test',
+          settings: { reasoning_effort: 'auto' }
+        } as Assistant,
+        { id: 'z-ai/glm-5.3-flash', name: 'GLM-5.3-Flash', provider: SystemProviderIds.openrouter } as Model
+      )
+
+      expect(result).toEqual({})
+    })
+
+    it.each([
+      [SystemProviderIds.zhipu, 'max', { thinking: { type: 'enabled' }, reasoningEffort: 'max' }],
+      [SystemProviderIds.dashscope, 'high', { reasoningEffort: 'high' }],
+      [SystemProviderIds.openrouter, 'xhigh', { reasoning: { effort: 'xhigh' } }]
+    ] as const)('serializes GLM-5.2 effort for %s', async (provider, reasoningEffort, expected) => {
+      const { isReasoningModel, isGLM52Model } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isGLM52Model).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        { id: 'test', name: 'Test', settings: { reasoning_effort: reasoningEffort } } as Assistant,
+        { id: 'glm-5.2', name: 'GLM-5.2', provider } as Model
+      )
+
+      expect(result).toEqual(expected)
+    })
+
+    it.each([
+      [SystemProviderIds.moonshot, 'none', { reasoningEffort: 'none' }],
+      [SystemProviderIds.moonshot, 'high', { reasoningEffort: 'high' }],
+      [SystemProviderIds.dashscope, 'max', { reasoningEffort: 'max' }],
+      [SystemProviderIds.openrouter, 'low', { reasoning: { effort: 'low' } }],
+      [SystemProviderIds.moonshot, 'auto', { reasoningEffort: 'medium' }]
+    ] as const)('serializes Kimi K3 reasoning for %s with %s', async (provider, reasoningEffort, expected) => {
+      const { isReasoningModel, isKimiK3Model } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isKimiK3Model).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        { id: 'test', name: 'Test', settings: { reasoning_effort: reasoningEffort } } as Assistant,
+        { id: 'kimi-k3', name: 'Kimi K3', provider } as Model
+      )
+
+      expect(result).toEqual(expected)
+    })
+
+    it.each([
+      ['solar-pro2', 'minimal'],
+      ['solar-pro3', 'medium'],
+      ['solar-pro4', 'xhigh']
+    ] as const)('serializes the curated %s reasoning effort', async (id, reasoningEffort) => {
+      const { isReasoningModel, isSupportedReasoningEffortModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedReasoningEffortModel).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        { id: 'test', name: 'Test', settings: { reasoning_effort: reasoningEffort } } as Assistant,
+        { id, name: id, provider: 'custom-provider' } as Model
+      )
+
+      expect(result).toEqual({ reasoningEffort })
+    })
+
+    it.each([
+      [SystemProviderIds.dashscope, 'none', { reasoningEffort: 'none' }],
+      [SystemProviderIds.dashscope, 'xhigh', { reasoningEffort: 'xhigh' }],
+      [SystemProviderIds.openrouter, 'high', { reasoning: { effort: 'high' } }]
+    ] as const)('serializes Qwen 3.8 effort for %s with %s', async (provider, reasoningEffort, expected) => {
+      const { isQwen38EffortModel, isReasoningModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isQwen38EffortModel).mockReturnValue(true)
+
+      const result = getReasoningEffort(
+        { id: 'test', name: 'Test', settings: { reasoning_effort: reasoningEffort } } as Assistant,
+        { id: 'qwen3.8-max', name: 'Qwen 3.8 Max', provider } as Model
+      )
+
+      expect(result).toEqual(expected)
+    })
+
+    it('should map xhigh to max for DeepSeek V4+', async () => {
+      const { isReasoningModel, isDeepSeekV4PlusModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isDeepSeekV4PlusModel).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'deepseek-v4-pro',
+        name: 'DeepSeek V4 Pro',
+        provider: SystemProviderIds.deepseek
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'xhigh'
+        }
+      } as Assistant
+
+      const result = getReasoningEffort(assistant, model)
+      expect(result).toEqual({
+        thinking: { type: 'enabled' },
+        reasoningEffort: 'max'
+      })
     })
 
     it('should return medium effort for deep research models', async () => {
@@ -935,6 +1217,63 @@ describe('reasoning utils', () => {
       })
     })
 
+    it('should use adaptive thinking for MiniMax-M3 on Anthropic-compatible endpoints', async () => {
+      const { isMiniMaxM3Model, isMiniMaxReasoningModel, isReasoningModel, isSupportedThinkingTokenClaudeModel } =
+        await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedThinkingTokenClaudeModel).mockReturnValue(false)
+      vi.mocked(isMiniMaxM3Model).mockReturnValue(true)
+      vi.mocked(isMiniMaxReasoningModel).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'minimax-m3',
+        name: 'MiniMax-M3',
+        provider: 'minimax'
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'auto'
+        }
+      } as Assistant
+
+      const result = getAnthropicReasoningParams(assistant, model)
+      expect(result).toEqual({
+        thinking: { type: 'adaptive' },
+        sendReasoning: true
+      })
+    })
+
+    it('should not send unsupported thinking params for MiniMax-M2 on Anthropic-compatible endpoints', async () => {
+      const { isMiniMaxM3Model, isMiniMaxReasoningModel, isReasoningModel, isSupportedThinkingTokenClaudeModel } =
+        await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedThinkingTokenClaudeModel).mockReturnValue(false)
+      vi.mocked(isMiniMaxM3Model).mockReturnValue(false)
+      vi.mocked(isMiniMaxReasoningModel).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'minimax-m2.7',
+        name: 'MiniMax-M2.7',
+        provider: 'minimax'
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'auto'
+        }
+      } as Assistant
+
+      const result = getAnthropicReasoningParams(assistant, model)
+      expect(result).toEqual({})
+    })
+
     it('should return enabled thinking with budget for Claude models', async () => {
       const { isReasoningModel, isSupportedThinkingTokenClaudeModel } = await import('@renderer/config/models')
 
@@ -965,28 +1304,59 @@ describe('reasoning utils', () => {
       })
     })
 
-    it('should use adaptive thinking with native xhigh effort and summarized display for Claude Opus 4.7', async () => {
+    it.each([
+      { id: 'claude-opus-4-7', name: 'Claude Opus 4.7' },
+      { id: 'claude-opus-4-8', name: 'Claude Opus 4.8' }
+    ])(
+      'should use adaptive thinking with native xhigh effort and summarized display for $name',
+      async ({ id, name }) => {
+        const { isReasoningModel, isSupportedThinkingTokenClaudeModel } = await import('@renderer/config/models')
+
+        vi.mocked(isReasoningModel).mockReturnValue(true)
+        vi.mocked(isSupportedThinkingTokenClaudeModel).mockReturnValue(true)
+
+        const model: Model = {
+          id,
+          name,
+          provider: SystemProviderIds.anthropic
+        } as Model
+
+        const assistant: Assistant = {
+          id: 'test',
+          name: 'Test',
+          settings: { reasoning_effort: 'xhigh' }
+        } as Assistant
+
+        const result = getAnthropicReasoningParams(assistant, model)
+        expect(result).toEqual({
+          thinking: { type: 'adaptive', display: 'summarized' },
+          effort: 'xhigh'
+        })
+      }
+    )
+
+    it('should use adaptive thinking for future Claude Opus 4 minor versions by default', async () => {
       const { isReasoningModel, isSupportedThinkingTokenClaudeModel } = await import('@renderer/config/models')
 
       vi.mocked(isReasoningModel).mockReturnValue(true)
       vi.mocked(isSupportedThinkingTokenClaudeModel).mockReturnValue(true)
 
       const model: Model = {
-        id: 'claude-opus-4-7',
-        name: 'Claude Opus 4.7',
+        id: 'claude-opus-4-10',
+        name: 'Claude Opus 4.10',
         provider: SystemProviderIds.anthropic
       } as Model
 
       const assistant: Assistant = {
         id: 'test',
         name: 'Test',
-        settings: { reasoning_effort: 'xhigh' }
+        settings: { reasoning_effort: 'low' }
       } as Assistant
 
       const result = getAnthropicReasoningParams(assistant, model)
       expect(result).toEqual({
         thinking: { type: 'adaptive', display: 'summarized' },
-        effort: 'xhigh'
+        effort: 'low'
       })
     })
 
@@ -1182,9 +1552,6 @@ describe('reasoning utils', () => {
     })
 
     it('should not add effort for DeepSeek V4+ when effort is outside the documented set', async () => {
-      // Guard against silent downgrade: if MODEL_SUPPORTED_REASONING_EFFORT.deepseek_v4 ever gains
-      // new levels (low/medium/auto), the explicit effortMap must be extended — otherwise effort
-      // is omitted here rather than being silently mapped to 'high'.
       const { isReasoningModel, isSupportedThinkingTokenClaudeModel, isDeepSeekV4PlusModel, findTokenLimit } =
         await import('@renderer/config/models')
 
@@ -1309,6 +1676,23 @@ describe('reasoning utils', () => {
 
       const result = getGeminiReasoningParams(assistant, model)
       expect(result).toEqual({})
+    })
+
+    it('uses Gemini 3 thinking levels for Nano Banana 2', () => {
+      vi.mocked(mockModels.isReasoningModel).mockReturnValue(true)
+      vi.mocked(mockModels.isSupportedThinkingTokenGeminiModel).mockReturnValue(true)
+      vi.mocked(mockModels.isGemini3ThinkingTokenModel).mockReturnValue(true)
+
+      const result = getGeminiReasoningParams(
+        { id: 'test', name: 'Test', settings: { reasoning_effort: 'minimal' } } as Assistant,
+        {
+          id: 'gemini-3.1-flash-image',
+          name: 'Nano Banana 2',
+          provider: SystemProviderIds.gemini
+        } as Model
+      )
+
+      expect(result).toEqual({ thinkingConfig: { includeThoughts: true, thinkingLevel: 'minimal' } })
     })
 
     it('should return empty when reasoning effort is default', () => {
@@ -1858,6 +2242,25 @@ describe('reasoning utils', () => {
       const result = getXAIReasoningParams(assistant, model)
       expect(result).toEqual({ reasoningEffort: 'medium' })
     })
+
+    it('should preserve xhigh for Grok 4.6', () => {
+      const model: Model = {
+        id: 'grok-4.6',
+        name: 'Grok 4.6',
+        provider: SystemProviderIds.grok
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'xhigh'
+        }
+      } as Assistant
+
+      const result = getXAIReasoningParams(assistant, model)
+      expect(result).toEqual({ reasoningEffort: 'xhigh' })
+    })
   })
 
   describe('getBedrockReasoningParams', () => {
@@ -1921,6 +2324,36 @@ describe('reasoning utils', () => {
         reasoningConfig: {
           type: 'enabled',
           budgetTokens: 4096
+        }
+      })
+    })
+
+    it('should use adaptive reasoning config for Claude Opus 4.8 on Bedrock', async () => {
+      const { isReasoningModel, isSupportedThinkingTokenClaudeModel } = await import('@renderer/config/models')
+
+      vi.mocked(isReasoningModel).mockReturnValue(true)
+      vi.mocked(isSupportedThinkingTokenClaudeModel).mockReturnValue(true)
+
+      const model: Model = {
+        id: 'anthropic.claude-opus-4-8-v1:0',
+        name: 'Claude Opus 4.8',
+        provider: 'bedrock'
+      } as Model
+
+      const assistant: Assistant = {
+        id: 'test',
+        name: 'Test',
+        settings: {
+          reasoning_effort: 'xhigh',
+          maxTokens: 4096
+        }
+      } as Assistant
+
+      const result = getBedrockReasoningParams(assistant, model)
+      expect(result).toEqual({
+        reasoningConfig: {
+          type: 'adaptive',
+          maxReasoningEffort: 'max'
         }
       })
     })

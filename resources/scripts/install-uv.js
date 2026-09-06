@@ -4,7 +4,11 @@ const os = require('os')
 const { execSync } = require('child_process')
 const StreamZip = require('node-stream-zip')
 const { downloadWithRedirects } = require('./download')
+<<<<<<< HEAD
 const { copyLocalBinaryPackage } = require('./local-binary')
+=======
+const { installFromBundledArchive } = require('./local-binary')
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 
 // Base URL for downloading uv binaries
 const UV_RELEASE_BASE_URL = 'https://gitcode.com/CherryHQ/uv/releases/download'
@@ -182,6 +186,12 @@ async function installUv() {
   console.log(`Using uv version: ${version}`)
 
   const { platform, arch, isMusl } = detectPlatformAndArch()
+  const platformKey = isMusl ? `${platform}-musl-${arch}` : `${platform}-${arch}`
+  const packageName = UV_PACKAGES[platformKey]
+
+  if (packageName && (await installFromBundledArchive(platformKey, packageName, platform))) {
+    return 0
+  }
 
   console.log(`Installing uv ${version} for ${platform}-${arch}${isMusl ? ' (MUSL)' : ''}...`)
 

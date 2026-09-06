@@ -942,6 +942,8 @@
         "label": "思维链长度",
         "low": "浮想",
         "low_description": "低强度推理",
+        "max": "极致",
+        "max_description": "使用最大强度推理",
         "medium": "斟酌",
         "medium_description": "中强度推理",
         "minimal": "微念",
@@ -1763,6 +1765,7 @@
     "detail": "错误详情",
     "details": "详细信息",
     "diagnosis": {
+      "abnormal_finish": "回复异常结束，请重试或更换模型",
       "ai_button": "AI 诊断",
       "ai_done": "已诊断",
       "ai_loading": "正在诊断",
@@ -1778,10 +1781,13 @@
       "model_conflict": "诊断模型与出错模型相同，无法进行诊断",
       "network": "无法连接到服务器，请检查网络或代理设置",
       "ocr": "OCR 识别引擎未初始化，请检查 OCR 设置",
+      "output_truncated": "回复达到最大长度后被截断",
       "parse": "AI 返回的格式异常，请重试或更换模型",
       "payload": "请求内容过大，请减少发送的文件或文本量",
       "proxy": "代理或 SSL 证书错误，请检查代理和网络设置",
-      "quota": "账户额度已用完，请充值或更换服务商",
+      "quota": "账户额度已用完，请联系服务商管理员或切换到其他已配置的服务商",
+      "rate_limit": "请求过于频繁，请稍等片刻再试，或更换为更高速率的模型",
+      "region": "已配置的服务商拒绝当前区域，请联系企业管理员或更换其他已配置的服务商",
       "server": "服务器异常，建议稍后重试",
       "stream": "响应传输中断，请检查网络稳定性或重试",
       "unknown": "发生了一个错误",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "请求错误，请检查请求参数是否正确。如果修改了模型设置，请重置到默认设置",
       "401": "身份验证失败，请检查 API 密钥是否正确",
+      "402": "账户余额或额度已用完，请联系服务商管理员检查账户分配，或切换到其他已配置的服务商",
       "403": "禁止访问，请翻译具体报错信息查看原因，或联系服务商询问被禁止原因",
       "404": "模型不存在或者请求路径错误",
       "429": "请求速率超过限制，请稍后再试",
@@ -1938,6 +1945,7 @@
       "to_file": "保存为图片"
     },
     "code": "代码",
+    "code_block_progress": "正在生成 {{language}} · {{lines}} 行 · {{characters}} 字符",
     "empty_preview": "无内容可展示",
     "generating": "生成中",
     "preview": "预览",
@@ -2365,6 +2373,10 @@
         "invalid": "无法获取有效的表格数据"
       },
       "unknown": "未知错误",
+      "vision_routing": {
+        "analysis_failed": "图片分析失败，请检查默认图片多模态模型及其服务配置后重试。",
+        "not_configured": "当前主模型无法识别图片，请先在“设置 > 模型服务”中配置已启用的图片多模态模型后重试。"
+      },
       "yuque": {
         "export": "导出语雀错误，请检查连接状态并对照文档检查配置",
         "no_config": "未配置语雀 Token 或 知识库 URL"
@@ -4759,6 +4771,15 @@
         "russian": "俄文"
       }
     },
+    "intranet": {
+      "allowlist": {
+        "description": "禁用公网访问后，仅允许访问以下主机名的 HTTP(S)/WS(S) 请求。每行填写一个主机名或 URL，支持 *.corp.example.com 等通配符。",
+        "invalidRule": "无效的白名单规则：{{rule}}",
+        "placeholder": "llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "网络白名单已保存",
+        "title": "内网网络白名单"
+      }
+    },
     "launch": {
       "onboot": "开机自动启动",
       "title": "启动",
@@ -5182,6 +5203,8 @@
       },
       "default_assistant_model": "默认助手模型",
       "default_assistant_model_description": "创建新助手时使用的模型，如果助手未设置模型，则使用此模型",
+      "default_vision_model": "默认图片多模态模型",
+      "default_vision_model_description": "当助手主模型不支持图片输入时，使用此模型分析图片",
       "empty": "没有模型",
       "manage": {
         "add_listed": {

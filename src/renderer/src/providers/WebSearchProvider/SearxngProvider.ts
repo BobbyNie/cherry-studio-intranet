@@ -64,7 +64,7 @@ export default class SearxngProvider extends BaseWebSearchProvider {
         : undefined
       const response = await axios.get<SearxngConfigResponse>(`${this.apiHost}/config`, {
         timeout: 5000,
-        validateStatus: (status) => status === 200, // 仅接受 200 状态码
+        validateStatus: (status) => status === 200,
         auth
       })
 

@@ -65,6 +65,23 @@ exports.default = async function (context) {
     console.warn(`Warning: rtk binary download failed (non-fatal): ${error.message}`)
   }
 
+  // Bundle uv / bun / openclaw / ovms for intranet offline installs (same resources/binaries layout as rtk)
+  try {
+    console.log(`Bundling intranet tool binaries for ${platform}-${arch}...`)
+    execSync(`node "${path.join(__dirname, 'download-intranet-binaries.js')}" ${platform} ${arch}`, {
+      stdio: 'inherit',
+      env: process.env
+    })
+  } catch (error) {
+    const intranetMode =
+      typeof process.env.CHERRY_INTRANET_MODE === 'string' &&
+      ['1', 'true', 'yes', 'on'].includes(process.env.CHERRY_INTRANET_MODE.trim().toLowerCase())
+    if (intranetMode) {
+      throw new Error(`Intranet tool binary bundle failed: ${error.message}`)
+    }
+    console.warn(`Warning: intranet tool binary bundle skipped (non-fatal): ${error.message}`)
+  }
+
   const downloadPackages = async () => {
     // Skip if target platform and architecture match current system
     if (platform === process.platform && arch === process.arch) {

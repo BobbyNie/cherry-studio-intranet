@@ -301,7 +301,11 @@ export class ConfigManager {
     return this.store.get(key, defaultValue) as T
   }
 
+<<<<<<< HEAD
   has(key: string) {
+=======
+  has(key: string): boolean {
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
     return this.store.has(key)
   }
 }

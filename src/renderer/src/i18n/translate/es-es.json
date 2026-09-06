@@ -942,6 +942,8 @@
         "label": "Longitud de Cadena de Razonamiento",
         "low": "Corto",
         "low_description": "Razonamiento de bajo nivel",
+        "max": "Máximo",
+        "max_description": "Esfuerzo máximo de razonamiento",
         "medium": "Medio",
         "medium_description": "Razonamiento de nivel medio",
         "minimal": "minimal",
@@ -1601,7 +1603,7 @@
     "copy_failed": "Error al copiar",
     "current": "Actual",
     "cut": "Cortar",
-    "decline": "[to be translated]:Decline",
+    "decline": "Rechazar",
     "default": "Predeterminado",
     "delete": "Eliminar",
     "delete_confirm": "¿Está seguro de que desea eliminarlo?",
@@ -1763,6 +1765,7 @@
     "detail": "Detalles del error",
     "details": "Detalles",
     "diagnosis": {
+      "abnormal_finish": "La respuesta finalizó de forma anómala, vuelve a intentarlo o cambia de modelo",
       "ai_button": "Diagnóstico IA",
       "ai_done": "Diagnosticado",
       "ai_loading": "Diagnosticando",
@@ -1778,10 +1781,13 @@
       "model_conflict": "El modelo de diagnóstico es el mismo que el modelo con error",
       "network": "No se puede conectar al servidor, verifica la configuración de red o proxy",
       "ocr": "Motor OCR no inicializado, verifica la configuración de OCR",
+      "output_truncated": "La respuesta alcanzó la longitud máxima y se truncó",
       "parse": "La IA devolvió una respuesta inválida; por favor, reintenta o cambia de modelo.",
       "payload": "Contenido de la solicitud demasiado grande, por favor reduce el tamaño del archivo o del texto",
       "proxy": "Error de proxy o de certificado SSL, verifique la configuración del proxy y de la red",
-      "quota": "Cuota de la cuenta agotada, recarga o cambia de proveedor",
+      "quota": "Cuota de la cuenta agotada. Contacte al administrador del proveedor o cambie a otro proveedor configurado",
+      "rate_limit": "Demasiadas solicitudes en poco tiempo. Espere un momento y vuelva a intentarlo, o cambie a un modelo con un límite de velocidad mayor",
+      "region": "El proveedor configurado rechazó esta región. Contacte con el administrador de su empresa o cambie a otro proveedor configurado",
       "server": "Error del servidor, intenta de nuevo más tarde",
       "stream": "Respuesta interrumpida, verifica la estabilidad de la red o intenta nuevamente",
       "unknown": "Se ha producido un error",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "Error en la solicitud, revise si los parámetros de la solicitud son correctos. Si modificó la configuración del modelo, restablezca a la configuración predeterminada",
       "401": "Fallo en la autenticación, revise si la clave API es correcta",
+      "402": "Se requiere pago. Contacte al administrador del proveedor para revisar la asignación de la cuenta o cambie a otro proveedor configurado",
       "403": "Acceso prohibido, traduzca el mensaje de error específico para ver la causa o póngase en contacto con el proveedor de servicios para preguntar sobre la razón de la prohibición",
       "404": "El modelo no existe o la ruta de la solicitud está incorrecta",
       "429": "La tasa de solicitudes excede el límite, inténtelo de nuevo más tarde",
@@ -2923,7 +2930,7 @@
   },
   "onboarding": {
     "privacy": {
-      "accept_and_continue": "[to be translated]:Accept and Continue",
+      "accept_and_continue": "Aceptar y continuar",
       "notice": "Al continuar, confirmas que has leído y aceptas el",
       "period": ".",
       "policy": "Política de Privacidad"
@@ -3407,12 +3414,12 @@
     "zoom_out": "reducir"
   },
   "privacy_policy": {
-    "title": "[to be translated]:Privacy Policy"
+    "title": "Política de privacidad"
   },
   "privacy_policy_update": {
-    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
-    "policy": "[to be translated]:Privacy Policy",
-    "title": "[to be translated]:Privacy Policy Updated"
+    "description_before_link": "Hemos actualizado la política de privacidad. Revisa la última ",
+    "policy": "Política de privacidad",
+    "title": "Política de privacidad actualizada"
   },
   "prompts": {
     "explanation": "Ayúdame a explicar este concepto",
@@ -4757,6 +4764,15 @@
         "japanese": "Japonés",
         "label": "Idioma objetivo",
         "russian": "Ruso"
+      }
+    },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
       }
     },
     "launch": {

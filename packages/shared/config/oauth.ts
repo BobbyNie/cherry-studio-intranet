@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { isOfflineMode } from './intranet'
 
 /**
@@ -5,17 +6,24 @@ import { isOfflineMode } from './intranet'
  * allowlist guard decides whether the authorization endpoint is reachable.
  */
 
+=======
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 /**
  * GitHub Copilot OAuth integration status
  */
 export function isCopilotEnabled(): boolean {
+<<<<<<< HEAD
   return !isOfflineMode()
+=======
+  return true
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 }
 
 /**
  * CherryIN OAuth integration status
  */
 export function isCherryINEnabled(): boolean {
+<<<<<<< HEAD
   return !isOfflineMode()
 }
 
@@ -24,4 +32,14 @@ export function isCherryINEnabled(): boolean {
  */
 export function isOAuthEnabled(): boolean {
   return !isOfflineMode()
+=======
+  return true
+}
+
+/**
+ * Generic check: OAuth integrations enabled
+ */
+export function isOAuthEnabled(): boolean {
+  return true
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 }

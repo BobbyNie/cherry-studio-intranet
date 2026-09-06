@@ -110,6 +110,28 @@ export function convertClaudeCodeUsage(usage: ClaudeCodeUsage): LanguageModelUsa
   }
 }
 
+export function getFirstConfiguredApiKey(apiKey: string | undefined): string {
+  if (!apiKey || apiKey.trim() === '') {
+    return ''
+  }
+
+  return (
+    apiKey
+      .split(/(?<!\\),/)
+      .map((key) => key.trim())
+      .map((key) => key.replace(/\\,/g, ','))
+      .find(Boolean) ?? ''
+  )
+}
+
+export function resolveBuiltinRole(
+  sessionConfiguration: Record<string, unknown> | undefined,
+  agentConfiguration: Record<string, unknown> | undefined
+): string | undefined {
+  const role = sessionConfiguration?.builtin_role ?? agentConfiguration?.builtin_role
+  return typeof role === 'string' ? role : undefined
+}
+
 // Several providers expose a 1M context window, but the Claude Code CLI only
 // budgets for it when the model id carries the `[1m]` suffix (parsed locally
 // to switch /context budgeting to 1e6 tokens, then stripped before the API

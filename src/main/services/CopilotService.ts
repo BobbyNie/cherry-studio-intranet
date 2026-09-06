@@ -1,5 +1,4 @@
 import { loggerService } from '@logger'
-import { isCopilotEnabled } from '@shared/config/oauth'
 import { app, net, safeStorage } from 'electron'
 import fs from 'fs'
 import path from 'path'
@@ -20,7 +19,7 @@ const CONFIG = {
     accept: 'application/json',
     'editor-version': 'Neovim/0.6.1',
     'editor-plugin-version': 'copilot.vim/1.16.0',
-    'content-type': 'application/json',
+    'Content-Type': 'application/json',
     'user-agent': 'GithubCopilot/1.155.0',
     'accept-encoding': 'gzip,deflate,br'
   },
@@ -33,6 +32,8 @@ const CONFIG = {
   },
   TOKEN_FILE_NAME: '.copilot_token'
 }
+
+const REQUIRED_HEADER_NAMES = new Set(['accept', 'content-type'])
 
 // 接口定义移到顶部，便于查阅
 interface UserResponse {
@@ -87,20 +88,19 @@ class CopilotService {
   }
 
   /**
-   * 检查 Copilot 是否启用（内网模式下禁用）
-   */
-  private ensureCopilotEnabled = (): void => {
-    if (!isCopilotEnabled()) {
-      throw new CopilotServiceError('GitHub Copilot integration is disabled in intranet mode')
-    }
-  }
-
-  /**
    * 设置自定义请求头
    */
   private updateHeaders = (headers?: Record<string, string>): void => {
-    if (headers && Object.keys(headers).length > 0) {
-      this.headers = { ...headers }
+    const customHeaders = Object.fromEntries(
+      Object.entries(headers ?? {}).filter(([name]) => !REQUIRED_HEADER_NAMES.has(name.toLowerCase()))
+    )
+
+    this.headers = {
+      ...CONFIG.DEFAULT_HEADERS,
+      'user-agent': 'Visual Studio Code (desktop)',
+      ...customHeaders,
+      accept: 'application/json',
+      'Content-Type': 'application/json'
     }
   }
 
@@ -108,7 +108,6 @@ class CopilotService {
    * 获取GitHub登录信息
    */
   public getUser = async (_: Electron.IpcMainInvokeEvent, token: string): Promise<UserResponse> => {
-    this.ensureCopilotEnabled()
     try {
       const response = await net.fetch(CONFIG.API_URLS.GITHUB_USER, {
         method: 'GET',
@@ -145,7 +144,6 @@ class CopilotService {
     _: Electron.IpcMainInvokeEvent,
     headers?: Record<string, string>
   ): Promise<AuthResponse> => {
-    this.ensureCopilotEnabled()
     try {
       this.updateHeaders(headers)
 
@@ -180,7 +178,6 @@ class CopilotService {
     device_code: string,
     headers?: Record<string, string>
   ): Promise<TokenResponse> => {
-    this.ensureCopilotEnabled()
     this.updateHeaders(headers)
 
     let currentDelay = CONFIG.POLLING.INITIAL_DELAY_MS
@@ -230,7 +227,6 @@ class CopilotService {
    * 保存Copilot令牌到本地文件
    */
   public saveCopilotToken = async (_: Electron.IpcMainInvokeEvent, token: string): Promise<void> => {
-    this.ensureCopilotEnabled()
     try {
       const encryptedToken = safeStorage.encryptString(token)
       // 确保目录存在
@@ -253,7 +249,6 @@ class CopilotService {
     _: Electron.IpcMainInvokeEvent,
     headers?: Record<string, string>
   ): Promise<CopilotTokenResponse> => {
-    this.ensureCopilotEnabled()
     try {
       this.updateHeaders(headers)
 

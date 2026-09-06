@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { statfs } from 'node:fs/promises'
 import { arch } from 'node:os'
 import path from 'node:path'
 
@@ -20,6 +21,10 @@ import { handleZoomFactor } from '@main/utils/zoom'
 import type { SpanEntity, TokenUsage } from '@mcp-trace/trace-core'
 import type { UpgradeChannel } from '@shared/config/constant'
 import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from '@shared/config/constant'
+<<<<<<< HEAD
+=======
+import { getNetworkAllowlistRules } from '@shared/config/intranet'
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
 import type { LocalTransferConnectPayload } from '@shared/config/types'
 import { IpcChannel } from '@shared/IpcChannel'
 import { extractPdfText } from '@shared/utils/pdf'
@@ -33,7 +38,6 @@ import type {
   SupportedOcrFile,
   ThemeMode
 } from '@types'
-import checkDiskSpace from 'check-disk-space'
 import type { ProxyConfig } from 'electron'
 import { BrowserWindow, dialog, ipcMain, session, shell, systemPreferences, webContents } from 'electron'
 import fontList from 'font-list'
@@ -54,6 +58,10 @@ import { ExportService } from './services/ExportService'
 import { externalAppsService } from './services/ExternalAppsService'
 import { fileStorage as fileManager } from './services/FileStorage'
 import FileService from './services/FileSystemService'
+import {
+  isIntranetNetworkAllowlistKey,
+  syncIntranetNetworkAllowlistConfigSet
+} from './services/IntranetNetworkAllowlistService'
 import KnowledgeService from './services/KnowledgeService'
 import { lanTransferClientService } from './services/lanTransfer'
 import { localTransferService } from './services/LocalTransferService'
@@ -308,7 +316,11 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
   })
 
   ipcMain.handle(IpcChannel.Config_Set, async (_, key: string, value: any, isNotify: boolean = false) => {
+<<<<<<< HEAD
     if (await syncNetworkAllowlistConfigSet(key, value, isNotify)) {
+=======
+    if (syncIntranetNetworkAllowlistConfigSet(key, value)) {
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
       return
     }
 
@@ -316,6 +328,9 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
   })
 
   ipcMain.handle(IpcChannel.Config_Get, (_, key: string) => {
+    if (isIntranetNetworkAllowlistKey(key)) {
+      return getNetworkAllowlistRules()
+    }
     return configManager.get(key)
   })
 
@@ -972,13 +987,11 @@ export async function registerIpc(mainWindow: BrowserWindow, app: Electron.App) 
 
   ipcMain.handle(IpcChannel.App_GetDiskInfo, async (_, directoryPath: string) => {
     try {
-      const diskSpace = await checkDiskSpace(directoryPath) // { free, size } in bytes
-      logger.debug('disk space', diskSpace)
-      const { free, size } = diskSpace
-      return {
-        free,
-        size
-      }
+      const stats = await statfs(directoryPath)
+      const free = stats.bsize * stats.bfree
+      const size = stats.bsize * stats.blocks
+      logger.debug('disk space', { free, size })
+      return { free, size }
     } catch (error) {
       logger.error('check disk space error', error as Error)
       return null

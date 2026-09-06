@@ -3,6 +3,7 @@ import { loggerService } from '@renderer/services/LoggerService'
 import store from '@renderer/store'
 import type { Model, Provider } from '@renderer/types'
 import type { SerializedError } from '@renderer/types/error'
+import { isMcpErrorMessage, isQuotaErrorMessage } from '@renderer/utils/errorClassifier'
 import { isIntranetMode } from '@shared/config/intranet'
 
 import { fetchGenerate, fetchModels } from './ApiService'
@@ -83,9 +84,40 @@ async function buildModelsToTry(context?: DiagnosisContext): Promise<Model[]> {
 }
 
 function buildContextHint(errorInfo: Record<string, unknown>, context?: DiagnosisContext): string {
-  const msg = String(errorInfo.message || '').toLowerCase()
+  // Merge message + responseBody + data so the rule layer here matches what the AI receives.
+  // Without this, an SDK wrapper saying "Rate limit exceeded" with responseBody.insufficient_quota
+  // would steer the AI hint toward rate_limit while the actual cause is billing.
+  const messageText = String(errorInfo.message || '').toLowerCase()
+  const responseBodyText = typeof errorInfo.responseBody === 'string' ? errorInfo.responseBody.toLowerCase() : ''
+  const dataText = typeof errorInfo.data === 'string' ? errorInfo.data.toLowerCase() : ''
+  const msg = [messageText, responseBodyText, dataText].filter(Boolean).join('\n')
   const status = Number(errorInfo.status) || 0
+  const finishReason = String(errorInfo.finishReason ?? '').toLowerCase()
   const source = context?.errorSource || String(errorInfo.source || '')
+
+  // Structured safety signal — finishReason takes precedence over message text
+  if (finishReason === 'safety' || finishReason === 'recitation' || finishReason === 'content_filter') {
+    return `## Context\nThe provider's safety system blocked this response (finishReason=${finishReason}). Suggest rephrasing the prompt or removing sensitive content. DO NOT suggest checking the API key or billing.\n`
+  }
+
+  // Region / geo-block — check BEFORE auth, since 403 with region keywords is not an API-key issue.
+  // Keywords scoped to geographic phrases to avoid matching model-permission errors like
+  // "model is not available in your account/plan".
+  if (
+    msg.includes('unsupported_country') ||
+    msg.includes('country, region') ||
+    msg.includes('country/region') ||
+    msg.includes('region not supported') ||
+    msg.includes('not available in your region') ||
+    msg.includes('not available in your country') ||
+    msg.includes('not available in your location') ||
+    msg.includes('not available in your area') ||
+    msg.includes('not available in your territory') ||
+    (msg.includes('territory') && (status === 403 || msg.includes('unsupported')))
+  ) {
+    const provider = errorInfo.provider || context?.providerName || 'the provider'
+    return `## Context\n${provider} rejected the configured endpoint because its region policy does not allow this request. This is NOT an API-key issue. Suggest contacting the enterprise network or model-service administrator, or switching to another configured provider approved for this environment. DO NOT suggest changing the API key or bypassing enterprise network policy with a public proxy.\n`
+  }
 
   // Auth / API key issues
   if (
@@ -99,16 +131,53 @@ function buildContextHint(errorInfo: Record<string, unknown>, context?: Diagnosi
     return `## Context\nThe user is calling ${provider} API and got an authentication error. Cherry Studio lets users configure API keys per provider in provider settings.\n`
   }
 
-  // Quota / rate limit
-  if (status === 429 || msg.includes('quota') || msg.includes('rate_limit') || msg.includes('insufficient')) {
+  // Quota / balance exhausted — check first so a 429 with an explicit billing marker routes here, not to rate_limit.
+  // HTTP 402 Payment Required is the canonical billing-failure status.
+  if (status === 402 || isQuotaErrorMessage(msg)) {
     const provider = errorInfo.provider || context?.providerName || 'the provider'
-    return `## Context\nThe user hit a rate limit or quota issue with ${provider}. Users can check billing/quota on the provider's website or switch to a different model.\n`
+    return `## Context\nThe user's quota or account balance is exhausted on ${provider}. Suggest contacting the provider administrator to check the account allocation, or switching to another configured provider with available capacity. DO NOT suggest visiting a public billing website, waiting, or retrying — this is not a transient issue.\n`
+  }
+
+  // Rate limit (high-frequency requests)
+  if (status === 429 || msg.includes('rate_limit') || msg.includes('rate limit') || msg.includes('too many requests')) {
+    const provider = errorInfo.provider || context?.providerName || 'the provider'
+    return `## Context\nThe user is hitting a rate limit on ${provider} due to too many requests in a short window. This is NOT a billing or quota issue — the user has not run out of credit. Suggest waiting briefly before retrying, slowing down request frequency, or switching to a model with a higher rate limit. DO NOT mention billing, recharging, top-up, or running out of quota.\n`
   }
 
   // Model not found
   if (status === 404 || msg.includes('model_not_found') || msg.includes('model not found')) {
     const model = errorInfo.modelId || context?.modelId || 'unknown'
     return `## Context\nModel "${model}" was not found. The model may be deprecated, the ID may be wrong, or the user's API plan may not include this model.\n`
+  }
+
+  // Content filter / safety — provider-agnostic
+  if (
+    msg.includes('content_filter') ||
+    msg.includes('content_policy') ||
+    msg.includes('prohibited_content') ||
+    msg.includes('responsible_ai') ||
+    msg.includes('output_blocked') ||
+    msg.includes('"safety"') ||
+    msg.includes('recitation') ||
+    msg.includes('blocked by safety')
+  ) {
+    return `## Context\nThe provider's safety system blocked this request or response due to content policy. Suggest rephrasing the prompt, removing sensitive content, or switching to a model with looser safety filters. DO NOT suggest checking the API key or billing.\n`
+  }
+
+  // MCP — check BEFORE network so "MCP timeout" routes here
+  if (isMcpErrorMessage(msg)) {
+    return `## Context\nMCP (Model Context Protocol) server error. Users manage MCP servers in MCP settings. Common issues: server not started, wrong configuration, connection timeout.\n`
+  }
+
+  // Context length
+  if (
+    msg.includes('context_length') ||
+    msg.includes('context window') ||
+    msg.includes('prompt is too long') ||
+    msg.includes('input is too long') ||
+    msg.includes('too many tokens')
+  ) {
+    return `## Context\nThe prompt exceeds the model's context window. Suggest clearing chat history, removing large attachments, or switching to a model with a larger context window. DO NOT suggest checking the API key.\n`
   }
 
   // Network / proxy
@@ -119,12 +188,7 @@ function buildContextHint(errorInfo: Record<string, unknown>, context?: Diagnosi
     msg.includes('proxy') ||
     msg.includes('certificate')
   ) {
-    return `## Context\nNetwork or proxy error. Cherry Studio supports HTTP/SOCKS proxy configuration in general settings. The user may be behind a firewall or using a custom API endpoint.\n`
-  }
-
-  // MCP
-  if (msg.includes('mcp')) {
-    return `## Context\nMCP (Model Context Protocol) server error. Users manage MCP servers in MCP settings. Common issues: server not started, wrong configuration, connection timeout.\n`
+    return `## Context\nIntranet network or endpoint error. Suggest verifying the configured provider endpoint, intranet allowlist, enterprise DNS, and certificate trust, then contacting the network or model-service administrator if needed. DO NOT suggest switching to an unapproved public endpoint.\n`
   }
 
   // Knowledge base
@@ -133,7 +197,7 @@ function buildContextHint(errorInfo: Record<string, unknown>, context?: Diagnosi
   }
 
   // Generic
-  return `## Context\nCherry Studio is an AI chat app connecting to LLM providers (OpenAI, Anthropic, Google, Ollama, etc.) with API keys. Error occurred during ${source || 'chat'}.\n`
+  return `## Context\nCherry Studio Intranet connects to explicitly configured model-provider endpoints inside the enterprise network policy. Error occurred during ${source || 'chat'}.\n`
 }
 
 function parseResponse(raw: string): DiagnosisResult {
@@ -167,24 +231,54 @@ export async function diagnoseError(
   language: string,
   context?: DiagnosisContext
 ): Promise<DiagnosisResult> {
+  const errorBag = error as Record<string, unknown>
   const errorInfo: Record<string, unknown> = {
     name: error.name,
     message: error.message
   }
 
-  const status = (error as Record<string, unknown>).statusCode ?? (error as Record<string, unknown>).status
+  const status = errorBag.statusCode ?? errorBag.status
   if (status) errorInfo.status = status
 
   if (context?.errorSource) errorInfo.source = context.errorSource
-  if (context?.providerName) errorInfo.provider = context.providerName
-  if (context?.modelId) errorInfo.modelId = context.modelId
 
-  const cause = (error as Record<string, unknown>).cause
+  // Provider/model: prefer context, fall back to fields on the error itself
+  const provider = context?.providerName ?? errorBag.provider ?? errorBag.providerId
+  if (typeof provider === 'string' && provider) errorInfo.provider = provider
+
+  const modelId = context?.modelId ?? errorBag.modelId
+  if (typeof modelId === 'string' && modelId) errorInfo.modelId = modelId
+
+  // cause: SerializedAiSdkError serializes cause to a string wrapper
+  const cause = errorBag.cause
   if (cause && typeof cause === 'string') {
-    errorInfo.responseBody = cause.slice(0, 800)
+    errorInfo.cause = cause.slice(0, 400)
   }
 
-  const url = (error as Record<string, unknown>).url
+  // responseBody: the actual provider error JSON — the highest-signal field for diagnosis
+  const responseBody = errorBag.responseBody
+  if (responseBody && typeof responseBody === 'string') {
+    errorInfo.responseBody = responseBody.slice(0, 800)
+  }
+
+  // data: parsed structured error data (some SDKs)
+  const data = errorBag.data
+  if (data !== undefined && data !== null) {
+    try {
+      const dataStr = typeof data === 'string' ? data : JSON.stringify(data)
+      if (dataStr) errorInfo.data = dataStr.slice(0, 400)
+    } catch {
+      // ignore non-serializable data
+    }
+  }
+
+  // finishReason: SAFETY / RECITATION / MAX_TOKENS from NoObjectGeneratedError — structured safety signal
+  const finishReason = errorBag.finishReason
+  if (finishReason && typeof finishReason === 'string') {
+    errorInfo.finishReason = finishReason
+  }
+
+  const url = errorBag.url
   if (url && typeof url === 'string') {
     // Include API endpoint (strip query params for privacy)
     try {
@@ -204,15 +298,24 @@ Analyze the error and return a JSON diagnosis in ${language}.
 ${contextHint}
 ## Output
 Return ONLY valid JSON (no markdown, no code blocks):
-{"summary":"one-line","category":"auth|quota|model|network|proxy|content|server|context_length|payload|stream|parse|mcp|knowledge|ocr|deprecated|unknown","explanation":"2-3 sentences why this happened","steps":[{"text":"step 1"},{"text":"step 2"}]}
+{"summary":"one-line","category":"auth|region|quota|rate_limit|model|network|proxy|content|server|context_length|payload|stream|parse|mcp|knowledge|ocr|deprecated|unknown","explanation":"2-3 sentences why this happened","steps":[{"text":"step 1"},{"text":"step 2"}]}
 
 ## Rules
 - 2-4 concrete steps, reference actual provider/model name from error
 - No URLs, no links, no restart suggestion, plain text only
+- Distinguish rate_limit (too many requests, transient, retry soon) from quota (account allocation exhausted, NOT transient, requires provider-administrator action)
+- Distinguish region policy blocks from auth failures. For region blocks, recommend contacting the enterprise administrator or selecting another configured provider; never recommend bypassing network policy with a public proxy
+- For content (safety filter), suggest rephrasing, never billing/auth fixes
 
-## Example
+## Examples
 Input: {"name":"APICallError","message":"invalid_api_key","status":401,"provider":"openai","modelId":"gpt-4"}
-Output: {"summary":"OpenAI API key is invalid or expired","category":"auth","explanation":"The OpenAI server rejected the request because the API key is invalid, expired, or has been revoked.","steps":[{"text":"Open provider settings and check your OpenAI API key is correct"},{"text":"Verify the API key is still active in your OpenAI dashboard"}]}`
+Output: {"summary":"OpenAI API key is invalid or expired","category":"auth","explanation":"The OpenAI server rejected the request because the API key is invalid, expired, or has been revoked.","steps":[{"text":"Open provider settings and check your OpenAI API key is correct"},{"text":"Verify the API key is still active in your OpenAI dashboard"}]}
+
+Input: {"name":"APICallError","message":"Rate limit exceeded","status":429,"provider":"openai","modelId":"gpt-4"}
+Output: {"summary":"OpenAI rate limit hit due to too many requests","category":"rate_limit","explanation":"The OpenAI server is throttling because the request rate exceeded the allowed limit for this model. This is not a billing issue.","steps":[{"text":"Wait a few seconds before sending the next request"},{"text":"Slow down concurrent or repeated requests to gpt-4"},{"text":"Switch to a model with a higher rate limit if this happens often"}]}
+
+Input: {"name":"APICallError","message":"insufficient_quota: You exceeded your current quota","status":429,"provider":"openai"}
+Output: {"summary":"The configured provider account allocation is exhausted","category":"quota","explanation":"The provider rejected further requests because the configured account has no available quota.","steps":[{"text":"Contact the provider administrator to verify the account allocation"},{"text":"Switch to another configured provider with available quota"}]}`
 
   const content = JSON.stringify(errorInfo)
 

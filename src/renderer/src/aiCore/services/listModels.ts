@@ -7,6 +7,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   getFromApi as aiSdkGetFromApi,
+  postJsonToApi,
   zodSchema
 } from '@ai-sdk/provider-utils'
 import { loggerService } from '@logger'
@@ -14,7 +15,7 @@ import { COPILOT_DEFAULT_HEADERS } from '@renderer/aiCore/provider/constants'
 import store from '@renderer/store'
 import type { EndpointType, Model, Provider } from '@renderer/types'
 import { SystemProviderIds } from '@renderer/types'
-import { formatApiHost, withoutTrailingSlash } from '@renderer/utils'
+import { formatApiHost, getDefaultGroupName, withoutTrailingSlash } from '@renderer/utils'
 import { isGeminiProvider, isOllamaProvider, isVertexProvider } from '@renderer/utils/provider'
 import { isIntranetMode } from '@shared/config/intranet'
 import { defaultAppHeaders } from '@shared/utils'
@@ -29,9 +30,11 @@ import {
 } from './listModels/vertex'
 import {
   AIHubMixModelsResponseSchema,
+  AnthropicModelsResponseSchema,
   GeminiModelsResponseSchema,
   GitHubModelsResponseSchema,
   NewApiModelsResponseSchema,
+  OllamaShowResponseSchema,
   OllamaTagsResponseSchema,
   OpenAIModelsResponseSchema,
   OVMSConfigResponseSchema,
@@ -121,9 +124,13 @@ function defaultHeaders(provider: Provider): Record<string, string> {
   }
 }
 
-function defaultGroup(modelId: string, providerId: string): string {
+function defaultGroup(modelId: string, provider: Provider): string {
+  if (provider.isSystem === false) {
+    return getDefaultGroupName(modelId, provider.id)
+  }
+
   const parts = modelId.split('/')
-  return parts.length > 1 ? parts[0] : providerId
+  return parts.length > 1 ? parts[0] : provider.id
 }
 
 function toModel(id: string, provider: Provider, extra?: Partial<Model>): Model {
@@ -131,7 +138,7 @@ function toModel(id: string, provider: Provider, extra?: Partial<Model>): Model 
     id,
     name: extra?.name || id,
     provider: provider.id,
-    group: extra?.group || defaultGroup(id, provider.id),
+    group: extra?.group || defaultGroup(id, provider),
     ...extra
   }
 }
@@ -160,6 +167,26 @@ function pickPreferredString(values: Array<unknown>): string | undefined {
 
 // === Fetchers ===
 
+/** Check availability without loading the model or changing its stored capabilities. */
+export async function probeOllamaModel(provider: Provider, model: string, signal?: AbortSignal): Promise<void> {
+  const baseUrl = withoutTrailingSlash(provider.apiHost)
+    .replace(/\/v1$/, '')
+    .replace(/\/api$/, '')
+  // The Electron session guard checks the main process's live allowlist.
+  // Renderer modules do not hold a synchronized copy of that policy.
+  await postJsonToApi({
+    url: `${baseUrl}/api/show`,
+    headers: defaultHeaders(provider),
+    body: { model },
+    successfulResponseHandler: createJsonResponseHandler(zodSchema(OllamaShowResponseSchema)),
+    failedResponseHandler: createJsonErrorResponseHandler({
+      errorSchema: zodSchema(ApiErrorSchema),
+      errorToMessage: (error: ApiError) => error.error?.message || error.message || 'Unknown error'
+    }),
+    abortSignal: signal
+  })
+}
+
 const ollamaFetcher: ModelFetcher = {
   match: (p) => isOllamaProvider(p),
   fetch: async (provider, signal) => {
@@ -181,8 +208,9 @@ const geminiFetcher: ModelFetcher = {
   fetch: async (provider, signal) => {
     let baseUrl = withoutTrailingSlash(provider.apiHost)
     baseUrl = baseUrl.replace(/\/v1(beta)?$/, '')
+    const searchParams = new URLSearchParams({ key: getApiKey(provider) })
     const response = await getFromApi({
-      url: `${baseUrl}/v1beta/models?key=${getApiKey(provider)}`,
+      url: `${baseUrl}/v1beta/models?${searchParams.toString()}`,
       headers: { ...defaultAppHeaders(), ...provider.extra_headers },
       responseSchema: GeminiModelsResponseSchema,
       abortSignal: signal
@@ -191,6 +219,52 @@ const geminiFetcher: ModelFetcher = {
       const id = m.name.startsWith('models/') ? m.name.slice(7) : m.name
       return toModel(id, provider, { name: m.displayName || id, description: m.description })
     })
+  }
+}
+
+const anthropicFetcher: ModelFetcher = {
+  match: (p) => p.id === SystemProviderIds.anthropic,
+  fetch: async (provider, signal) => {
+    const baseUrl = formatApiHost(provider.apiHost)
+    const apiKey = getApiKey(provider)
+    const headers = {
+      ...defaultAppHeaders(),
+      ...(apiKey ? { 'x-api-key': apiKey } : {}),
+      'anthropic-version': '2023-06-01',
+      ...provider.extra_headers
+    }
+    const models: z.infer<typeof AnthropicModelsResponseSchema>['data'] = []
+    let afterId: string | undefined
+    const seenCursors = new Set<string>()
+
+    do {
+      const searchParams = new URLSearchParams({ limit: '1000' })
+      if (afterId) searchParams.set('after_id', afterId)
+      const response = await getFromApi({
+        url: `${baseUrl}/models?${searchParams.toString()}`,
+        headers,
+        responseSchema: AnthropicModelsResponseSchema,
+        abortSignal: signal
+      })
+      models.push(...response.data)
+      const nextAfterId = response.has_more && response.last_id ? response.last_id : undefined
+      if (nextAfterId && seenCursors.has(nextAfterId)) {
+        logger.warn('Stopping Anthropic model pagination due to repeated cursor', {
+          providerId: provider.id,
+          cursor: nextAfterId
+        })
+        break
+      }
+      if (nextAfterId) seenCursors.add(nextAfterId)
+      afterId = nextAfterId
+    } while (afterId)
+
+    return dedup(models, (m) => m.id).map((m) =>
+      toModel(m.id, provider, {
+        name: m.display_name || m.id,
+        owned_by: 'anthropic'
+      })
+    )
   }
 }
 
@@ -208,6 +282,7 @@ const vertexFetcher: ModelFetcher = {
         try {
           const publisherModels: z.infer<typeof VertexPublisherModelsResponseSchema>['publisherModels'] = []
           let pageToken: string | undefined
+          const seenTokens = new Set<string>()
 
           do {
             const searchParams = new URLSearchParams({
@@ -227,7 +302,17 @@ const vertexFetcher: ModelFetcher = {
             })
 
             publisherModels.push(...response.publisherModels)
-            pageToken = response.nextPageToken
+            const nextToken = response.nextPageToken
+            if (nextToken && seenTokens.has(nextToken)) {
+              logger.warn('Stopping Vertex model pagination due to repeated cursor', {
+                providerId: provider.id,
+                publisher,
+                cursor: nextToken
+              })
+              break
+            }
+            if (nextToken) seenTokens.add(nextToken)
+            pageToken = nextToken
           } while (pageToken)
 
           return publisherModels
@@ -442,7 +527,7 @@ const aiHubMixFetcher: ModelFetcher = {
   match: (p) => p.id === SystemProviderIds.aihubmix,
   fetch: async (provider, signal) => {
     const response = await getFromApi({
-      url: `https://aihubmix.com/api/v1/models`,
+      url: `${withoutTrailingSlash(provider.apiHost).replace(/\/v1$/, '')}/api/v1/models`,
       headers: defaultHeaders(provider),
       responseSchema: AIHubMixModelsResponseSchema,
       abortSignal: signal
@@ -496,7 +581,19 @@ const openAICompatibleFetcher: ModelFetcher = {
 const intranetFetcher: ModelFetcher = {
   match: (p) => isIntranetMode() && p.id === SystemProviderIds.intranet,
   fetch: async (provider, signal) => {
+<<<<<<< HEAD
     return openAICompatibleFetcher.fetch(provider, signal)
+=======
+    try {
+      return await openAICompatibleFetcher.fetch(provider, signal)
+    } catch (error) {
+      logger.warn('Using bundled intranet model preset because model API host is not allowlisted', {
+        providerId: provider.id,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      return intranetModels
+    }
+>>>>>>> 6b6931d0d3692a7e60bad52c1e5f6437632b9508
   }
 }
 
@@ -507,6 +604,7 @@ const fetchers: ModelFetcher[] = [
   aiHubMixFetcher,
   ollamaFetcher,
   geminiFetcher,
+  anthropicFetcher,
   vertexFetcher,
   githubFetcher,
   copilotFetcher,
@@ -521,7 +619,7 @@ const fetchers: ModelFetcher[] = [
 
 // === Unsupported providers (skip before registry lookup) ===
 
-const UNSUPPORTED_PROVIDERS = new Set<string>([SystemProviderIds['aws-bedrock'], SystemProviderIds.anthropic])
+const UNSUPPORTED_PROVIDERS = new Set<string>([SystemProviderIds['aws-bedrock']])
 
 function isUnsupported(provider: Provider): boolean {
   return UNSUPPORTED_PROVIDERS.has(provider.id) || provider.type === 'vertex-anthropic'

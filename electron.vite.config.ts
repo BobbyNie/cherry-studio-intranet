@@ -84,6 +84,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    publicDir: resolve('src/renderer/public'),
     define: intranetEnv,
     plugins: [
       (async () => (await import('@tailwindcss/vite')).default())(),

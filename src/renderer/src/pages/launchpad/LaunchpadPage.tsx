@@ -3,7 +3,6 @@ import App from '@renderer/components/MinApp/MinApp'
 import { useMinapps } from '@renderer/hooks/useMinapps'
 import { useRuntime } from '@renderer/hooks/useRuntime'
 import { useSettings } from '@renderer/hooks/useSettings'
-import { isIntranetMode } from '@shared/config/intranet'
 import { Code, FileSearch, Folder, Languages, LayoutGrid, NotepadText, Palette, Sparkle } from 'lucide-react'
 import type { FC, ReactElement } from 'react'
 import { useMemo } from 'react'
@@ -17,7 +16,6 @@ const LaunchpadPage: FC = () => {
   const { defaultPaintingProvider } = useSettings()
   const { pinned } = useMinapps()
   const { openedKeepAliveMinapps } = useRuntime()
-  const intranetMode = isIntranetMode()
 
   const appMenuItems = [
     {
@@ -62,7 +60,7 @@ const LaunchpadPage: FC = () => {
       path: '/code',
       bgColor: 'linear-gradient(135deg, #1F2937, #374151)' // Code CLI：高级暗黑色，代表专业和技术
     },
-    !intranetMode && {
+    {
       icon: <OpenClawIcon className="icon" />,
       text: t('title.openclaw'),
       path: '/openclaw',

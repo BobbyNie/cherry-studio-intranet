@@ -942,6 +942,8 @@
         "label": "Gedankenkettenlänge",
         "low": "Spontan",
         "low_description": "Geringfügige Argumentation",
+        "max": "Max",
+        "max_description": "Maximaler Denkaufwand",
         "medium": "Überlegt",
         "medium_description": "Denken auf mittlerem Niveau",
         "minimal": "Minimal",
@@ -1601,7 +1603,7 @@
     "copy_failed": "Kopieren fehlgeschlagen",
     "current": "Aktuell",
     "cut": "Ausschneiden",
-    "decline": "[to be translated]:Decline",
+    "decline": "Ablehnen",
     "default": "Standard",
     "delete": "Löschen",
     "delete_confirm": "Möchten Sie wirklich löschen?",
@@ -1763,6 +1765,7 @@
     "detail": "Fehlerdetails",
     "details": "Details",
     "diagnosis": {
+      "abnormal_finish": "Antwort wurde abnormal beendet, bitte erneut versuchen oder Modell wechseln",
       "ai_button": "KI-Diagnose",
       "ai_done": "Diagnostiziert",
       "ai_loading": "Wird diagnostiziert",
@@ -1778,10 +1781,13 @@
       "model_conflict": "Diagnosemodell ist identisch mit dem fehlerhaften Modell",
       "network": "Verbindung zum Server nicht möglich, Netzwerk- oder Proxy-Einstellungen prüfen",
       "ocr": "OCR-Engine nicht initialisiert, OCR-Einstellungen prüfen",
+      "output_truncated": "Antwort hat die maximale Länge erreicht und wurde abgeschnitten",
       "parse": "Die KI hat eine ungültige Antwort zurückgegeben, bitte versuchen Sie es erneut oder wechseln Sie das Modell.",
       "payload": "Anfrageinhalt zu groß, bitte verringern Sie die Datei- oder Textgröße",
       "proxy": "Proxy- oder SSL-Zertifikatsfehler, überprüfen Sie die Proxy- und Netzwerkeinstellungen",
-      "quota": "Kontoguthaben aufgebraucht, bitte aufladen oder Anbieter wechseln",
+      "quota": "Kontingent des Kontos ist aufgebraucht. Wenden Sie sich an den Anbieteradministrator oder wechseln Sie zu einem anderen konfigurierten Anbieter",
+      "rate_limit": "Zu viele Anfragen in kurzer Zeit. Bitte kurz warten und erneut versuchen, oder zu einem Modell mit höherer Ratenbegrenzung wechseln",
+      "region": "Der konfigurierte Anbieter hat diese Region abgelehnt. Wenden Sie sich an Ihren Unternehmensadministrator oder wechseln Sie zu einem anderen konfigurierten Anbieter",
       "server": "Serverfehler, bitte später erneut versuchen",
       "stream": "Antwort unterbrochen, überprüfen Sie die Netzwerkstabilität oder versuchen Sie es erneut",
       "unknown": "Ein Fehler ist aufgetreten",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "Anfragefehler. Bitte überprüfen Sie die Anfrageparameter. Falls Modelleinstellungen geändert wurden, setzen Sie diese auf Standardwerte zurück",
       "401": "Authentifizierung fehlgeschlagen. Bitte überprüfen Sie, ob der API-Schlüssel korrekt ist",
+      "402": "Zahlung erforderlich. Wenden Sie sich an den Anbieteradministrator, um die Kontozuweisung zu prüfen, oder wechseln Sie zu einem anderen konfigurierten Anbieter",
       "403": "Zugriff verweigert. Bitte übersetzen Sie die spezifische Fehlermeldung für Details oder kontaktieren Sie den Dienstanbieter",
       "404": "Modell existiert nicht oder Anfragepfad ist fehlerhaft",
       "429": "Anfragelimit überschritten. Bitte versuchen Sie es später erneut",
@@ -2923,7 +2930,7 @@
   },
   "onboarding": {
     "privacy": {
-      "accept_and_continue": "[to be translated]:Accept and Continue",
+      "accept_and_continue": "Akzeptieren und fortfahren",
       "notice": "Durch die Fortsetzung bestätigen Sie, dass Sie gelesen haben und zustimmen",
       "period": ".",
       "policy": "Datenschutzerklärung"
@@ -3407,12 +3414,12 @@
     "zoom_out": "Verkleinern"
   },
   "privacy_policy": {
-    "title": "[to be translated]:Privacy Policy"
+    "title": "Datenschutzrichtlinie"
   },
   "privacy_policy_update": {
-    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
-    "policy": "[to be translated]:Privacy Policy",
-    "title": "[to be translated]:Privacy Policy Updated"
+    "description_before_link": "Wir haben die Datenschutzrichtlinie aktualisiert. Bitte lesen Sie die neueste ",
+    "policy": "Datenschutzrichtlinie",
+    "title": "Datenschutzrichtlinie aktualisiert"
   },
   "prompts": {
     "explanation": "Helfen Sie mir, dieses Konzept zu erklären",
@@ -4757,6 +4764,15 @@
         "japanese": "Japanisch",
         "label": "Zielsprache",
         "russian": "Russisch"
+      }
+    },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
       }
     },
     "launch": {

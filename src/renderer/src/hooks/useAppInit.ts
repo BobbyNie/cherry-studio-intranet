@@ -19,7 +19,7 @@ import { delay, runAsyncFunction } from '@renderer/utils'
 import { checkDataLimit } from '@renderer/utils'
 import { sendToolApprovalNotification } from '@renderer/utils/userConfirmation'
 import { defaultLanguage } from '@shared/config/constant'
-import { isAutoUpdateDisabled, isIntranetMode, isTelemetryDisabled } from '@shared/config/intranet'
+import { isAutoUpdateDisabled, isTelemetryDisabled } from '@shared/config/intranet'
 import { IpcChannel } from '@shared/IpcChannel'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
@@ -81,7 +81,7 @@ export function useAppInit() {
   useFullScreenNotice()
 
   useEffect(() => {
-    if (isIntranetMode() || isTelemetryDisabled()) {
+    if (isTelemetryDisabled()) {
       PrivacyPolicyUpdateNotice.hide()
       return
     }

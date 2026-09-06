@@ -942,6 +942,8 @@
         "label": "Longueur de la chaîne de raisonnement",
         "low": "Court",
         "low_description": "Raisonnement de bas niveau",
+        "max": "Maximum",
+        "max_description": "Effort de raisonnement maximal",
         "medium": "Moyen",
         "medium_description": "Raisonnement de niveau moyen",
         "minimal": "minimal",
@@ -1601,7 +1603,7 @@
     "copy_failed": "Échec de la copie",
     "current": "Actuel",
     "cut": "Couper",
-    "decline": "[to be translated]:Decline",
+    "decline": "Refuser",
     "default": "Défaut",
     "delete": "Supprimer",
     "delete_confirm": "Êtes-vous sûr de vouloir supprimer ?",
@@ -1763,6 +1765,7 @@
     "detail": "Détails de l'erreur",
     "details": "Informations détaillées",
     "diagnosis": {
+      "abnormal_finish": "La réponse s'est terminée anormalement, veuillez réessayer ou changer de modèle",
       "ai_button": "Diagnostic IA",
       "ai_done": "Diagnostiqué",
       "ai_loading": "Diagnostic en cours",
@@ -1778,10 +1781,13 @@
       "model_conflict": "Le modèle de diagnostic est identique au modèle en erreur",
       "network": "Impossible de se connecter au serveur, vérifiez les paramètres réseau ou proxy",
       "ocr": "Moteur OCR non initialisé, vérifiez les paramètres OCR",
+      "output_truncated": "La réponse a atteint la longueur maximale et a été tronquée",
       "parse": "L'IA a renvoyé une réponse invalide, veuillez réessayer ou changer de modèle",
       "payload": "Contenu de la requête trop volumineux, veuillez réduire la taille du fichier ou du texte",
       "proxy": "Erreur de proxy ou de certificat SSL, vérifiez les paramètres proxy et réseau",
-      "quota": "Quota du compte épuisé, veuillez recharger ou changer de fournisseur",
+      "quota": "Quota du compte épuisé. Contactez l’administrateur du fournisseur ou passez à un autre fournisseur configuré",
+      "rate_limit": "Trop de requêtes en peu de temps. Patientez un instant et réessayez, ou passez à un modèle avec une limite de débit plus élevée",
+      "region": "Le fournisseur configuré a refusé cette région. Contactez votre administrateur d’entreprise ou choisissez un autre fournisseur configuré",
       "server": "Erreur serveur, veuillez réessayer plus tard",
       "stream": "Réponse interrompue, vérifiez la stabilité du réseau ou réessayez",
       "unknown": "Une erreur est survenue",
@@ -1793,6 +1799,7 @@
     "http": {
       "400": "Erreur de requête, veuillez vérifier si les paramètres de la requête sont corrects. Si vous avez modifié les paramètres du modèle, réinitialisez-les aux paramètres par défaut.",
       "401": "Échec de l'authentification, veuillez vérifier que votre clé API est correcte.",
+      "402": "Paiement requis. Contactez l’administrateur du fournisseur pour vérifier l’allocation du compte ou passez à un autre fournisseur configuré",
       "403": "Accès interdit, veuillez traduire le message d'erreur spécifique pour connaître la raison ou contacter le fournisseur de services pour demander la raison de l'interdiction.",
       "404": "Le modèle n'existe pas ou la requête de chemin est incorrecte.",
       "429": "Le taux de requêtes dépasse la limite, veuillez réessayer plus tard.",
@@ -2923,7 +2930,7 @@
   },
   "onboarding": {
     "privacy": {
-      "accept_and_continue": "[to be translated]:Accept and Continue",
+      "accept_and_continue": "Accepter et continuer",
       "notice": "En continuant, vous confirmez avoir lu et accepté",
       "period": ".",
       "policy": "Politique de confidentialité"
@@ -3407,12 +3414,12 @@
     "zoom_out": "réduire"
   },
   "privacy_policy": {
-    "title": "[to be translated]:Privacy Policy"
+    "title": "Politique de confidentialité"
   },
   "privacy_policy_update": {
-    "description_before_link": "[to be translated]:We have updated the privacy policy. Please review the latest ",
-    "policy": "[to be translated]:Privacy Policy",
-    "title": "[to be translated]:Privacy Policy Updated"
+    "description_before_link": "Nous avons mis à jour la politique de confidentialité. Veuillez consulter la dernière ",
+    "policy": "Politique de confidentialité",
+    "title": "Politique de confidentialité mise à jour"
   },
   "prompts": {
     "explanation": "Aidez-moi à expliquer ce concept",
@@ -4757,6 +4764,15 @@
         "japanese": "Japonais",
         "label": "Langue cible",
         "russian": "Russe"
+      }
+    },
+    "intranet": {
+      "allowlist": {
+        "description": "[to be translated]:When public network access is disabled, only HTTP(S)/WS(S) requests to these hostnames are allowed. Enter one hostname or URL per line. Wildcards such as *.corp.example.com are supported.",
+        "invalidRule": "[to be translated]:Invalid allowlist rule: {{rule}}",
+        "placeholder": "[to be translated]:llm-gateway.intranet.local\n*.corp.example.com\n127.0.0.1",
+        "save": "[to be translated]:Network allowlist saved",
+        "title": "[to be translated]:Intranet network allowlist"
       }
     },
     "launch": {
